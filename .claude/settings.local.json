@@ -1,4 +1,9 @@
 {
+  "env": {
+    "MAX_THINKING_TOKENS": "10000",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
+  },
   "permissions": {
     "allow": [
       "Read(//mnt/c/Users/Brad/Desktop/**)",
@@ -6,16 +11,11 @@
       "Bash(powershell -NoProfile -Command \".\\\\sync_types.bat\")",
       "Bash(\".\\\\\\\\.venv\\\\\\\\Scripts\\\\\\\\python.exe\" -c \"import main\")",
       "Bash(ls -la \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\"/*.bat)",
-      "Bash(ls -la /c/Users/Brad/Desktop/wine-recommendation-app/backend/*.py)"
+      "Bash(ls -la /c/Users/Brad/Desktop/wine-recommendation-app/backend/*.py)",
+      "Bash(npx skills:*)"
     ]
   },
   "model": "sonnet",
-  "env": {
-    "MAX_THINKING_TOKENS": "10000",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
-  },
-  
   "hooks": {
     "PreToolUse": [
       {

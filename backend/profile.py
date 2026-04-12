@@ -409,6 +409,24 @@ def _format_taste_profile_paragraph(p: dict) -> str:
     return f"Based on cellar and tasting history: {body}."
  
  
+def extract_profile_preference_terms(profile_data: dict) -> dict:
+    """Extract matchable keyword lists from structured profile data.
+
+    Returns a dict with two keys:
+      - ``preferred``: varietal + region terms the owner favours (match against
+        bottle Varietal/Appellation/Region metadata).
+      - ``avoided``: style descriptor terms to hard-exclude (currently empty
+        because CT avoided terms are flavour words, not bottle metadata).
+    """
+    structured = build_taste_profile(profile_data)
+    preferred = (structured.get("top_varietals") or []) + (structured.get("top_regions") or [])
+    # avoided_styles from _infer_avoided_styles contains sensory words (e.g. "oaky")
+    # that do not appear in bottle metadata — excluded from hard-exclusion to avoid
+    # false positives. Wired up here for future use when metadata-matched avoidance
+    # becomes available.
+    return {"preferred": preferred, "avoided": []}
+
+
 def build_enhanced_profile_text() -> str:
     """Build taste profile text from loaded profile data or return owner default."""
     if not PROFILE_DATA_PATH.is_file():
@@ -449,19 +467,29 @@ def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) ->
     logger.info("enrich_profile_with_ollama: starting enrichment with model=%s url=%s", ollama_model, ollama_url)
 
     prompt_text = (
-        "You are a wine expert. Analyse the raw preference data below and "
-        "synthesise a higher-quality palate profile.\n\n"
-        f"Top varietals: {raw.get('top_varietals', [])[:7]}\n"
-        f"Top regions: {raw.get('top_regions', [])[:5]}\n"
+        "You are a master sommelier building a palate profile for a wine buyer.\n"
+        "Your job: translate raw frequency data into STYLE descriptors — focus on "
+        "texture, weight, and flavour character. Ignore grape variety and region labels; "
+        "describe how wines feel and taste, not where they come from.\n\n"
+        f"Top varietals (context only — do NOT echo these as style phrases): {raw.get('top_varietals', [])[:7]}\n"
+        f"Top regions (context only — do NOT echo these as style phrases): {raw.get('top_regions', [])[:5]}\n"
         f"Tasting-note tokens (frequency-ranked): {raw.get('preferred_descriptors', [])}\n"
-        f"Low-score note tokens: {raw.get('avoided_styles', [])}\n"
+        f"Low-score note tokens (disliked): {raw.get('avoided_styles', [])}\n"
         f"Average spend: {raw.get('avg_spend')}\n"
         f"Sample producers: {raw.get('top_producers', [])[:5]}\n\n"
+        "Rules:\n"
+        "- preferred_styles: 3-6 multi-word sensory phrases, e.g. "
+        '"taut mineral-driven whites with laser acidity", '
+        '"silky medium-bodied reds with savoury earth and fine tannin"\n'
+        "- avoided_styles: 2-4 multi-word phrases naming what to avoid, e.g. "
+        '"heavily oaked and over-extracted reds", "sweet or cloying fruit-forward styles"\n'
+        "- style_summary: one sentence, 20-30 words, capturing the overall palate character "
+        "without mentioning specific grapes or regions\n\n"
         "Return ONLY valid JSON — no markdown, no explanation:\n"
         '{\n'
-        '  "preferred_styles": ["3-6 multi-word phrases describing preferred style"],\n'
-        '  "avoided_styles": ["2-4 multi-word phrases describing avoided style"],\n'
-        '  "style_summary": "One sentence, 20-30 words, capturing overall palate character."\n'
+        '  "preferred_styles": [],\n'
+        '  "avoided_styles": [],\n'
+        '  "style_summary": ""\n'
         '}'
     )
     enrichment_schema = {
