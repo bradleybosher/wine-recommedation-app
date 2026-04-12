@@ -223,6 +223,43 @@ def infer_wine_style_from_meal(profile: MealProfile) → List[str]
   Not currently connected to the recommend flow.
 ```
 
+### scorer.py
+
+```python
+@dataclass
+class ScoringResult:
+  total: float               # composite score 0.0–1.0
+  breakdown: Dict[str, float]  # keys: confidence, completeness, grounding, budget_fit
+
+def score_recommendation(
+  response: RecommendationResponse,
+  wine_list_text: str,
+  profile: Optional[TasteProfile] = None
+) → ScoringResult
+  Four-dimension quality score. Weights: confidence 0.30, completeness 0.20,
+  grounding 0.30, budget_fit 0.20.
+  Grounding: case-insensitive substring match; fallback to ≥75% word-token overlap.
+  Budget fit: [budget_min×0.8, budget_max×1.2]; neutral 0.5 if no budget/prices.
+  Never raises; returns neutral ScoringResult(0.5, ...) on internal error.
+```
+
+### logging_utils.py
+
+```python
+def log_recommendation_event(
+  meal: str,
+  profile_hash: str,
+  response: Optional[RecommendationResponse],
+  scoring_result: Optional[ScoringResult],
+  wine_list_hash: str,
+  error: Optional[str] = None
+) → None
+  Append one JSONL line to logs/recommendations.jsonl.
+  Logger: sommelier.recommendations (file-only, propagate=False).
+  response/scoring_result may be None on error path → wine_count=0, score=null.
+  Never raises to caller; internal errors swallowed via logger.exception.
+```
+
 ### routes/debug.py
 
 ```python
