@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  /* Glass blur — generates backdrop-blur-glass utility */
+  --blur-glass: 12px;
+  /* Glass surfaces */
+  --color-glass-surface: rgba(255, 255, 255, 0.10);
+  --color-glass-surface-hover: rgba(255, 255, 255, 0.16);
+  --color-glass-border: rgba(255, 255, 255, 0.20);
+  /* Wine palette */
+  --color-wine-burgundy: #6B1A2B;
+  --color-wine-merlot: #8B2546;
+  --color-wine-purple-deep: #2D1B4E;
+  --color-wine-purple-mid: #4A2370;
+  --color-wine-amber: #C8860A;
+  --color-wine-gold: #D4A017;
+  --color-wine-rose: #C4637A;
+}
+
+@keyframes blob-drift {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(40px, -60px) scale(1.08); }
+  66%       { transform: translate(-30px, 30px) scale(0.94); }
+}
+@keyframes blob-drift-slow {
+  0%, 100% { transform: translate(0px, 0px) scale(1.02); }
+  40%       { transform: translate(-50px, 40px) scale(0.96); }
+  75%       { transform: translate(35px, -45px) scale(1.06); }
+}
+
+/* Ensure html and body take full height */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure the root element takes full height */
+#root {
+  min-height: 100%;
+}

@@ -1,0 +1,502 @@
+{
+  "champagne_grower": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "champagne_house": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "champagne_zero_dosage": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "champagne_blanc_blancs": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "champagne_blanc_noirs": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "champagne_rose": {
+    "score": 0.2333333333333333,
+    "confidence": 1.0,
+    "evidence_count": 189
+  },
+  "cremant": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "pet_nat": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "cava": {
+    "score": 0.5,
+    "confidence": 1.0,
+    "evidence_count": 9
+  },
+  "prosecco": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "english_sparkling": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "sparkling_new_world": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "chard_chablis": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_cote_dor": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_maconnais": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_california": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_australia": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_nz": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "chard_burgundy_style": {
+    "score": 0.11249999999999998,
+    "confidence": 1.0,
+    "evidence_count": 288
+  },
+  "riesling_mosel": {
+    "score": 6.938893903907228e-18,
+    "confidence": 1.0,
+    "evidence_count": 90
+  },
+  "riesling_rheingau": {
+    "score": 0.05555555555555555,
+    "confidence": 1.0,
+    "evidence_count": 81
+  },
+  "riesling_alsace": {
+    "score": -0.03846153846153845,
+    "confidence": 1.0,
+    "evidence_count": 117
+  },
+  "riesling_austria": {
+    "score": 0.125,
+    "confidence": 1.0,
+    "evidence_count": 72
+  },
+  "riesling_australia": {
+    "score": 0.125,
+    "confidence": 1.0,
+    "evidence_count": 72
+  },
+  "riesling_dry": {
+    "score": 0.125,
+    "confidence": 1.0,
+    "evidence_count": 72
+  },
+  "riesling_off_dry": {
+    "score": 0.125,
+    "confidence": 1.0,
+    "evidence_count": 72
+  },
+  "sauv_blanc_loire": {
+    "score": -0.225,
+    "confidence": 1.0,
+    "evidence_count": 180
+  },
+  "sauv_blanc_marlborough": {
+    "score": -0.38888888888888873,
+    "confidence": 1.0,
+    "evidence_count": 81
+  },
+  "sauv_blanc_bordeaux": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 54
+  },
+  "sauv_blanc_other_nw": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 54
+  },
+  "chenin_loire_dry": {
+    "score": 0.10999999999999996,
+    "confidence": 1.0,
+    "evidence_count": 270
+  },
+  "chenin_loire_sweet": {
+    "score": 0.10999999999999996,
+    "confidence": 1.0,
+    "evidence_count": 270
+  },
+  "chenin_sa": {
+    "score": 0.3,
+    "confidence": 1.0,
+    "evidence_count": 144
+  },
+  "gruner_veltliner": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "albarino_txakoli": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "alsace_gewurz": {
+    "score": -0.30000000000000004,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "alsace_pinot_gris": {
+    "score": 0.19999999999999993,
+    "confidence": 1.0,
+    "evidence_count": 405
+  },
+  "viognier_condrieu": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "vermentino_greco": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "fiano_falanghina": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "pinot_gris_alsace": {
+    "score": 0.25625,
+    "confidence": 1.0,
+    "evidence_count": 576
+  },
+  "pinot_grigio_italy": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "white_rhone": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "white_bordeaux": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "soave_garganega": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "verdicchio": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "muscadet": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "skin_contact": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "pinot_burgundy": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "pinot_oregon": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "pinot_california": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "pinot_nz": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "pinot_germany": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "pinot_australia": {
+    "score": 0.26249999999999996,
+    "confidence": 1.0,
+    "evidence_count": 360
+  },
+  "cab_bordeaux_left": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "cab_bordeaux_right": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 63
+  },
+  "cab_napa": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "cab_sonoma": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "cab_australia": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "cab_chile": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "cab_wa_state": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 45
+  },
+  "syrah_northern_rhone": {
+    "score": 0.25,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "syrah_southern_rhone": {
+    "score": 0.25,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "shiraz_barossa": {
+    "score": -0.16666666666666669,
+    "confidence": 1.0,
+    "evidence_count": 27
+  },
+  "shiraz_mclaren_vale": {
+    "score": -0.16666666666666669,
+    "confidence": 1.0,
+    "evidence_count": 27
+  },
+  "shiraz_cool_climate": {
+    "score": -0.16666666666666669,
+    "confidence": 1.0,
+    "evidence_count": 27
+  },
+  "syrah_california": {
+    "score": 0.25,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "barolo": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "barbaresco": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "langhe_nebbiolo": {
+    "score": 1.0,
+    "confidence": 1.0,
+    "evidence_count": 9
+  },
+  "brunello": {
+    "score": -0.25,
+    "confidence": 1.0,
+    "evidence_count": 90
+  },
+  "chianti_classico": {
+    "score": -0.25,
+    "confidence": 1.0,
+    "evidence_count": 90
+  },
+  "vino_nobile": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "morellino": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "etna_rosso": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "aglianico": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "amarone_valpolicella": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "dolcetto_barbera": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "loire_cab_franc": {
+    "score": -0.21052631578947367,
+    "confidence": 1.0,
+    "evidence_count": 171
+  },
+  "trousseau_jura": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "poulsard_jura": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "beaujolais_cru": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "beaujolais_village": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "grenache_rhone": {
+    "score": -0.5,
+    "confidence": 0.9888888888888887,
+    "evidence_count": 9
+  },
+  "grenache_spain": {
+    "score": -0.5,
+    "confidence": 0.9888888888888887,
+    "evidence_count": 9
+  },
+  "gsm_australia": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "rioja": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "ribera_del_duero": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "priorat": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "malbec_mendoza": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 27
+  },
+  "malbec_high_altitude": {
+    "score": -0.5,
+    "confidence": 1.0,
+    "evidence_count": 18
+  },
+  "carmenere_chile": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "sa_chenin_red": {
+    "score": 0.3,
+    "confidence": 1.0,
+    "evidence_count": 144
+  },
+  "sa_pinotage": {
+    "score": 0.8333333333333331,
+    "confidence": 1.0,
+    "evidence_count": 27
+  },
+  "sa_cab_stellenbosch": {
+    "score": -0.14285714285714285,
+    "confidence": 1.0,
+    "evidence_count": 63
+  },
+  "sa_syrah_swartland": {
+    "score": 0.25,
+    "confidence": 1.0,
+    "evidence_count": 36
+  },
+  "sauternes_botrytis": {
+    "score": 0.0,
+    "confidence": 0.9888888888888887,
+    "evidence_count": 9
+  },
+  "port": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "sherry": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  },
+  "dessert_other": {
+    "score": 0.0,
+    "confidence": 0.0,
+    "evidence_count": 0
+  }
+}
