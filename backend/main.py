@@ -1,11 +1,9 @@
 import base64
-from collections import Counter
 import hashlib
 import json
 import logging
 import os
 from pathlib import Path
-import re
 import time
 import uuid
 from typing import Optional, Dict, Any
@@ -15,6 +13,9 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+import re
+from collections import Counter
+
 from inventory import (
     decode_cellartracker_upload,
     save_inventory,
@@ -23,7 +24,7 @@ from inventory import (
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
@@ -266,25 +267,30 @@ async def recommend(
         except (json.JSONDecodeError, ValueError):
             logger.warning("cached response failed validation, regenerating")
 
-    # Parse wine list
-    wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
-    wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
-    taste_profile = build_taste_profile_pydantic(load_profile_data())
-
-    # Determine image upload path
+    # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
+    from parser import OCRError
     media_type = (wine_list.content_type or "").lower()
     is_image_upload = media_type.startswith("image/") or any(
         (wine_list.filename or "").lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
     )
-    image_b64 = base64.standard_b64encode(raw_bytes).decode() if is_image_upload else None
 
-    # Build system prompt with cellar context
-    top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
-    cellar_summary = _cellar_character_from_terms(top5_terms)
-    override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
-    terms = override_terms if override_terms else _inventory_terms_by_frequency(bottles, limit=10)
-    logger.info("recommend_terms source=%s terms=%s", "override" if override_terms else "derived", terms)
-    relevant = get_relevant_bottles(bottles, terms)
+    image_b64: Optional[str] = None
+    try:
+        wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
+    except OCRError as exc:
+        # OCR failed — attempt multimodal path (requires a vision-capable Ollama model).
+        # If the model is text-only this will also fail, but at least it won't silently
+        # recommend from the cellar.
+        logger.warning("recommend: OCR failed (%s); attempting multimodal fallback", exc)
+        if is_image_upload:
+            image_b64 = base64.standard_b64encode(raw_bytes).decode()
+            wine_list_text = ""
+        else:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
+    taste_profile = build_taste_profile_pydantic(load_profile_data())
+
     enriched_profile = None
     try:
         logger.info("recommend: attempting to build enriched profile with ollama_url=%s ollama_model=%s", OLLAMA_URL, OLLAMA_MODEL)
@@ -302,6 +308,14 @@ async def recommend(
 
     if enriched_profile is None:
         logger.info("recommend: using standard profile (enrichment not available)")
+
+    top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
+    cellar_summary = _cellar_character_from_terms(top5_terms)
+    override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
+    terms = override_terms if override_terms else _inventory_terms_by_frequency(bottles, limit=10)
+    logger.info("recommend_terms source=%s terms=%s", "override" if override_terms else "derived", terms)
+    profile_prefs = extract_profile_preference_terms(load_profile_data())
+    relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
     meal_hints = meal_to_wine_hints(parse_meal_description(meal))
     system = build_system_prompt(relevant, cellar_summary=cellar_summary, taste_profile_override=enriched_profile, meal_hints=meal_hints)
