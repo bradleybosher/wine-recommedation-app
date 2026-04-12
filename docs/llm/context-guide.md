@@ -133,6 +133,25 @@ This guide maps common task types to the documentation you should include when a
 
 ---
 
+## Analysing Recommendation Quality / Scoring
+
+**Task**: "Tune scoring weights", "Why is grounding low?", "Add a new scoring dimension", "Inspect recommendations.jsonl"
+
+**Include**:
+1. `interfaces.md` → scorer.py + logging_utils.py sections — `ScoringResult` fields, `score_recommendation()` signature, JSONL schema
+2. `modules/main.md` — How scoring is called (non-blocking, post-LLM, pre-cache)
+3. `architecture.md` → Data flow — Where scorer + logger sit in the pipeline
+4. `modules/models.md` or `interfaces.md` → models — `WineRecommendation.confidence`, `TasteProfile.budget_min/max` (inputs to scorer)
+
+**Key facts**:
+- JSONL log: `logs/recommendations.jsonl` — one line per request (success or error)
+- Scorer never raises; returns neutral 0.5 result on internal error
+- Logger never raises; swallows own exceptions so the response path is never blocked
+- `wine_list_hash` is MD5[:8] of parsed text, not raw file bytes
+- Analysis snippet: `[json.loads(l) for l in open("logs/recommendations.jsonl")]`
+
+---
+
 ## Writing Tests
 
 **Task**: "How do I test the profile inference?" or "Set up integration test"
@@ -177,7 +196,7 @@ This guide maps common task types to the documentation you should include when a
 | conventions.md | Patterns, error handling, libraries | 600 |
 | architecture.md | Stack, module map, data flow | 300 |
 | interfaces.md | All public function signatures | 800 |
-| modules/main.md | FastAPI app, endpoints | 250 |
+| modules/main.md | FastAPI app, endpoints | 280 |
 | modules/recommender.md | LLM calls, JSON parsing | 200 |
 | modules/prompt.md | System prompt construction | 150 |
 | modules/profile.md | Taste profile inference | 250 |

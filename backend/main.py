@@ -36,6 +36,8 @@ from models import (
 from meal_parser import parse_meal_description, meal_to_wine_hints
 from parser import parse_wine_list
 from recommender import get_recommendation
+from scorer import score_recommendation
+from logging_utils import log_recommendation_event
 
 # Import debug routes
 from routes.debug import router as debug_router
@@ -266,6 +268,8 @@ async def recommend(
 
     # Parse wine list
     wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
+    wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
+    taste_profile = build_taste_profile_pydantic(load_profile_data())
 
     # Determine image upload path
     media_type = (wine_list.content_type or "").lower()
@@ -305,10 +309,24 @@ async def recommend(
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])
 
     # Get recommendation from LLM
-    recommendation = get_recommendation(
-        wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
-    )
-
-    # Cache and return
-    set_cached(cache_key, recommendation.model_dump_json())
-    return recommendation
+    try:
+        recommendation = get_recommendation(
+            wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
+        )
+        try:
+            scoring_result = score_recommendation(recommendation, wine_list_text, taste_profile)
+            log_recommendation_event(meal, profile_hash, recommendation, scoring_result, wine_list_hash)
+        except Exception as score_err:
+            logger.exception("scoring_and_logging_failed: %s", score_err)
+        set_cached(cache_key, recommendation.model_dump_json())
+        return recommendation
+    except HTTPException as exc:
+        log_recommendation_event(meal, profile_hash, None, None, wine_list_hash, error=str(exc.detail))
+        raise
+    except Exception as exc:
+        log_recommendation_event(meal, profile_hash, None, None, wine_list_hash, error=f"{type(exc).__name__}: {exc}")
+        logger.exception("recommend_provider_error error=%s", type(exc).__name__)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Recommendation provider failed: {type(exc).__name__}",
+        ) from exc

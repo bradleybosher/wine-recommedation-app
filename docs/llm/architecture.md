@@ -20,6 +20,8 @@ Backend (Python)
 ├── cache.py               → SQLite response caching, hashing
 ├── parser.py              → PDF/text/image dispatch, text extraction
 ├── meal_parser.py         → Meal description → MealProfile dataclass → pairing hints string
+├── scorer.py              → Recommendation quality scoring (4-dimension, 0–1 float)
+├── logging_utils.py       → Structured JSONL event logger (logs/recommendations.jsonl)
 └── routes/debug.py        → Diagnostics endpoints (health, status, logs, cache)
 
 Frontend (React)
@@ -69,7 +71,19 @@ Backend builds recommendation request
   → Repair truncated JSON (brace counting); strip markdown fences
   → Detect garbage keys (empty key or "<|" special tokens)
   → Validate through RecommendationResponse Pydantic model
-  → Cache result in SQLite
+
+scorer.py: score_recommendation(response, wine_list_text, taste_profile)
+  → confidence: avg mapped score (high=1.0, medium=0.67, low=0.33), weight 0.30
+  → completeness: min(len(recs)/3, 1.0), weight 0.20
+  → grounding: fraction of wine names found in wine_list_text (substring + fuzzy), weight 0.30
+  → budget_fit: fraction of priced recs within [budget_min×0.8, budget_max×1.2], weight 0.20
+  → Returns ScoringResult(total: float, breakdown: dict)
+
+logging_utils.py: log_recommendation_event(...)
+  → Appends one JSONL line to logs/recommendations.jsonl
+  → Includes meal, profile_hash, wine_list_hash, wines[], score, score_breakdown, error
+
+Cache result in SQLite
 
 Return to frontend
   → RecommendationResponse (JSON array of WineRecommendation)
@@ -97,6 +111,7 @@ Return to frontend
 - prompt.py (system prompt refinements)
 - profile.py (taste profile inference heuristics)
 - parser.py (new file type support, OCR)
+- scorer.py (scoring weights and grounding heuristics may be tuned)
 - routes/debug.py (diagnostic endpoints)
 
 **Volatile (UX iteration):**
