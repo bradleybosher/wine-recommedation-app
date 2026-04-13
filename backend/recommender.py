@@ -3,6 +3,7 @@
 import base64
 import json
 import logging
+import logging.handlers
 import re
 from pathlib import Path
 from typing import Optional
@@ -20,7 +21,9 @@ _log_dir = Path(__file__).resolve().parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
 _llm_logger = logging.getLogger("sommelier.llm.raw")
 if not _llm_logger.handlers:
-    _llm_handler = logging.FileHandler(_log_dir / "llm.log", encoding="utf-8")
+    _llm_handler = logging.handlers.RotatingFileHandler(
+        _log_dir / "llm.log", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
+    )
     _llm_handler.setFormatter(
         logging.Formatter("%(asctime)s [attempt=%(attempt)s]\n%(message)s\n" + "=" * 80)
     )
