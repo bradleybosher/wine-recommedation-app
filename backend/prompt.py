@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import os
 from pathlib import Path
 from profile import build_enhanced_profile_text
@@ -8,9 +9,8 @@ _log_dir.mkdir(parents=True, exist_ok=True)
 
 _prompt_logger = logging.getLogger("prompt.debug")
 if not _prompt_logger.handlers:
-    _handler = logging.FileHandler(
-        _log_dir / "prompt.log",
-        encoding="utf-8",
+    _handler = logging.handlers.RotatingFileHandler(
+        _log_dir / "prompt.log", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
     )
     _handler.setFormatter(logging.Formatter("%(asctime)s\n%(message)s\n" + "=" * 80))
     _prompt_logger.addHandler(_handler)

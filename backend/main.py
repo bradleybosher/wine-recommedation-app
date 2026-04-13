@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import logging
+import logging.handlers
 import os
 from pathlib import Path
 import time
@@ -21,6 +22,7 @@ from inventory import (
     save_inventory,
     load_inventory,
     get_relevant_bottles,
+    filter_wine_list,
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
@@ -53,11 +55,13 @@ _log_path = _log_dir / "api.log"
 # share the same file and stream handlers.
 _root_logger = logging.getLogger("sommelier")
 if not _root_logger.handlers:
-    _root_logger.setLevel(logging.INFO)
+    _root_logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s %(levelname)s [%(name)s] %(message)s"
     )
-    file_handler = logging.FileHandler(_log_path, encoding="utf-8")
+    file_handler = logging.handlers.RotatingFileHandler(
+        _log_path, maxBytes=1_000_000, backupCount=2, encoding="utf-8"
+    )
     file_handler.setFormatter(formatter)
     _root_logger.addHandler(file_handler)
     _root_logger.addHandler(logging.StreamHandler())
@@ -290,6 +294,24 @@ async def recommend(
 
     wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
     taste_profile = build_taste_profile_pydantic(load_profile_data())
+
+    # Remove invisible unicode characters (zero-width spaces, BOM, soft hyphens,
+    # directional marks) that OCR/PDF extraction commonly produces, then strip
+    # each line and drop blanks so the filter operates on genuinely clean text.
+    _INVISIBLE_RE = re.compile(r"[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+    wine_list_text = _INVISIBLE_RE.sub("", wine_list_text)
+    wine_list_text = "\n".join(
+        line.strip() for line in wine_list_text.splitlines() if line.strip()
+    )
+
+    _before = len(wine_list_text.splitlines())
+    wine_list_text = filter_wine_list(wine_list_text, taste_profile)
+    # Final pass: drop any blank lines the filter may have re-introduced
+    wine_list_text = "\n".join(
+        line for line in wine_list_text.splitlines() if line.strip()
+    )
+    _after = len(wine_list_text.splitlines())
+    logger.debug("wine_list_filter before=%d lines, after=%d lines", _before, _after)
 
     enriched_profile = None
     try:
