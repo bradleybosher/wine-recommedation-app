@@ -67,7 +67,7 @@ or if a bottle is worth ordering specifically because they don't have it.
       "vintage": "integer or null",
       "region": "string or null",
       "price": "number or null",
-      "reasoning": "string (2-4 sentences — lead with 'Like your [owned bottle], but [how it differs/excels]'; contrast avoided styles where relevant)",
+      "reasoning": "string (2-4 sentences — if a cellar bottle is a close match, open with 'Like your [Producer Wine], but [how it differs]'; otherwise open by naming a concrete taste profile preference; contrast avoided styles where relevant)",
       "confidence": "string — 'high|medium|low — short clause explaining why, e.g. high — hits your preference for grower Champagne with mineral complexity'"
     }
   ],
@@ -93,7 +93,7 @@ significantly better value than alternatives with equal profile fit.
 {schema}
 
 Notes for reasoning field (follow this structure exactly):
-1. PERSONAL COMPARISON (required): Open with "Like your [specific bottle the user owns from the cellar list], but [how this wine differs or excels]." If no close cellar match exists, anchor to a style they strongly prefer instead.
+1. PERSONAL COMPARISON: If a bottle from the cellar list is a genuine stylistic match, open with "Like your [Producer + Wine name], but [how this wine differs or excels]." ONLY use this opener when you can name a specific bottle from the cellar list — do NOT use it if there is no close match. If there is no close cellar match, skip this opener entirely and instead open by referencing a named style or preference from the taste profile directly (e.g., "Delivers the mineral-driven acidity you consistently reach for").
 2. CONTRAST (where relevant): Follow with "Unlike [an avoided bottle/style from the profile], no [unwanted trait]." Only include if it adds genuine distinction.
 3. FOOD CONTEXT (secondary): Briefly note meal synergy only if it adds insight beyond the profile match.
 4. CELLAR NOTE: If outclassed by something they own, say so; if worth ordering despite owning something similar, explain why.
