@@ -98,6 +98,18 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - **Enrichment safety**: `enrich_profile_with_ollama()` catches all exceptions and returns `raw` unchanged. The 30-second timeout prevents enrichment from blocking the recommend call.
 - **style_summary vs. paragraph**: If enrichment succeeds, `build_enriched_profile_text()` returns `"{style_summary} {paragraph}"`. If enrichment failed/empty, returns just the paragraph.
 
+**derive_taste_markers(descriptors)** → dict:
+  - Joins all descriptor strings into a single lowercase text blob
+  - Scores Acidity, Tannin, Body, and Oak on a 1–5 integer scale using keyword heuristics
+  - Default score = 3 (medium); each matching high-indicator keyword adds 1, each low-indicator subtracts 1; clamped to [1, 5]
+  - High/low keyword sets per dimension:
+    - Acidity high: crisp, tart, bright, mineral, zesty, lively, laser, sharp, vivid, electric, piercing, racy, tense
+    - Tannin high: tannic, grippy, structured, firm, chewy, muscular, angular, astringent, powerful, robust, tight
+    - Body high: full, rich, generous, weighty, bold, concentrated, powerful, big, broad, dense, heavy
+    - Oak high: oaky, toasty, vanilla, cedar, smoky, spiced, barrel, woody, buttery, creamy, toast
+  - Returns dict with keys: `acidity`, `tannin`, `body`, `oak` — suitable for `TasteMarkers(**result)`
+  - No LLM call; purely deterministic from descriptor tokens
+
 ## Known Issues / TODOs
 
 - Negative indicators hardcoded; should be tunable or learned.

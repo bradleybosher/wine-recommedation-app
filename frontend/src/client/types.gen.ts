@@ -183,6 +183,30 @@ export type Bottle = {
 };
 
 /**
+ * CellarStats
+ *
+ * Aggregate statistics computed from the user's cellar inventory.
+ */
+export type CellarStats = {
+    /**
+     * Totalbottles
+     */
+    totalBottles?: number;
+    /**
+     * Uniquewines
+     */
+    uniqueWines?: number;
+    /**
+     * Vintageoldest
+     */
+    vintageOldest?: number | null;
+    /**
+     * Vintagenewest
+     */
+    vintageNewest?: number | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -244,6 +268,12 @@ export type ProfileSummaryResponse = {
      * Avgspend
      */
     avgSpend?: number | null;
+    /**
+     * Stylesummary
+     */
+    styleSummary?: string | null;
+    tasteMarkers?: TasteMarkers | null;
+    cellarStats?: CellarStats | null;
 };
 
 /**
@@ -262,6 +292,30 @@ export type RecommendationResponse = {
      * Profilematchsummary
      */
     profileMatchSummary: string;
+};
+
+/**
+ * TasteMarkers
+ *
+ * Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high).
+ */
+export type TasteMarkers = {
+    /**
+     * Acidity
+     */
+    acidity?: number;
+    /**
+     * Tannin
+     */
+    tannin?: number;
+    /**
+     * Body
+     */
+    body?: number;
+    /**
+     * Oak
+     */
+    oak?: number;
 };
 
 /**
