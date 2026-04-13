@@ -1,9 +1,8 @@
 # 🚀 Project: Wine Recommender App
 **Status:** In Progress (Alpha)
-**Last Sync:** 2026-04-12
+**Last Sync:** 2026-04-13
 
 ## 🛠 Active Tasks
-- [ ] Improve logging so things rollover/removed
 - [ ] Filter menu more aggressively to remove non wine content and bottles that are unlikely to work. 
 
 ## 🧠 Stream of Consciousness / Ideas
@@ -14,9 +13,9 @@
 - **Question:** Do we need better profiling or focus on recommendations?
 
 ## 🐞 Known Bugs
-- [ ] Trying to upload a second list usually errors.
+- [ ] Prompt still includes food and whitespace.
 - [ ] Profile data includes very generic wording.
 
 ## 📋 Next Session Goals
-1. Fully test existing ‘recommend’ against 5 wine lists.
+1. Finalise wine list filter.
 2. Generate fake profiles different to mine for testing.
