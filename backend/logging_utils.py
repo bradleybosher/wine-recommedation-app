@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.handlers
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -26,8 +27,8 @@ _log_dir.mkdir(parents=True, exist_ok=True)
 
 _logger = logging.getLogger("sommelier.recommendations")
 if not _logger.handlers:
-    _handler = logging.FileHandler(
-        _log_dir / "recommendations.jsonl", encoding="utf-8"
+    _handler = logging.handlers.RotatingFileHandler(
+        _log_dir / "recommendations.jsonl", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
     )
     _handler.setFormatter(logging.Formatter("%(message)s"))
     _logger.addHandler(_handler)

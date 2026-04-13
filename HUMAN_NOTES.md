@@ -3,7 +3,7 @@
 **Last Sync:** 2026-04-12
 
 ## 🛠 Active Tasks
-- [ ] Improve logging so tjinhs rollover/removed
+- [ ] Improve logging so things rollover/removed
 - [ ] Filter menu more aggressively to remove non wine content and bottles that are unlikely to work. 
 
 ## 🧠 Stream of Consciousness / Ideas
