@@ -232,6 +232,27 @@ _FOOD_KEYWORDS: frozenset[str] = frozenset([
     "served with", "accompanied by",
 ])
 
+# Non-wine beverage keywords.  These are terms that essentially never appear in
+# wine names; a line containing one of these (with no offsetting wine signal) is
+# dropped in the Phase 0 pre-pass regardless of taste profile.
+_NON_WINE_BEVERAGE_KEYWORDS: frozenset[str] = frozenset([
+    # Spirits
+    "whisky", "whiskey", "bourbon", "scotch", "vodka", "rum", "tequila",
+    "mezcal", "cognac", "armagnac", "brandy", "gin", "absinthe",
+    # Liqueurs
+    "triple sec", "cointreau", "kahlua", "baileys", "amaretto",
+    "sambuca", "limoncello",
+    # Beer
+    "lager", "stout", "pilsner", "pilsener", "pale ale", "wheat beer",
+    "craft beer", "draught beer", "draft beer", "ipa",
+    # Cocktails
+    "cocktail",
+    # Non-alcoholic
+    "sparkling water", "still water", "mineral water", "soft drink",
+    "espresso", "cappuccino", "latte", "americano", "hot chocolate",
+    "coffee", "juices",
+])
+
 
 def _extract_price(line: str) -> float | None:
     """Return the first numeric price found in a line, or None."""
@@ -242,6 +263,23 @@ def _extract_price(line: str) -> float | None:
         except (ValueError, TypeError):
             pass
     return None
+
+
+def _is_floating_currency(line: str) -> bool:
+    """True if the line contains only a price/currency value with no wine content.
+
+    Matches lines like '$45', '175 / 250', '£ 120', '€ 85/175'.
+    Requires at least one digit, a currency symbol or price separator (/ |),
+    and nothing remaining after all price characters are stripped.
+    A bare year like '2019' is NOT matched (no separator/symbol present).
+    """
+    stripped = line.strip()
+    if not stripped or not re.search(r"\d", stripped):
+        return False
+    if not re.search(r"[£$€/|]", stripped):
+        return False
+    remainder = re.sub(r"[\d\s£$€./|,]", "", stripped)
+    return len(remainder) == 0
 
 
 def _is_structural_line(line: str) -> bool:
@@ -279,6 +317,26 @@ def _is_food_line(line: str) -> bool:
     return any(fw in folded for fw in _FOOD_KEYWORDS)
 
 
+def _is_non_wine_beverage(line: str, folded_wine_keywords: list[str]) -> bool:
+    """True if the line describes a non-wine beverage and carries no wine signal.
+
+    A line is only dropped when it contains a non-wine beverage keyword (spirit,
+    beer, cocktail, non-alcoholic drink) AND has neither a vintage year nor a
+    known wine varietal/region keyword.  The dual check prevents false positives
+    on lines like 'Grappa di Barolo' (has wine keyword) or '2019 Brandy-oaked
+    Chardonnay' (has vintage).
+    """
+    stripped = line.strip()
+    if not stripped:
+        return False
+    if _VINTAGE_RE.search(stripped):
+        return False
+    folded = _fold_for_match(stripped)
+    if any(kw in folded for kw in folded_wine_keywords):
+        return False
+    return any(kw in folded for kw in _NON_WINE_BEVERAGE_KEYWORDS)
+
+
 def _score_wine_line(line: str, profile: TasteProfile) -> float:
     """Score a single wine list line against the taste profile."""
     folded = _fold_for_match(line)
@@ -310,20 +368,28 @@ def _score_wine_line(line: str, profile: TasteProfile) -> float:
 def filter_wine_list(wine_list_text: str, profile: TasteProfile | None) -> str:
     """Pre-filter a raw restaurant wine list to remove poor profile matches and food items.
 
-    Processes the text line by line.  Structural lines (blank, section headers,
-    very short lines) are passed through unchanged to preserve list formatting.
-    Lines that look like wine entries are scored against the taste profile; those
-    scoring below -1 are dropped.  Lines that look like food menu items (cooking
-    methods, dish categories) are dropped unconditionally.
+    Two-phase pipeline:
+
+    Phase 0 (unconditional): removes floating currency lines (price-only rows)
+    and non-wine beverage lines (spirits, beer, cocktails, non-alcoholic drinks)
+    before any wine assessment occurs.  Runs regardless of whether a taste
+    profile is present.
+
+    Phase 1 (profile-gated): processes the Phase 0 output line by line.
+    Structural lines (blank, section headers, very short lines) are passed
+    through unchanged to preserve list formatting.  Lines that look like wine
+    entries are scored against the taste profile; those scoring below -1 are
+    dropped.  Food menu items (cooking methods, dish categories) are dropped
+    unconditionally.
 
     Safety valve: if scoring alone would remove more than 60% of identified wine
-    candidate lines, the original text is returned unchanged to prevent
+    candidate lines, the Phase 0 output is returned unchanged to prevent
     over-filtering on short or oddly-formatted lists.
 
     Args:
         wine_list_text: Raw text produced by parse_wine_list().
         profile: User's TasteProfile.  If None or has no preference signals,
-            the original text is returned unchanged.
+            the Phase 0 result is returned without further scoring.
 
     Returns:
         Filtered wine list text (newline-joined).
@@ -332,28 +398,54 @@ def filter_wine_list(wine_list_text: str, profile: TasteProfile | None) -> str:
         logger.debug("wine_list_filter: empty input, returning unchanged")
         return wine_list_text
 
-    if profile is None or (
-        not profile.preferred_grapes
-        and not profile.preferred_regions
-        and not profile.avoided_styles
-    ):
-        logger.debug("wine_list_filter: no profile signals, returning unchanged")
-        return wine_list_text
-
-    logger.debug(
-        "wine_list_filter: input %d lines | grapes=%s regions=%s avoided=%s budget_max=%s",
-        len(wine_list_text.splitlines()),
-        profile.preferred_grapes,
-        profile.preferred_regions,
-        profile.avoided_styles,
-        profile.budget_max,
-    )
-    logger.debug("wine_list_filter: input text=\n%s", wine_list_text)
-
     try:
         folded_wine_keywords = [_fold_for_match(kw) for kw in _WINE_STYLE_KEYWORDS]
-        lines = wine_list_text.splitlines()
 
+        # ------------------------------------------------------------------
+        # Phase 0: structural pre-filter — remove lines that are never wine
+        # entries, regardless of taste profile.
+        # ------------------------------------------------------------------
+        beverage_drop_count = 0
+        currency_drop_count = 0
+        phase0_lines: list[str] = []
+        for line in wine_list_text.splitlines():
+            if _is_floating_currency(line):
+                logger.debug("wine_list_filter: drop currency  | %s", line.strip())
+                currency_drop_count += 1
+            elif _is_non_wine_beverage(line, folded_wine_keywords):
+                logger.debug("wine_list_filter: drop beverage  | %s", line.strip())
+                beverage_drop_count += 1
+            else:
+                phase0_lines.append(line)
+
+        if beverage_drop_count or currency_drop_count:
+            logger.debug(
+                "wine_list_filter: phase0 dropped %d beverage, %d currency lines",
+                beverage_drop_count,
+                currency_drop_count,
+            )
+
+        # ------------------------------------------------------------------
+        # Phase 1: profile-based scoring — skip if no preference signals.
+        # ------------------------------------------------------------------
+        if profile is None or (
+            not profile.preferred_grapes
+            and not profile.preferred_regions
+            and not profile.avoided_styles
+        ):
+            logger.debug("wine_list_filter: no profile signals, returning phase0 result")
+            return "\n".join(phase0_lines)
+
+        logger.debug(
+            "wine_list_filter: phase1 input %d lines | grapes=%s regions=%s avoided=%s budget_max=%s",
+            len(phase0_lines),
+            profile.preferred_grapes,
+            profile.preferred_regions,
+            profile.avoided_styles,
+            profile.budget_max,
+        )
+
+        lines = phase0_lines
         candidate_count = 0
         score_drop_count = 0
         food_drop_count = 0
@@ -395,14 +487,16 @@ def filter_wine_list(wine_list_text: str, profile: TasteProfile | None) -> str:
             pct = int(score_drop_count * 100 / candidate_count)
             if pct > 60:
                 logger.warning(
-                    "wine_list_filter: would remove %d%% of entries, skipping filter", pct
+                    "wine_list_filter: would remove %d%% of entries, skipping phase1 filter", pct
                 )
-                return wine_list_text
+                return "\n".join(phase0_lines)
 
         result = "\n".join(line for line, kept in zip(lines, keep) if kept)
         logger.debug(
-            "wine_list_filter: output %d lines (dropped %d food, %d unknown, %d low-score of %d candidates)",
+            "wine_list_filter: output %d lines (dropped %d currency, %d beverage, %d food, %d unknown, %d low-score of %d candidates)",
             len(result.splitlines()),
+            currency_drop_count,
+            beverage_drop_count,
             food_drop_count,
             unknown_drop_count,
             score_drop_count,
