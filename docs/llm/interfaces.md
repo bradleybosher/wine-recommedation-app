@@ -24,6 +24,8 @@ def get_inventory() → InventoryResponse
 @app.get("/profile-summary")
 def profile_summary() → ProfileSummaryResponse
   Build taste profile from saved profile data. Returns top varietals, regions, etc.
+  Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
+  cellar_stats (total_bottles, unique_wines, vintage range from inventory).
 
 @app.post("/recommend")
 async def recommend(wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
@@ -72,11 +74,21 @@ class UploadProfileResponse(BaseModel):
   message: str
   taste_profile: Optional[TasteProfile] = None  # Derived immediately on upload
 
+class TasteMarkers(BaseModel):
+  acidity, tannin, body, oak: int  # 1–5 scale
+
+class CellarStats(BaseModel):
+  total_bottles, unique_wines: int
+  vintage_oldest, vintage_newest: Optional[int]
+
 class ProfileSummaryResponse(BaseModel):
   top_varietals, top_regions, top_producers: List[str]
   highly_rated: List[Dict[str, str]]
   preferred_descriptors, avoided_styles: List[str]
   avg_spend: Optional[int]
+  style_summary: Optional[str]      # Ollama palate portrait sentence
+  taste_markers: Optional[TasteMarkers]
+  cellar_stats: Optional[CellarStats]
 ```
 
 ### recommender.py
@@ -151,6 +163,10 @@ def _infer_avoided_styles(profile_data: dict) → List[str]
   Scan tasting notes (type "notes", "consumed") for wines with low scores.
   Auto-detect score scale (max > 10 → 100-pt scale, threshold 60; else 5-pt scale, threshold 3.0).
   Only count tokens in hardcoded negative_indicator_words set. Return top 10 with freq ≥ 2.
+
+def derive_taste_markers(descriptors: List[str]) → dict
+  Heuristic keyword scan of preferred descriptors. Returns {acidity, tannin, body, oak} as int 1–5.
+  No LLM call — deterministic. Default score 3; ±1 per matching high/low keyword; clamped [1,5].
 ```
 
 ### inventory.py

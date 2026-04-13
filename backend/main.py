@@ -26,12 +26,14 @@ from inventory import (
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
     UploadProfileResponse,
     ProfileSummaryResponse,
+    TasteMarkers,
+    CellarStats,
     RecommendRequest,
     RecommendationResponse,
     Bottle
@@ -245,7 +247,40 @@ def get_inventory() -> InventoryResponse:
 @app.get("/profile-summary")
 def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
-    return ProfileSummaryResponse(**profile_data)
+
+    # Heuristic taste markers (instant — no LLM needed)
+    markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
+    taste_markers = TasteMarkers(**markers_dict)
+
+    # Cellar stats from inventory (fast local file read)
+    inv = load_inventory() or {}
+    raw_bottles = inv.get("bottles", [])
+    vintages = [
+        int(b["vintage"]) for b in raw_bottles
+        if str(b.get("vintage", "")).strip().isdigit()
+    ]
+    cellar_stats = CellarStats(
+        total_bottles=sum(int(b.get("quantity", 1) or 1) for b in raw_bottles),
+        unique_wines=len(raw_bottles),
+        vintage_oldest=min(vintages) if vintages else None,
+        vintage_newest=max(vintages) if vintages else None,
+    )
+
+    # Enriched natural-language palate portrait via Ollama (graceful fallback)
+    style_summary: Optional[str] = None
+    try:
+        enriched = enrich_profile_with_ollama(profile_data, OLLAMA_URL, OLLAMA_MODEL)
+        raw_summary = enriched.get("style_summary", "")
+        style_summary = raw_summary.strip() or None
+    except Exception:
+        pass
+
+    return ProfileSummaryResponse(
+        **profile_data,
+        style_summary=style_summary,
+        taste_markers=taste_markers,
+        cellar_stats=cellar_stats,
+    )
 
 @app.post("/recommend")
 async def recommend(
