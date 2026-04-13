@@ -84,6 +84,32 @@ class UploadProfileResponse(BaseModel):
     )
 
 
+class TasteMarkers(BaseModel):
+    """Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high)."""
+    acidity: int = 3
+    tannin: int = 3
+    body: int = 3
+    oak: int = 3
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
+class CellarStats(BaseModel):
+    """Aggregate statistics computed from the user's cellar inventory."""
+    total_bottles: int = 0
+    unique_wines: int = 0
+    vintage_oldest: Optional[int] = None
+    vintage_newest: Optional[int] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
 class ProfileSummaryResponse(BaseModel):
     top_varietals: List[str] = Field(default_factory=list)
     top_regions: List[str] = Field(default_factory=list)
@@ -92,7 +118,10 @@ class ProfileSummaryResponse(BaseModel):
     preferred_descriptors: List[str] = Field(default_factory=list)
     avoided_styles: List[str] = Field(default_factory=list)
     avg_spend: Optional[int] = None
-    
+    style_summary: Optional[str] = None
+    taste_markers: Optional[TasteMarkers] = None
+    cellar_stats: Optional[CellarStats] = None
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True

@@ -103,15 +103,38 @@ Fields:
 - `richness`: str = "medium"
 - `dominant_flavors`: List[str]
 
+### TasteMarkers
+
+Heuristic taste-marker scores derived from the user's preferred descriptors. Each field is an int on a 1–5 scale (1 = very low, 5 = very high).
+
+Fields:
+- `acidity`: int
+- `tannin`: int
+- `body`: int
+- `oak`: int
+
+### CellarStats
+
+Aggregate statistics computed from the user's cellar inventory at request time.
+
+Fields:
+- `total_bottles`: int (sum of quantities)
+- `unique_wines`: int (number of distinct bottle rows)
+- `vintage_oldest`: Optional[int]
+- `vintage_newest`: Optional[int]
+
 ### ProfileSummaryResponse
 
-Returned by `GET /profile-summary`. Derived taste profile.
+Returned by `GET /profile-summary`. Derived taste profile plus enriched data.
 
 Fields:
 - `top_varietals`, `top_regions`, `top_producers`: List[str]
 - `highly_rated`: List[Dict[str, str]] (producer, wine, vintage per item)
 - `preferred_descriptors`, `avoided_styles`: List[str]
 - `avg_spend`: Optional[int] (rounded to nearest 5)
+- `style_summary`: Optional[str] — Ollama-generated one-sentence palate portrait; null if Ollama unavailable
+- `taste_markers`: Optional[TasteMarkers] — heuristic scores derived from descriptors
+- `cellar_stats`: Optional[CellarStats] — computed from inventory at request time
 
 ## Patterns
 

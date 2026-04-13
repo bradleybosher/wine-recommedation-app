@@ -10,6 +10,7 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 
 - **Smart Wine Parsing:** Extract structured wine data from restaurant PDFs via PyMuPDF
 - **Taste Profile:** One-click CellarTracker import (TSV export) to understand user preferences
+- **Profile Tab:** View your palate portrait, cellar stats, and heuristic taste-marker bars (acidity, tannin, body, oak) in a dedicated profile view
 - **LLM-Powered Recommendations:** Structured wine recommendations via local Ollama inference
 - **Structured Output:** JSON-validated top-3 recommendations with reasoning, confidence scores, and quality assessment
 - **Offline-First:** Runs entirely locally (Ollama-based); no external API keys or account required

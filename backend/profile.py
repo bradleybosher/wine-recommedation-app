@@ -17,6 +17,8 @@ import logging
 from inventory import decode_cellartracker_upload
 from models import TasteProfile
 
+from typing import List
+
 _SOM_DIR = Path(__file__).resolve().parent
 PROFILE_DATA_PATH = _SOM_DIR / "profile_data.json"
  
@@ -644,3 +646,48 @@ def build_enriched_profile_text(ollama_url: str, ollama_model: str) -> str:
     logger.debug("build_enriched_profile_text: final text (first 400 chars)=%s", result[:400])
 
     return result
+
+
+def derive_taste_markers(descriptors: List[str]) -> dict:
+    """
+    Heuristically score Acidity, Tannin, Body, and Oak on a 1–5 scale
+    by scanning the user's preferred descriptors for indicator keywords.
+
+    Returns a dict suitable for constructing a TasteMarkers model.
+    """
+    text = " ".join(d.lower() for d in descriptors)
+
+    _HIGH_ACID  = {"crisp", "tart", "bright", "mineral", "zesty", "lively", "laser", "sharp",
+                   "vivid", "electric", "piercing", "racy", "tense"}
+    _LOW_ACID   = {"soft", "round", "flat", "mellow", "smooth", "gentle", "plush", "plummy"}
+
+    _HIGH_TAN   = {"tannic", "grippy", "structured", "firm", "chewy", "muscular", "angular",
+                   "astringent", "powerful", "robust", "tight"}
+    _LOW_TAN    = {"supple", "silky", "velvet", "velvety", "polished", "delicate", "fine tannin",
+                   "light", "ethereal"}
+
+    _HIGH_BODY  = {"full", "rich", "generous", "weighty", "bold", "concentrated", "powerful",
+                   "big", "broad", "dense", "heavy"}
+    _LOW_BODY   = {"light", "delicate", "lean", "ethereal", "thin", "feather", "wispy"}
+
+    _HIGH_OAK   = {"oaky", "toasty", "vanilla", "cedar", "smoky", "spiced", "barrel", "woody",
+                   "buttery", "creamy", "toast"}
+    _LOW_OAK    = {"unoaked", "mineral", "neutral", "steel", "stainless", "unwooded", "pure",
+                   "clean", "fresh"}
+
+    def _score(high_kws: set, low_kws: set) -> int:
+        score = 3  # default: medium
+        for kw in high_kws:
+            if kw in text:
+                score += 1
+        for kw in low_kws:
+            if kw in text:
+                score -= 1
+        return max(1, min(5, score))
+
+    return {
+        "acidity": _score(_HIGH_ACID, _LOW_ACID),
+        "tannin":  _score(_HIGH_TAN,  _LOW_TAN),
+        "body":    _score(_HIGH_BODY, _LOW_BODY),
+        "oak":     _score(_HIGH_OAK,  _LOW_OAK),
+    }
