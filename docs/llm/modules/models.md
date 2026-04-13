@@ -104,6 +104,9 @@ Fields:
 - `dominant_flavors`: List[str]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 ### TasteMarkers
 
 Heuristic taste-marker scores derived from the user's preferred descriptors. Each field is an int on a 1–5 scale (1 = very low, 5 = very high).
@@ -124,6 +127,7 @@ Fields:
 - `vintage_oldest`: Optional[int]
 - `vintage_newest`: Optional[int]
 
+<<<<<<< HEAD
 ### ProfileSummaryResponse
 
 Returned by `GET /profile-summary`. Derived taste profile plus enriched data.
@@ -132,6 +136,11 @@ Returned by `GET /profile-summary`. Derived taste profile plus enriched data.
 
 Returned by `GET /profile-summary`. Derived taste profile.
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+### ProfileSummaryResponse
+
+Returned by `GET /profile-summary`. Derived taste profile plus enriched data.
+>>>>>>> b169158 (Added my profile tab)
 
 Fields:
 - `top_varietals`, `top_regions`, `top_producers`: List[str]
@@ -139,11 +148,17 @@ Fields:
 - `preferred_descriptors`, `avoided_styles`: List[str]
 - `avg_spend`: Optional[int] (rounded to nearest 5)
 <<<<<<< HEAD
+<<<<<<< HEAD
 - `style_summary`: Optional[str] — Ollama-generated one-sentence palate portrait; null if Ollama unavailable
 - `taste_markers`: Optional[TasteMarkers] — heuristic scores derived from descriptors
 - `cellar_stats`: Optional[CellarStats] — computed from inventory at request time
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+- `style_summary`: Optional[str] — Ollama-generated one-sentence palate portrait; null if Ollama unavailable
+- `taste_markers`: Optional[TasteMarkers] — heuristic scores derived from descriptors
+- `cellar_stats`: Optional[CellarStats] — computed from inventory at request time
+>>>>>>> b169158 (Added my profile tab)
 
 ## Patterns
 

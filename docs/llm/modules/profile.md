@@ -99,6 +99,9 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - **style_summary vs. paragraph**: If enrichment succeeds, `build_enriched_profile_text()` returns `"{style_summary} {paragraph}"`. If enrichment failed/empty, returns just the paragraph.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 **derive_taste_markers(descriptors)** → dict:
   - Joins all descriptor strings into a single lowercase text blob
   - Scores Acidity, Tannin, Body, and Oak on a 1–5 integer scale using keyword heuristics
@@ -111,8 +114,11 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Returns dict with keys: `acidity`, `tannin`, `body`, `oak` — suitable for `TasteMarkers(**result)`
   - No LLM call; purely deterministic from descriptor tokens
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 ## Known Issues / TODOs
 
 - Negative indicators hardcoded; should be tunable or learned.

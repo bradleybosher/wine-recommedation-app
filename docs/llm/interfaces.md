@@ -25,10 +25,15 @@ def get_inventory() → InventoryResponse
 def profile_summary() → ProfileSummaryResponse
   Build taste profile from saved profile data. Returns top varietals, regions, etc.
 <<<<<<< HEAD
+<<<<<<< HEAD
   Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
   cellar_stats (total_bottles, unique_wines, vintage range from inventory).
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+  Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
+  cellar_stats (total_bottles, unique_wines, vintage range from inventory).
+>>>>>>> b169158 (Added my profile tab)
 
 @app.post("/recommend")
 async def recommend(wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
@@ -78,6 +83,9 @@ class UploadProfileResponse(BaseModel):
   taste_profile: Optional[TasteProfile] = None  # Derived immediately on upload
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 class TasteMarkers(BaseModel):
   acidity, tannin, body, oak: int  # 1–5 scale
 
@@ -85,19 +93,28 @@ class CellarStats(BaseModel):
   total_bottles, unique_wines: int
   vintage_oldest, vintage_newest: Optional[int]
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 class ProfileSummaryResponse(BaseModel):
   top_varietals, top_regions, top_producers: List[str]
   highly_rated: List[Dict[str, str]]
   preferred_descriptors, avoided_styles: List[str]
   avg_spend: Optional[int]
 <<<<<<< HEAD
+<<<<<<< HEAD
   style_summary: Optional[str]      # Ollama palate portrait sentence
   taste_markers: Optional[TasteMarkers]
   cellar_stats: Optional[CellarStats]
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+  style_summary: Optional[str]      # Ollama palate portrait sentence
+  taste_markers: Optional[TasteMarkers]
+  cellar_stats: Optional[CellarStats]
+>>>>>>> b169158 (Added my profile tab)
 ```
 
 ### recommender.py
@@ -173,12 +190,18 @@ def _infer_avoided_styles(profile_data: dict) → List[str]
   Auto-detect score scale (max > 10 → 100-pt scale, threshold 60; else 5-pt scale, threshold 3.0).
   Only count tokens in hardcoded negative_indicator_words set. Return top 10 with freq ≥ 2.
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 
 def derive_taste_markers(descriptors: List[str]) → dict
   Heuristic keyword scan of preferred descriptors. Returns {acidity, tannin, body, oak} as int 1–5.
   No LLM call — deterministic. Default score 3; ±1 per matching high/low keyword; clamped [1,5].
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 ```
 
 ### inventory.py

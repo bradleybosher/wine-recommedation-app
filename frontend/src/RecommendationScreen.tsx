@@ -3,9 +3,13 @@ import FileUploader from './FileUploader';
 import MealDescriptionInput from './MealDescriptionInput';
 import RecommendationResults from './RecommendationResults';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import ProfileTab from './ProfileTab';
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+import ProfileTab from './ProfileTab';
+>>>>>>> b169158 (Added my profile tab)
 import { recommendRecommendPost } from '@/client';
 import type { RecommendationResponse } from '@/client/types.gen';
 import GlassCard from '@/components/ui/GlassCard';
@@ -17,10 +21,15 @@ interface RecommendationScreenProps {
 
 const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdateProfile }) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<'recommend' | 'profile'>('recommend');
 
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+  const [activeTab, setActiveTab] = useState<'recommend' | 'profile'>('recommend');
+
+>>>>>>> b169158 (Added my profile tab)
   // Consolidated file state
   const [fileData, setFileData] = useState({
     file: null as File | null,
@@ -121,11 +130,16 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
     <div className="p-4 md:p-8 font-sans">
       <GlassCard className="max-w-4xl mx-auto p-6 md:p-10">
 <<<<<<< HEAD
+<<<<<<< HEAD
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
 =======
         <div className="flex items-center justify-between mb-8">
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+>>>>>>> b169158 (Added my profile tab)
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-center mb-2 text-white">Wine Recommendations</h1>
             <p className="text-center text-white/70">Upload a restaurant wine list (PDF or photo) to find wines that match your taste</p>
@@ -140,6 +154,7 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
           )}
         </div>
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         {/* Tab Bar */}
         <div className="flex border-b border-glass-border mb-8">
@@ -270,54 +285,26 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
 
           {/* 3. Style Overrides (Advanced Option) */}
           <div className="mt-6">
+=======
+        {/* Tab Bar */}
+        <div className="flex border-b border-glass-border mb-8">
+          {(['recommend', 'profile'] as const).map((tab) => (
+>>>>>>> b169158 (Added my profile tab)
             <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="text-sm text-wine-gold hover:text-wine-amber focus:outline-none focus:ring-2 focus:ring-wine-rose rounded"
-            >
-              {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
-            </button>
-            {showAdvanced && (
-              <div className="mt-4">
-                <label htmlFor="style-overrides" className="block text-lg font-medium text-white/80 mb-2">
-                  Style Overrides (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="style-overrides"
-                  value={styleOverrides}
-                  onChange={handleStyleOverridesChange}
-                  placeholder="e.g., mineral whites, savoury reds, grower champagne"
-                  className="shadow-sm focus:ring-wine-rose focus:border-wine-rose block w-full sm:text-sm border-glass-border rounded-md p-3 bg-glass-surface text-white placeholder:text-white/40"
-                />
-                <p className="text-xs text-white/50 mt-1">Enter terms separated by commas.</p>
-              </div>
-            )}
-          </div>
-
-          {/* 4. Submit Button */}
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={isSubmitDisabled || isLoading}
-              className={`w-full flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-                isSubmitDisabled || isLoading
-                  ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
-                  : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 text-sm font-medium transition-colors focus:outline-none ${
+                activeTab === tab
+                  ? 'border-b-2 border-wine-gold text-white -mb-px'
+                  : 'text-white/50 hover:text-white/80'
               }`}
             >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
-                  Analyzing wine list...
-                </div>
-              ) : (
-                'Get Recommendations'
-              )}
+              {tab === 'recommend' ? 'Recommend' : 'My Profile'}
             </button>
-          </div>
-        </form>
+          ))}
+        </div>
 
+<<<<<<< HEAD
         {/* 5. Results Display */}
         {recommendationResponse && (
           <RecommendationResults
@@ -325,6 +312,94 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
             onNewSearch={handleNewSearch}
           />
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+        {/* Tab Content */}
+        {activeTab === 'profile' ? (
+          <ProfileTab />
+        ) : (
+          <>
+            {error && (
+              <div className="bg-wine-burgundy/30 border border-wine-rose/40 text-white/90 px-4 py-3 rounded-xl relative mb-6" role="alert">
+                <strong className="font-bold">Error: </strong>
+                <span className="block sm:inline">{error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* 1. File Upload */}
+              <FileUploader
+                onFileChange={handleFileChange}
+                file={fileData.file}
+                previewUrl={fileData.previewUrl}
+                error={error}
+              />
+
+              {/* 2. Meal Description */}
+              <MealDescriptionInput
+                mealDescription={mealDescription}
+                onMealDescriptionChange={handleMealDescriptionChange}
+                error={error}
+              />
+
+              {/* 3. Style Overrides (Advanced Option) */}
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="text-sm text-wine-gold hover:text-wine-amber focus:outline-none focus:ring-2 focus:ring-wine-rose rounded"
+                >
+                  {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
+                </button>
+                {showAdvanced && (
+                  <div className="mt-4">
+                    <label htmlFor="style-overrides" className="block text-lg font-medium text-white/80 mb-2">
+                      Style Overrides (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="style-overrides"
+                      value={styleOverrides}
+                      onChange={handleStyleOverridesChange}
+                      placeholder="e.g., mineral whites, savoury reds, grower champagne"
+                      className="shadow-sm focus:ring-wine-rose focus:border-wine-rose block w-full sm:text-sm border-glass-border rounded-md p-3 bg-glass-surface text-white placeholder:text-white/40"
+                    />
+                    <p className="text-xs text-white/50 mt-1">Enter terms separated by commas.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Submit Button */}
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={isSubmitDisabled || isLoading}
+                  className={`w-full flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                    isSubmitDisabled || isLoading
+                      ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
+                      : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
+                  }`}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
+                      Analyzing wine list...
+                    </div>
+                  ) : (
+                    'Get Recommendations'
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* 5. Results Display */}
+            {recommendationResponse && (
+              <RecommendationResults
+                response={recommendationResponse}
+                onNewSearch={handleNewSearch}
+              />
+            )}
+          </>
+>>>>>>> b169158 (Added my profile tab)
         )}
       </GlassCard>
     </div>

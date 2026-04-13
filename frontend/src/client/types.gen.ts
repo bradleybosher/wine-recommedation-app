@@ -184,6 +184,9 @@ export type Bottle = {
 
 /**
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
  * CellarStats
  *
  * Aggregate statistics computed from the user's cellar inventory.
@@ -208,8 +211,11 @@ export type CellarStats = {
 };
 
 /**
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -272,14 +278,20 @@ export type ProfileSummaryResponse = {
      */
     avgSpend?: number | null;
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
     /**
      * Stylesummary
      */
     styleSummary?: string | null;
     tasteMarkers?: TasteMarkers | null;
     cellarStats?: CellarStats | null;
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 };
 
 /**
@@ -302,6 +314,9 @@ export type RecommendationResponse = {
 
 /**
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
  * TasteMarkers
  *
  * Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high).
@@ -326,8 +341,11 @@ export type TasteMarkers = {
 };
 
 /**
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
  * TasteProfile
  *
  * Source-agnostic taste profile schema (quiz, CellarTracker, manual, etc.)

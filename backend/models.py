@@ -85,6 +85,9 @@ class UploadProfileResponse(BaseModel):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 class TasteMarkers(BaseModel):
     """Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high)."""
     acidity: int = 3
@@ -111,8 +114,11 @@ class CellarStats(BaseModel):
     )
 
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 class ProfileSummaryResponse(BaseModel):
     top_varietals: List[str] = Field(default_factory=list)
     top_regions: List[str] = Field(default_factory=list)
@@ -122,13 +128,19 @@ class ProfileSummaryResponse(BaseModel):
     avoided_styles: List[str] = Field(default_factory=list)
     avg_spend: Optional[int] = None
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
     style_summary: Optional[str] = None
     taste_markers: Optional[TasteMarkers] = None
     cellar_stats: Optional[CellarStats] = None
 
+<<<<<<< HEAD
 =======
     
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True

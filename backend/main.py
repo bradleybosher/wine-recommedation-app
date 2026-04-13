@@ -53,6 +53,7 @@ from inventory import (
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
+<<<<<<< HEAD
 =======
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
@@ -63,16 +64,23 @@ from profile import save_profile_export, load_profile_data, build_taste_profile,
 =======
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
+=======
+>>>>>>> b169158 (Added my profile tab)
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
     UploadProfileResponse,
     ProfileSummaryResponse,
 <<<<<<< HEAD
+<<<<<<< HEAD
     TasteMarkers,
     CellarStats,
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+    TasteMarkers,
+    CellarStats,
+>>>>>>> b169158 (Added my profile tab)
     RecommendRequest,
     RecommendationResponse,
     Bottle
@@ -302,6 +310,9 @@ def get_inventory() -> InventoryResponse:
 def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 
     # Heuristic taste markers (instant — no LLM needed)
     markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
@@ -336,9 +347,12 @@ def profile_summary() -> ProfileSummaryResponse:
         taste_markers=taste_markers,
         cellar_stats=cellar_stats,
     )
+<<<<<<< HEAD
 =======
     return ProfileSummaryResponse(**profile_data)
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
 
 @app.post("/recommend")
 async def recommend(

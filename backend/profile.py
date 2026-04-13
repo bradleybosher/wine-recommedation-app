@@ -18,10 +18,15 @@ from inventory import decode_cellartracker_upload
 from models import TasteProfile
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from typing import List
 
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+from typing import List
+
+>>>>>>> b169158 (Added my profile tab)
 _SOM_DIR = Path(__file__).resolve().parent
 PROFILE_DATA_PATH = _SOM_DIR / "profile_data.json"
  
@@ -695,6 +700,9 @@ def build_enriched_profile_text(ollama_url: str, ollama_model: str) -> str:
 
     return result
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> b169158 (Added my profile tab)
 
 
 def derive_taste_markers(descriptors: List[str]) -> dict:
@@ -740,5 +748,8 @@ def derive_taste_markers(descriptors: List[str]) -> dict:
         "body":    _score(_HIGH_BODY, _LOW_BODY),
         "oak":     _score(_HIGH_OAK,  _LOW_OAK),
     }
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> b169158 (Added my profile tab)
