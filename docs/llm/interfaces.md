@@ -157,7 +157,7 @@ def _infer_avoided_styles(profile_data: dict) → List[str]
 
 ```python
 def decode_cellartracker_upload(raw: bytes) → str
-  Try UTF-8, UTF-8-sig, cp1252, latin-1. Return decoded string or lossy fallback.
+  Try UTF-8-sig, UTF-8, cp1252, latin-1. Return decoded string or lossy fallback.
 
 def parse_ct_csv(csv_text: str) → List[Dict]
   Parse TSV, filter rows where Quantity > 0. Return list of dicts.
@@ -168,10 +168,30 @@ def save_inventory(csv_text: str) → List[Dict]
 def load_inventory() → Optional[Dict]
   Load inventory.json. Return dict with bottles, age_hours, stale. None if missing.
 
-def get_relevant_bottles(bottles: list[dict], style_terms: list[str]) → List[Dict]
-  Filter bottles by style_terms (e.g., "burgundy" → ["pinot noir", ...]).
-  Case-insensitive, accent-folded match on Varietal/Appellation/Wine/Producer.
-  Return matching bottles or all if no keywords.
+def extract_terms_from_wine_list_text(text: str) → List[str]
+  Scan raw restaurant wine list text for known style/varietal/region keywords.
+  Returns matched keywords deduplicated and sorted longest-first (multi-word before component words).
+  Output used as restaurant_terms for get_relevant_bottles().
+
+def filter_wine_list(wine_list_text: str, _profile: TasteProfile | None) → str
+  Two-phase pre-filter. Phase 0: drop floating currency lines and non-wine beverage lines
+  (spirits/beer/cocktails/non-alcoholic — only when no wine signal present).
+  Phase 1: keep lines with a vintage year (1990–2029), a known wine keyword, or an estate
+  structural word (château, domaine, …); food-keyword lines without a vintage are dropped.
+  Falls back to original text on unexpected error. Profile param accepted but unused.
+
+def get_relevant_bottles(
+  bottles: list[dict],
+  restaurant_terms: list[str],
+  profile_prefs: dict,
+  override_terms: list[str] | None = None,
+  limit: int = 30,
+) → List[Dict]
+  Score and rank cellar bottles. Scoring: +1.5 per profile preferred term match,
+  +1.0 per restaurant term match, +0.5 drinking window open, -0.3 too young,
+  float("-inf") for avoided style match (hard exclusion).
+  override_terms: when provided, expanded via _STYLE_MAP and used instead of restaurant_terms.
+  Returns top limit non-excluded bottles sorted by score descending.
 ```
 
 ### cache.py
