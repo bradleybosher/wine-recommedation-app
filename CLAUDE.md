@@ -20,7 +20,23 @@ CellarTracker TSV → inventory.json | CellarTracker export → profile_data.jso
 
 ## Docs
 - `docs/llm/MEMORY.md` — master index; `docs/llm/context-guide.md` — task-to-doc mapping
-- **After every task:** update `docs/llm/`, `CLAUDE.md`, and `README.md` to reflect reality before closing
+
+### Documentation Update Protocol (mandatory — complete before closing any task)
+
+For every file modified, update the corresponding docs:
+
+| Modified file | Update these docs |
+|---|---|
+| `backend/<module>.py` | `docs/llm/modules/<module>.md` + `docs/llm/interfaces.md` |
+| Data flow or module list changed | `CLAUDE.md` (Data Flow + Modules line) |
+| User-facing behaviour changed | `README.md` |
+
+**Checklist (run through this before marking a task done):**
+1. Does `docs/llm/modules/<module>.md` reflect the current function signatures and behaviour?
+2. Does `docs/llm/interfaces.md` list all current public function signatures with correct parameters?
+3. Are new constants, data structures, or pipelines documented?
+4. Is `CLAUDE.md` still accurate (data flow, module list, recommendation logic)?
+5. Is `README.md` still accurate for users?
 
 ## Principles
 - Fail loudly; schema-driven (Pydantic is the contract); no auth; SQLite + JSON for local persistence; portfolio-legible

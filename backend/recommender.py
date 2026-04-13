@@ -65,12 +65,13 @@ _RESPONSE_SCHEMA = {
                         "type": "string",
                         "description": (
                             "2-4 sentences explaining why this restaurant wine was selected. "
-                            "REQUIRED FIRST SENTENCE: reference a specific, named preference from the owner's taste profile — "
-                            "e.g. 'Delivers the [named trait] you consistently reach for' or 'Hits your preference for [named style].' "
-                            "FORBIDDEN as a first sentence: any generic tannin/acidity/structure/flavor observation "
-                            "that does not quote or paraphrase a concrete trait from the taste profile. "
-                            "Where relevant, contrast against an avoided style: "
-                            "'Unlike [avoided style], no [unwanted trait].' "
+                            "REQUIRED FIRST SENTENCE: either (a) if a specific owned bottle from the cellar list is a close stylistic match, "
+                            "open with 'Like your [Producer + Wine name], but [how this differs/excels]' — "
+                            "only use this form when you can name a real bottle; or (b) if no close cellar match exists, "
+                            "open by naming a concrete preference from the taste profile directly, "
+                            "e.g. 'Delivers the mineral-driven acidity you consistently reach for.' "
+                            "FORBIDDEN: using 'Like your [no specific owned bottle]' or any bracket placeholder. "
+                            "Where relevant, contrast against an avoided style: 'Unlike [avoided style], no [unwanted trait].' "
                             "Then briefly add meal synergy only if it adds genuine insight beyond the profile match."
                         ),
                     },

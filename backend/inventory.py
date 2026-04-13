@@ -77,40 +77,96 @@ _WINE_STYLE_KEYWORDS: list[str] = [
     "pinot noir", "cabernet sauvignon", "merlot", "syrah", "shiraz", "grenache",
     "nebbiolo", "sangiovese", "tempranillo", "malbec", "barbera", "dolcetto",
     "gamay", "cabernet franc", "mourvedre", "mourvèdre", "zinfandel",
+    "nero d'avola", "nerello mascalese", "aglianico", "montepulciano d'abruzzo",
+    "primitivo", "corvina", "sagrantino", "lagrein", "teroldego", "refosco",
+    "carmenere", "carménère", "petit verdot", "mencia", "mencía", "monastrell",
+    "cinsault", "cinsaut", "carignan", "carignan", "counoise", "graciano",
+    "blaufränkisch", "blaufrankisch", "zweigelt", "st. laurent",
     # White varietals
     "chardonnay", "sauvignon blanc", "riesling", "pinot gris", "pinot grigio",
-    "gewurztraminer", "viognier", "roussanne", "marsanne", "chenin blanc",
-    "grüner veltliner", "gruner veltliner", "albariño", "albarino", "verdejo",
-    "fiano", "vermentino", "muscadet",
+    "gewurztraminer", "gewürztraminer", "viognier", "roussanne", "marsanne",
+    "chenin blanc", "grüner veltliner", "gruner veltliner", "albariño", "albarino",
+    "verdejo", "fiano", "vermentino", "muscadet", "verdicchio", "pecorino",
+    "timorasso", "falanghina", "greco di tufo", "catarratto", "carricante",
+    "garganega", "trebbiano", "ribolla gialla", "friulano", "tocai", "arneis",
+    "cortese", "favorita", "rolle", "clairette", "picpoul", "picpoul de pinet",
+    "torrontés", "torrontes", "palomino", "manzanilla", "pedro ximénez",
+    "assyrtiko", "moschofilero", "xinomavro", "agiorgitiko",
     # Champagne / sparkling
     "champagne", "blanc de noirs", "blanc de blancs", "crémant", "cremant",
-    "prosecco", "cava", "sekt",
+    "prosecco", "cava", "sekt", "franciacorta", "trento doc", "pétillant naturel",
+    "petillant naturel", "pet-nat", "pét-nat", "metodo classico",
+    # Rosé / orange / other types
+    "rosé", "rose wine", "orange wine", "vin gris", "ramato",
     # Burgundy
     "bourgogne", "burgundy", "chablis", "meursault", "puligny", "chassagne",
-    "gevrey", "chambolle", "vosne", "nuits", "pommard", "volnay", "corton",
-    "beaujolais", "morgon", "moulin", "fleurie",
+    "gevrey", "chambolle", "vosne", "nuits-saint-georges", "nuits", "pommard",
+    "volnay", "corton", "beaune", "st-aubin", "rully", "givry", "mercurey",
+    "mâcon", "macon", "pouilly-fuissé", "pouilly-fuisse", "beaujolais",
+    "morgon", "moulin-à-vent", "fleurie", "brouilly", "chiroubles", "juliénas",
+    "saint-amour",
     # Bordeaux
-    "bordeaux", "saint-émilion", "saint-julien", "pauillac", "margaux",
-    "saint-estèphe", "pomerol", "graves", "sauternes",
+    "bordeaux", "saint-émilion", "saint emilion", "saint-julien", "pauillac",
+    "margaux", "saint-estèphe", "pomerol", "graves", "sauternes", "pessac",
+    "listrac", "moulis", "médoc", "medoc", "haut-médoc", "haut medoc",
+    "entre-deux-mers",
     # Rhône
-    "rhône", "rhone", "côte-rôtie", "cote-rotie", "hermitage", "crozes",
-    "châteauneuf", "chateauneuf", "gigondas", "vacqueyras", "condrieu",
+    "rhône", "rhone", "côte-rôtie", "cote-rotie", "hermitage", "crozes-hermitage",
+    "crozes", "châteauneuf-du-pape", "chateauneuf", "gigondas", "vacqueyras",
+    "condrieu", "saint-joseph", "cornas", "lirac", "tavel",
     # Loire
-    "loire", "sancerre", "pouilly", "vouvray", "savennières", "savennieres",
-    "chinon", "bourgueil", "anjou",
-    # Italy
-    "barolo", "barbaresco", "brunello", "chianti", "amarone", "valpolicella",
-    "soave", "prosecco",
-    # Spain
-    "rioja", "ribera del duero", "priorat",
-    # Germany / Austria
-    "mosel", "rheingau", "rheinhessen", "pfalz", "wachau",
-    # New World
-    "napa", "sonoma", "willamette", "margaret river", "coonawarra",
-    "marlborough", "central otago", "barossa",
+    "loire", "sancerre", "pouilly-fumé", "pouilly-fume", "vouvray",
+    "savennières", "savennieres", "chinon", "bourgueil", "anjou", "muscadet",
+    "fiefs vendéens", "montlouis", "touraine", "menetou-salon",
     # Alsace
-    "alsace",
+    "alsace", "alsatian",
+    # Italy — regions
+    "barolo", "barbaresco", "brunello di montalcino", "brunello", "chianti classico",
+    "chianti", "amarone", "valpolicella", "soave", "gavi", "langhe", "piemonte",
+    "piedmont", "etna", "sicilia", "sicily", "campania", "puglia", "alto adige",
+    "südtirol", "trentino", "friuli", "collio", "colli orientali", "monferrato",
+    "asti", "barbera d'alba", "barbera d'asti", "dolcetto d'alba",
+    "morellino di scansano", "montepulciano", "sagrantino di montefalco",
+    "abruzzo", "bolgheri", "maremma", "super tuscan",
+    # Spain
+    "rioja", "ribera del duero", "priorat", "penedès", "penedes", "rias baixas",
+    "bierzo", "toro", "rueda", "cava", "jerez", "sherry", "manzanilla",
+    "montilla-moriles",
+    # Germany / Austria
+    "mosel", "rheingau", "rheinhessen", "pfalz", "wachau", "kamptal",
+    "kremstal", "burgenland", "steiermark",
+    # South of France
+    "provence", "bandol", "cassis", "languedoc", "roussillon",
+    "coteaux d'aix", "les baux", "minervois", "corbières", "faugères",
+    "saint-chinian", "pic saint loup", "costières de nîmes",
+    # New World — USA
+    "napa", "napa valley", "sonoma", "sonoma coast", "willamette",
+    "russian river", "alexander valley", "paso robles", "sta. rita hills",
+    "santa barbara", "santa ynez", "carneros", "stag's leap", "oakville",
+    "rutherford", "howell mountain", "atlas peak",
+    # New World — Australia
+    "margaret river", "coonawarra", "barossa", "barossa valley", "eden valley",
+    "clare valley", "mclaren vale", "yarra valley", "hunter valley",
+    # New World — NZ / Chile / Argentina
+    "marlborough", "central otago", "hawke's bay", "martinborough",
+    "mendoza", "uco valley", "luján de cuyo", "colchagua", "casablanca valley",
+    "maipo", "aconcagua",
+    # Blend / style descriptors
+    "red blend", "white blend", "field blend", "gsm", "meritage",
+    "super tuscan", "cdt",
 ]
+
+# Estate/producer structural words — standalone presence strongly indicates a wine entry.
+_WINE_ESTATE_WORDS: frozenset[str] = frozenset([
+    "château", "chateau", "domaine", "clos", "vigna", "vigneto",
+    "bodega", "bodegas", "weingut", "quinta", "tenuta", "masseria",
+    "fattoria", "cantina", "azienda", "winery", "vineyard", "cellars",
+    "dominio", "mas", "mas de", "cave",
+])
+# Pre-folded for fast matching at runtime
+_FOLDED_ESTATE_WORDS: frozenset[str] = frozenset(
+    _fold_for_match(w) for w in _WINE_ESTATE_WORDS
+)
 
 
 def extract_terms_from_wine_list_text(text: str) -> list[str]:
@@ -204,12 +260,16 @@ _STYLE_MAP: dict[str, list[str]] = {
 # the list reaches the LLM, cutting token bloat on long menus.
 # ---------------------------------------------------------------------------
 
-_PRICE_RE = re.compile(r"\$?\s*(\d{1,4}(?:\.\d{1,2})?)")
-_VINTAGE_RE = re.compile(r"\b(19|20)\d{2}\b")
+# Only years plausible for restaurant wine lists; avoids matching founding years,
+# table numbers, etc. that fall outside this range.
+_VINTAGE_RE = re.compile(r"\b(199\d|200\d|201\d|202[0-9])\b")
+# Context that turns a year into an establishment/copyright date, not a vintage.
+_VINTAGE_EXCLUSION_RE = re.compile(
+    r"(?i)\b(est\.?|since|founded|established|copyright|©|estab\.?)\b"
+)
 
 # Reliable food indicators: cooking methods and dish categories that essentially
-# never appear in wine names.  The dual check (_is_wine_candidate) guards
-# against false positives for lines that have both food words and wine signals.
+# never appear in wine names.  Used by _is_wine_line() as a food override signal.
 _FOOD_KEYWORDS: frozenset[str] = frozenset([
     # Cooking methods
     "grilled", "roasted", "pan-seared", "pan-roasted", "braised", "baked", "fried",
@@ -254,17 +314,6 @@ _NON_WINE_BEVERAGE_KEYWORDS: frozenset[str] = frozenset([
 ])
 
 
-def _extract_price(line: str) -> float | None:
-    """Return the first numeric price found in a line, or None."""
-    m = _PRICE_RE.search(line)
-    if m:
-        try:
-            return float(m.group(1))
-        except (ValueError, TypeError):
-            pass
-    return None
-
-
 def _is_floating_currency(line: str) -> bool:
     """True if the line contains only a price/currency value with no wine content.
 
@@ -280,35 +329,6 @@ def _is_floating_currency(line: str) -> bool:
         return False
     remainder = re.sub(r"[\d\s£$€./|,]", "", stripped)
     return len(remainder) == 0
-
-
-def _is_structural_line(line: str) -> bool:
-    """True for blank lines, section headers, and very short lines."""
-    stripped = line.strip()
-    if not stripped:
-        return True
-    if stripped.isupper():
-        return True
-    words = stripped.split()
-    if len(words) <= 3 and not _PRICE_RE.search(stripped) and not _VINTAGE_RE.search(stripped):
-        return True
-    return False
-
-
-def _is_wine_candidate(line: str, folded_wine_keywords: list[str]) -> bool:
-    """True if the line looks like a wine entry (vintage year, known wine keyword, or price)."""
-    stripped = line.strip()
-    if _VINTAGE_RE.search(stripped):
-        return True
-    folded = _fold_for_match(stripped)
-    if any(kw in folded for kw in folded_wine_keywords):
-        return True
-    # Price without food context counts as a weak wine signal
-    if _PRICE_RE.search(stripped):
-        folded_lower = folded
-        if not any(fw in folded_lower for fw in _FOOD_KEYWORDS):
-            return True
-    return False
 
 
 def _is_food_line(line: str) -> bool:
@@ -337,62 +357,63 @@ def _is_non_wine_beverage(line: str, folded_wine_keywords: list[str]) -> bool:
     return any(kw in folded for kw in _NON_WINE_BEVERAGE_KEYWORDS)
 
 
-def _score_wine_line(line: str, profile: TasteProfile) -> float:
-    """Score a single wine list line against the taste profile."""
-    folded = _fold_for_match(line)
-    score = 0.0
+def _is_wine_line(line: str, folded_wine_keywords: list[str]) -> bool:
+    """Return True if we are ≥95% confident this line is a wine entry.
 
-    for grape in profile.preferred_grapes:
-        if _fold_for_match(grape) in folded:
-            score += 2.0
+    Decision logic (in order):
+    1. Vintage year in 1990–2029 is the strongest signal.  Skip if the year is
+       preceded by an establishment/copyright phrase ("Est.", "Since", etc.).
+    2. A known varietal, region, or blend keyword also counts as a wine signal.
+    3. An estate/producer structural word (château, domaine, tenuta, …) counts.
+    4. Food-keyword override: if the only wine signal is a keyword or estate word
+       (no vintage present), and the line also contains a food keyword, drop it —
+       e.g. "Pan-roasted duck with Barolo reduction" should not survive.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return False
 
-    for region in profile.preferred_regions:
-        if _fold_for_match(region) in folded:
-            score += 2.0
+    # Check vintage year (1990–2029), excluding establishment/copyright contexts
+    has_vintage = bool(_VINTAGE_RE.search(stripped))
+    if has_vintage and _VINTAGE_EXCLUSION_RE.search(stripped):
+        has_vintage = False
 
-    for style in profile.avoided_styles:
-        if _fold_for_match(style) in folded:
-            score -= 3.0
+    folded = _fold_for_match(stripped)
+    has_wine_keyword = any(kw in folded for kw in folded_wine_keywords)
+    has_estate_word = any(w in folded for w in _FOLDED_ESTATE_WORDS)
 
-    if profile.budget_max is not None:
-        price = _extract_price(line)
-        if price is not None:
-            if price <= profile.budget_max * 1.5:
-                score += 1.0
-            elif price > profile.budget_max * 2.0:
-                score -= 1.0
+    if not (has_vintage or has_wine_keyword or has_estate_word):
+        return False
 
-    return score
+    # Food override only fires when there is no vintage signal
+    if not has_vintage and _is_food_line(stripped):
+        return False
+
+    return True
 
 
-def filter_wine_list(wine_list_text: str, profile: TasteProfile | None) -> str:
-    """Pre-filter a raw restaurant wine list to remove poor profile matches and food items.
+def filter_wine_list(wine_list_text: str, _profile: TasteProfile | None) -> str:
+    """Pre-filter a raw restaurant wine list, keeping only lines that are
+    ≥95% likely to be wine entries.
 
     Two-phase pipeline:
 
-    Phase 0 (unconditional): removes floating currency lines (price-only rows)
-    and non-wine beverage lines (spirits, beer, cocktails, non-alcoholic drinks)
-    before any wine assessment occurs.  Runs regardless of whether a taste
-    profile is present.
+    Phase 0 (unconditional): drops floating currency lines (price-only rows)
+    and non-wine beverage lines (spirits, beer, cocktails, non-alcoholic drinks).
 
-    Phase 1 (profile-gated): processes the Phase 0 output line by line.
-    Structural lines (blank, section headers, very short lines) are passed
-    through unchanged to preserve list formatting.  Lines that look like wine
-    entries are scored against the taste profile; those scoring below -1 are
-    dropped.  Food menu items (cooking methods, dish categories) are dropped
-    unconditionally.
-
-    Safety valve: if scoring alone would remove more than 60% of identified wine
-    candidate lines, the Phase 0 output is returned unchanged to prevent
-    over-filtering on short or oddly-formatted lists.
+    Phase 1 (dictionary pass): keeps a line only when _is_wine_line() fires —
+    i.e. the line contains a vintage year (1990–2029), a known varietal/region
+    keyword, or an estate structural word (château, domaine, …).  Food-keyword
+    lines without a vintage signal are dropped regardless.  Profile-based
+    scoring is intentionally absent here; ranking against preferences is the
+    LLM's job.
 
     Args:
         wine_list_text: Raw text produced by parse_wine_list().
-        profile: User's TasteProfile.  If None or has no preference signals,
-            the Phase 0 result is returned without further scoring.
+        profile: Accepted for signature compatibility; not used in filtering.
 
     Returns:
-        Filtered wine list text (newline-joined).
+        Filtered wine list text — one entry per line, no blank lines.
     """
     if not wine_list_text:
         logger.debug("wine_list_filter: empty input, returning unchanged")
@@ -402,105 +423,44 @@ def filter_wine_list(wine_list_text: str, profile: TasteProfile | None) -> str:
         folded_wine_keywords = [_fold_for_match(kw) for kw in _WINE_STYLE_KEYWORDS]
 
         # ------------------------------------------------------------------
-        # Phase 0: structural pre-filter — remove lines that are never wine
-        # entries, regardless of taste profile.
+        # Phase 0: drop lines that can never be wine entries.
         # ------------------------------------------------------------------
-        beverage_drop_count = 0
-        currency_drop_count = 0
-        phase0_lines: list[str] = []
+        beverage_drop = 0
+        currency_drop = 0
+        phase0: list[str] = []
         for line in wine_list_text.splitlines():
             if _is_floating_currency(line):
                 logger.debug("wine_list_filter: drop currency  | %s", line.strip())
-                currency_drop_count += 1
+                currency_drop += 1
             elif _is_non_wine_beverage(line, folded_wine_keywords):
                 logger.debug("wine_list_filter: drop beverage  | %s", line.strip())
-                beverage_drop_count += 1
+                beverage_drop += 1
             else:
-                phase0_lines.append(line)
+                phase0.append(line)
 
-        if beverage_drop_count or currency_drop_count:
+        if beverage_drop or currency_drop:
             logger.debug(
                 "wine_list_filter: phase0 dropped %d beverage, %d currency lines",
-                beverage_drop_count,
-                currency_drop_count,
+                beverage_drop, currency_drop,
             )
 
         # ------------------------------------------------------------------
-        # Phase 1: profile-based scoring — skip if no preference signals.
+        # Phase 1: dictionary-based wine line detection.
         # ------------------------------------------------------------------
-        if profile is None or (
-            not profile.preferred_grapes
-            and not profile.preferred_regions
-            and not profile.avoided_styles
-        ):
-            logger.debug("wine_list_filter: no profile signals, returning phase0 result")
-            return "\n".join(phase0_lines)
-
-        logger.debug(
-            "wine_list_filter: phase1 input %d lines | grapes=%s regions=%s avoided=%s budget_max=%s",
-            len(phase0_lines),
-            profile.preferred_grapes,
-            profile.preferred_regions,
-            profile.avoided_styles,
-            profile.budget_max,
-        )
-
-        lines = phase0_lines
-        candidate_count = 0
-        score_drop_count = 0
-        food_drop_count = 0
-        unknown_drop_count = 0
-        keep: list[bool] = []
-
-        for line in lines:
-            if _is_structural_line(line):
-                keep.append(True)
-                continue
-
-            wine_candidate = _is_wine_candidate(line, folded_wine_keywords)
-
-            # Drop food items that have no wine signals
-            if _is_food_line(line) and not wine_candidate:
-                logger.debug("wine_list_filter: drop food   | %s", line.strip())
-                food_drop_count += 1
-                keep.append(False)
-                continue
-
-            if wine_candidate:
-                candidate_count += 1
-                score = _score_wine_line(line, profile)
-                if score < -1:
-                    logger.debug("wine_list_filter: drop score=%.1f | %s", score, line.strip())
-                    score_drop_count += 1
-                    keep.append(False)
-                else:
-                    logger.debug("wine_list_filter: keep score=%.1f | %s", score, line.strip())
-                    keep.append(True)
+        kept: list[str] = []
+        drop_count = 0
+        for line in phase0:
+            if _is_wine_line(line, folded_wine_keywords):
+                logger.debug("wine_list_filter: keep | %s", line.strip())
+                kept.append(line.strip())
             else:
-                # Unknown line type — drop aggressively; prefer clean LLM input
-                logger.debug("wine_list_filter: drop unknown | %s", line.strip())
-                unknown_drop_count += 1
-                keep.append(False)
+                logger.debug("wine_list_filter: drop | %s", line.strip())
+                drop_count += 1
 
-        # Safety check: don't over-filter on the scoring pass
-        if candidate_count > 0:
-            pct = int(score_drop_count * 100 / candidate_count)
-            if pct > 60:
-                logger.warning(
-                    "wine_list_filter: would remove %d%% of entries, skipping phase1 filter", pct
-                )
-                return "\n".join(phase0_lines)
-
-        result = "\n".join(line for line, kept in zip(lines, keep) if kept)
+        result = "\n".join(kept)
         logger.debug(
-            "wine_list_filter: output %d lines (dropped %d currency, %d beverage, %d food, %d unknown, %d low-score of %d candidates)",
-            len(result.splitlines()),
-            currency_drop_count,
-            beverage_drop_count,
-            food_drop_count,
-            unknown_drop_count,
-            score_drop_count,
-            candidate_count,
+            "wine_list_filter: output %d lines (dropped %d currency, %d beverage, %d non-wine)",
+            len(kept), currency_drop, beverage_drop, drop_count,
         )
         logger.debug("wine_list_filter: output text=\n%s", result)
         return result
