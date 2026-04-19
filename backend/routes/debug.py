@@ -140,7 +140,6 @@ async def get_config() -> Dict[str, Any]:
     return {
         "ollama_url": os.getenv("OLLAMA_URL", "http://127.0.0.1:11434"),
         "ollama_model": os.getenv("OLLAMA_MODEL", "gemma4-forced:latest"),
-        "environment": dict(os.environ)  # Be careful with this in production!
     }
 
 

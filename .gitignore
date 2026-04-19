@@ -10,6 +10,12 @@ backend/*.tmp
 # every time you ask for a code change.
 backend/*.db
 backend/data/
+backend/inventory.json
+backend/profile_data.json
+backend/.env
+
+# --- Claude Code local settings (machine-specific paths) ---
+.claude/settings.local.json
 
 # --- Frontend Junk ---
 frontend/node_modules/
