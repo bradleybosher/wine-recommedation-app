@@ -33,6 +33,7 @@ yarn.lock
 pnpm-lock.yaml
 *.bat
 testdata/*
+*.env
 # --- Media ---
 frontend/public/assets/
 *.png
