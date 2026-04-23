@@ -48,10 +48,11 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 - Returns True if Haiku vision should be used instead of raw text
 
 **_extract_pdf_via_vision(pdf_bytes)** → str:
-- Renders each page as JPEG via `page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("jpeg")`
-- Calls `_call_haiku_vision()` per page
-- Merges all `WineListEntry` lists, deduplicates by `raw_text`
-- Returns formatted text
+- Per-page text triage: calls `page.get_text()` first; if ≥150 chars AND contains a `_WINE_TRIAGE_KEYWORDS` term → skip Haiku, collect raw page text directly
+- Otherwise: render page as JPEG via `page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("jpeg")`, call `_call_haiku_vision()`
+- Logs `"text triage SKIP_VISION"` or `"text triage CALL_VISION"` per page
+- Merges structured `WineListEntry` lists (from vision pages) + raw text (from triage pages)
+- Returns combined formatted text
 
 **prepare_image(image_bytes, max_dim=2000)** → bytes:
 - PIL `thumbnail()` to ≤2000px, convert to RGB JPEG at quality 85
@@ -67,15 +68,18 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 
 ## Constants
 
-- `OCR_SYSTEM_PROMPT`: Instructs Haiku to extract only wines, ignore food/cocktails/spirits; rules for null fields, NV vintages, multi-size entries
+- `OCR_SYSTEM_PROMPT`: Instructs Haiku to extract only wines, ignore food/cocktails/spirits; rules for null fields, NV vintages, multi-size entries. Passed with `cache_control: ephemeral` for prompt caching.
 - `_RECORD_WINE_LIST_TOOL`: JSON schema for the `record_wine_list` tool passed to Haiku
-- `_FOOD_KEYWORDS`: Set of ~30 terms used to detect combined menus in PDFs
+- `_FOOD_KEYWORDS`: Set of ~30 terms used to detect combined menus in PDFs (document-level routing)
+- `_WINE_TRIAGE_KEYWORDS`: Set of ~30 terms used in per-page text triage inside `_extract_pdf_via_vision()` to decide whether a page needs Haiku vision
 
 ## Patterns & Gotchas
 
 - **Type detection**: MIME type first, then filename extension.
 - **Vision filtering**: Haiku's system prompt explicitly excludes food, cocktails, spirits — structured extraction is also a filter pass.
 - **PDF routing**: `should_use_vision_extraction()` runs a cheap text extract first to decide whether vision is needed. The extra PyMuPDF call is negligible vs. avoiding an unnecessary Haiku API call.
+- **Per-page triage**: Even when the vision route is triggered, pages with sufficient extractable text skip Haiku. Threshold: ≥150 chars + any `_WINE_TRIAGE_KEYWORDS` term. Structured entries and raw-text pages are concatenated at the end.
+- **Prompt caching**: `_call_haiku_vision()` passes `system` as a list-of-objects with `cache_control: {"type": "ephemeral"}`. After the first call, Anthropic caches `OCR_SYSTEM_PROMPT` for 5 minutes — subsequent pages in the same PDF batch hit the cache at ~10% token cost.
 - **OCRError**: Only raised on Haiku API/network failure. No longer raised for low word count (Haiku is reliable enough that an empty extraction is a valid result for a blank image).
 - **Confidence notes**: Logged at INFO level. Useful for debugging ambiguous menus.
 
