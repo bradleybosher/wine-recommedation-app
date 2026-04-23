@@ -102,8 +102,8 @@ async def status_overview() -> Dict[str, Any]:
         "platform": sys.platform,
         "working_directory": str(Path.cwd()),
         "environment_variables": {
-            "OLLAMA_URL": os.getenv("OLLAMA_URL", "not set"),
-            "OLLAMA_MODEL": os.getenv("OLLAMA_MODEL", "not set")
+            "ANTHROPIC_API_KEY_SET": bool(os.getenv("ANTHROPIC_API_KEY")),
+            "ANTHROPIC_MODEL": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         }
     }
     
@@ -138,8 +138,8 @@ async def clear_cache() -> Dict[str, Any]:
 async def get_config() -> Dict[str, Any]:
     """Get current configuration."""
     return {
-        "ollama_url": os.getenv("OLLAMA_URL", "http://127.0.0.1:11434"),
-        "ollama_model": os.getenv("OLLAMA_MODEL", "gemma4-forced:latest"),
+        "anthropic_model": os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        "anthropic_api_key_set": bool(os.getenv("ANTHROPIC_API_KEY")),
     }
 
 
@@ -232,14 +232,9 @@ async def get_version() -> Dict[str, Any]:
         "platform": sys.platform
     }
     
-    # Check for requirements.txt
-    req_path = Path(__file__).resolve().parent.parent / "requirements.txt"
-    if req_path.exists():
-        try:
-            with open(req_path, 'r') as f:
-                requirements = [line.strip() for line in f if line.strip()]
-                version_info["requirements_count"] = len(requirements)
-        except:
-            pass
+    # Check for pyproject.toml
+    pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    if pyproject_path.exists():
+        version_info["pyproject_toml"] = True
     
     return version_info

@@ -67,17 +67,17 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Sets `profile_source="cellartracker"`
   - Returned in `UploadProfileResponse.taste_profile` so the frontend gets a typed profile immediately on upload
 
-**enrich_profile_with_ollama(raw, ollama_url, ollama_model)** → dict:
-  - Takes raw dict from `build_taste_profile()`, POSTs to Ollama for LLM enrichment
+**enrich_profile_with_anthropic(raw, anthropic_api_key, anthropic_model)** → dict:
+  - Takes raw dict from `build_taste_profile()`, calls Anthropic Claude via tool use for LLM enrichment
   - Prompt asks model to synthesise frequency tokens into multi-word style phrases + a `style_summary` sentence
+  - Uses `enrich_taste_profile` tool with forced `tool_choice` — returns parsed dict directly (no JSON parsing)
   - Returns enriched dict with keys: `preferred_descriptors` (LLM phrases), `avoided_styles` (LLM phrases), `style_summary` (1 sentence)
-  - Uses `_RESPONSE_SCHEMA`-style structured output (schema dict); falls back to `format="json"` on 400
-  - Strips markdown fences, repairs truncated JSON (brace counting)
   - Returns `raw` unchanged on any error (fully safe fallback)
+  - `enrich_profile_with_ollama` is kept as an alias for backwards compatibility
 
-**build_enriched_profile_text(ollama_url, ollama_model)** → str:
-  - Orchestrates the full enrichment pipeline: load → build_taste_profile → enrich_profile_with_ollama → format paragraph
-  - Calls `enrich_profile_with_ollama()` and prepends `style_summary` (if non-empty) to the paragraph
+**build_enriched_profile_text(anthropic_api_key, anthropic_model)** → str:
+  - Orchestrates the full enrichment pipeline: load → build_taste_profile → enrich_profile_with_anthropic → format paragraph
+  - Calls `enrich_profile_with_anthropic()` and prepends `style_summary` (if non-empty) to the paragraph
   - Fallback to `OWNER_PROFILE` if no data or enrichment empty
   - **This is the function called from main.py** — not `build_enhanced_profile_text()`
 
@@ -93,9 +93,9 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 
 ## Patterns & Gotchas (additional)
 
-- **Dual profile text functions**: `build_enhanced_profile_text()` formats from raw data only. `build_enriched_profile_text(url, model)` additionally calls Ollama to synthesise richer phrases. Only the latter is used in the recommend flow.
+- **Dual profile text functions**: `build_enhanced_profile_text()` formats from raw data only. `build_enriched_profile_text(api_key, model)` additionally calls Claude to synthesise richer phrases. Only the latter is used in the recommend flow.
 - **OWNER_PROFILE fallback**: Imported from `prompt.py` as a lazy import inside the fallback branch to avoid circular imports.
-- **Enrichment safety**: `enrich_profile_with_ollama()` catches all exceptions and returns `raw` unchanged. The 30-second timeout prevents enrichment from blocking the recommend call.
+- **Enrichment safety**: `enrich_profile_with_anthropic()` catches all exceptions and returns `raw` unchanged. No fixed timeout — Anthropic SDK handles it.
 - **style_summary vs. paragraph**: If enrichment succeeds, `build_enriched_profile_text()` returns `"{style_summary} {paragraph}"`. If enrichment failed/empty, returns just the paragraph.
 
 **derive_taste_markers(descriptors)** → dict:
@@ -117,7 +117,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - Accent folding not used here (see inventory.py); could improve region matching.
 - Producer deduplication: counts are case-sensitive (may double-count if CT data has mixed case).
 - No weighting by vintage (old notes may not reflect current taste).
-- `enrich_profile_with_ollama()` timeout is 30s (hardcoded); not configurable.
+- `enrich_profile_with_anthropic()` timeout governed by Anthropic SDK defaults; not directly configurable here.
 
 ## Testing
 

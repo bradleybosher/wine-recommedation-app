@@ -11,7 +11,7 @@ from dataclasses import asdict
 from pathlib import Path
 from statistics import mean
 import hashlib
-import httpx
+import anthropic
 import logging
  
 from inventory import decode_cellartracker_upload
@@ -458,15 +458,15 @@ def build_enhanced_profile_text() -> str:
     return _format_taste_profile_paragraph(structured)
 
 
-def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) -> dict:
-    """Enrich frequency-derived profile terms via a local Ollama LLM call.
+def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_model: str) -> dict:
+    """Enrich frequency-derived profile terms via Anthropic Claude.
 
     Takes the raw dict from build_taste_profile() and replaces
     preferred_descriptors and avoided_styles with synthesised multi-word phrases.
     Adds a style_summary key (one sentence). Returns raw unchanged on any error.
     """
     logger = logging.getLogger(__name__)
-    logger.info("enrich_profile_with_ollama: starting enrichment with model=%s url=%s", ollama_model, ollama_url)
+    logger.info("enrich_profile_with_anthropic: starting enrichment with model=%s", anthropic_model)
 
     prompt_text = (
         "You are a master sommelier building a palate profile for a wine buyer.\n"
@@ -486,87 +486,55 @@ def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) ->
         "- avoided_styles: 2-4 multi-word phrases naming what to avoid, e.g. "
         '"heavily oaked and over-extracted reds", "sweet or cloying fruit-forward styles"\n'
         "- style_summary: one sentence, 20-30 words, capturing the overall palate character "
-        "without mentioning specific grapes or regions\n\n"
-        "Return ONLY valid JSON — no markdown, no explanation:\n"
-        '{\n'
-        '  "preferred_styles": [],\n'
-        '  "avoided_styles": [],\n'
-        '  "style_summary": ""\n'
-        '}'
+        "without mentioning specific grapes or regions"
     )
-    enrichment_schema = {
-        "type": "object",
-        "properties": {
-            "preferred_styles": {"type": "array", "items": {"type": "string"}},
-            "avoided_styles":   {"type": "array", "items": {"type": "string"}},
-            "style_summary":    {"type": "string"},
+
+    enrichment_tool = {
+        "name": "enrich_taste_profile",
+        "description": "Provide enriched sensory taste profile descriptors.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "preferred_styles": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "3-6 multi-word sensory phrases for preferred wine styles.",
+                },
+                "avoided_styles": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "2-4 multi-word phrases naming wine styles to avoid.",
+                },
+                "style_summary": {
+                    "type": "string",
+                    "description": "One sentence (20-30 words) capturing the overall palate character.",
+                },
+            },
+            "required": ["preferred_styles", "avoided_styles", "style_summary"],
         },
-        "required": ["preferred_styles", "avoided_styles", "style_summary"],
     }
-    payload = {
-        "model": ollama_model,
-        "stream": False,
-        "format": enrichment_schema,
-        "messages": [{"role": "user", "content": prompt_text}],
-    }
+
     try:
-        with httpx.Client(timeout=30.0) as client:
-            resp = client.post(f"{ollama_url}/api/chat", json=payload)
-            # Ollama < 0.5.1 rejects schema dict with 400 — fall back to plain JSON mode.
-            if resp.status_code == 400:
-                logger.warning("enrich_profile_with_ollama: schema format rejected, falling back to plain json")
-                payload["format"] = "json"
-                resp = client.post(f"{ollama_url}/api/chat", json=payload)
-            resp.raise_for_status()
-            raw_text = resp.json()["message"]["content"]
+        client = anthropic.Anthropic(api_key=anthropic_api_key)
+        response = client.messages.create(
+            model=anthropic_model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt_text}],
+            tools=[enrichment_tool],
+            tool_choice={"type": "tool", "name": "enrich_taste_profile"},
+        )
 
-        logger.info("enrich_profile_with_ollama: raw ollama response length=%d", len(raw_text))
-        logger.debug("enrich_profile_with_ollama: raw ollama response (full): %s", raw_text)
+        tool_block = next(
+            (b for b in response.content if b.type == "tool_use" and b.name == "enrich_taste_profile"),
+            None,
+        )
+        if not tool_block:
+            logger.warning("enrich_profile_with_anthropic: no tool use block found")
+            return raw
 
-        # Strip markdown fences if present
-        clean = raw_text.strip()
-        if clean.startswith("```"):
-            logger.info("enrich_profile_with_ollama: stripping markdown fences")
-            clean = re.sub(r"^```[a-zA-Z]*\n?", "", clean)
-            clean = re.sub(r"```$", "", clean).strip()
+        enriched = tool_block.input
+        logger.info("enrich_profile_with_anthropic: tool use received keys=%s", list(enriched.keys()))
 
-        logger.info("enrich_profile_with_ollama: cleaned response length=%d", len(clean))
-        logger.debug("enrich_profile_with_ollama: cleaned response (full): %s", clean)
-
-        # Try to parse as-is first
-        try:
-            enriched = json.loads(clean)
-        except json.JSONDecodeError as initial_error:
-            # If parsing fails, try to repair incomplete JSON by adding missing braces
-            logger.info("enrich_profile_with_ollama: initial JSON parse failed, attempting repair")
-            repaired = clean
-
-            # Count braces to see if we're missing closing braces
-            open_braces = repaired.count('{')
-            close_braces = repaired.count('}')
-            missing_braces = open_braces - close_braces
-
-            if missing_braces > 0:
-                logger.info("enrich_profile_with_ollama: detected %d missing closing braces, adding them", missing_braces)
-                repaired = repaired + ('}' * missing_braces)
-                logger.debug("enrich_profile_with_ollama: repaired JSON: %s", repaired)
-                try:
-                    enriched = json.loads(repaired)
-                    logger.info("enrich_profile_with_ollama: successfully parsed repaired JSON")
-                except json.JSONDecodeError as repair_error:
-                    logger.warning("enrich_profile_with_ollama: repair failed, original error: %s, repair error: %s", initial_error, repair_error)
-                    raise repair_error
-            else:
-                raise initial_error
-
-        # Validate that enriched dict has expected keys
-        if not isinstance(enriched, dict):
-            raise ValueError("Ollama response was not a dict")
-
-        logger.info("enrich_profile_with_ollama: successfully parsed ollama response: keys=%s", list(enriched.keys()))
-        logger.debug("enrich_profile_with_ollama: enriched dict=%s", enriched)
-
-        # Use enriched values if present and valid, otherwise fall back to raw
         enriched_result = {
             **raw,
             "preferred_descriptors": enriched.get("preferred_styles") or raw.get("preferred_descriptors", []),
@@ -574,25 +542,26 @@ def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) ->
             "style_summary": enriched.get("style_summary") or "",
         }
 
-        # Ensure style_summary is a string
         if not isinstance(enriched_result["style_summary"], str):
             enriched_result["style_summary"] = ""
 
-        logger.info("enrich_profile_with_ollama: enrichment complete. style_summary length=%d", len(enriched_result["style_summary"]))
-        logger.debug("enrich_profile_with_ollama: final enriched result=%s", enriched_result)
-
+        logger.info("enrich_profile_with_anthropic: enrichment complete. style_summary length=%d", len(enriched_result["style_summary"]))
         return enriched_result
-    except json.JSONDecodeError as exc:
-        logger.warning("Ollama profile enrichment failed: JSON decode error at line %d column %d: %s", exc.lineno, exc.colno, exc.msg)
-        logger.warning("enrich_profile_with_ollama: failed to parse as JSON (showing full clean response): %s", clean)
+
+    except anthropic.APIError as exc:
+        logger.warning("Anthropic profile enrichment API error: %s", exc)
         return raw
     except Exception as exc:
-        logger.warning("Ollama profile enrichment failed: %s", exc, exc_info=True)
+        logger.warning("Anthropic profile enrichment failed: %s", exc, exc_info=True)
         return raw
 
 
-def build_enriched_profile_text(ollama_url: str, ollama_model: str) -> str:
-    """Like build_enhanced_profile_text() but enriches derived terms via Ollama."""
+# Keep the old name as an alias so any external callers continue to work.
+enrich_profile_with_ollama = enrich_profile_with_anthropic
+
+
+def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) -> str:
+    """Like build_enhanced_profile_text() but enriches derived terms via Anthropic Claude."""
     logger = logging.getLogger(__name__)
 
     if not PROFILE_DATA_PATH.is_file():
@@ -619,8 +588,8 @@ def build_enriched_profile_text(ollama_url: str, ollama_model: str) -> str:
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
 
-    logger.info("build_enriched_profile_text: calling enrich_profile_with_ollama")
-    enriched = enrich_profile_with_ollama(structured, ollama_url, ollama_model)
+    logger.info("build_enriched_profile_text: calling enrich_profile_with_anthropic")
+    enriched = enrich_profile_with_anthropic(structured, anthropic_api_key, anthropic_model)
 
     # Check if enrichment actually happened (style_summary is the marker)
     enrichment_happened = "style_summary" in enriched and bool(enriched.get("style_summary", "").strip())
