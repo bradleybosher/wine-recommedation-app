@@ -5,6 +5,7 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 ## Tech Stack
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 - **Backend:** Python/FastAPI, PyMuPDF/fitz (PDF), pytesseract + PIL (OCR), Ollama (local LLM), SQLite (cache), JSON (inventory + profile)
 =======
 - **Backend:** Python/FastAPI, PyMuPDF/fitz (PDF), pytesseract + PIL (OCR), Ollama (local LLM inference), SQLite (response cache), JSON files (inventory + profile)
@@ -12,6 +13,9 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 =======
 - **Backend:** Python/FastAPI, PyMuPDF/fitz (PDF), pytesseract + PIL (OCR), Ollama (local LLM), SQLite (cache), JSON (inventory + profile)
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
+=======
+- **Backend:** Python/FastAPI, PyMuPDF/fitz (PDF), pytesseract + PIL (OCR), Anthropic API (Claude, tool use), SQLite (cache), JSON (inventory + profile)
+>>>>>>> 90359d9 (Ported to Anthropic)
 - **Frontend:** React 19 + TypeScript + Tailwind CSS v4 + Vite, glassmorphism design system
 
 ## Data Flow
@@ -19,13 +23,13 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 <<<<<<< HEAD
 <<<<<<< HEAD
 CellarTracker TSV → inventory.json | CellarTracker export → profile_data.json
-→ wine list upload (PDF/photo) → parser.py → Ollama (enrich profile) → Ollama (recommend) → top-3
+→ wine list upload (PDF/photo) → parser.py → Claude (enrich profile) → Claude (recommend) → top-3
 ```
 **Modules:** `main.py` (routes), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `prompt.py` (prompt), `cache.py` (SQLite) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal
-- Profile enriched via preliminary Ollama call (`profile.build_enriched_profile_text()`) before main call
+- Profile enriched via preliminary Claude call (`profile.build_enriched_profile_text()`) before main call
 - Per-wine reasoning; list quality assessment; structured JSON output via Pydantic
 
 ## Docs
@@ -88,6 +92,7 @@ CellarTracker TSV → inventory.json | CellarTracker export → profile_data.jso
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
 ### 1. Context Sources
@@ -102,10 +107,14 @@ CellarTracker TSV → inventory.json | CellarTracker export → profile_data.jso
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 =======
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
+=======
+### 1. API & Data Contract
+>>>>>>> 90359d9 (Ported to Anthropic)
 - **SDK Only:** ALL backend calls via `frontend/src/client/sdk.gen.ts`. No manual `fetch`/`axios`.
 - **Type Safety:** Use `src/client/types.gen.ts`. Do not redefine types locally.
 - **Sync Protocol:** After Python changes, STOP — ask user to run `sync_types.bat` before any frontend updates.
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 ### 3. Command Execution (Windows)
@@ -115,10 +124,14 @@ CellarTracker TSV → inventory.json | CellarTracker export → profile_data.jso
 =======
 ### 3. Command Execution (Windows)
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
+=======
+### 2. Command Execution (Windows)
+>>>>>>> 90359d9 (Ported to Anthropic)
 - **Sequential Only:** Never use `&&` or `;` — separate Bash tool calls only.
 - **No `cd`:** Use absolute paths from project root; backslashes in shell commands.
 - **Venv:** `.\backend\.venv\Scripts\python.exe -m [module]` for all backend tasks.
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 ### 4. Python & Backend
@@ -140,6 +153,13 @@ CellarTracker TSV → inventory.json | CellarTracker export → profile_data.jso
 
 ### 5. Frontend & Styling
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
+=======
+### 3. Python & Backend
+- All Pydantic models: `ConfigDict(alias_generator=to_camel, populate_by_name=True)`.
+- `/recommend` and `/upload-inventory` require `FormData` in the frontend.
+
+### 4. Frontend & Styling
+>>>>>>> 90359d9 (Ported to Anthropic)
 - **Imports:** `@/` alias only. No relative `../../` paths. Do not modify `vite.config.ts`.
 - **Cards:** `<GlassCard>` only — no `bg-white` containers.
 - **Background:** `<VibrantBackground>` in `App.tsx`; no background-color on page containers.

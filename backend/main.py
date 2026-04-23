@@ -52,6 +52,7 @@ from inventory import (
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
+<<<<<<< HEAD
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
 <<<<<<< HEAD
 =======
@@ -66,6 +67,9 @@ from profile import save_profile_export, load_profile_data, build_taste_profile,
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
 =======
 >>>>>>> b169158 (Added my profile tab)
+=======
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_anthropic, derive_taste_markers
+>>>>>>> 90359d9 (Ported to Anthropic)
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
@@ -130,12 +134,19 @@ logger = logging.getLogger("sommelier.api")
 
 load_dotenv(_som_dir / ".env")
 load_dotenv()
+<<<<<<< HEAD
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 <<<<<<< HEAD
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
 =======
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama-gpu")
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+if not ANTHROPIC_API_KEY:
+    raise ValueError("ANTHROPIC_API_KEY environment variable is not set. Add it to backend/.env")
+>>>>>>> 90359d9 (Ported to Anthropic)
 app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -332,10 +343,10 @@ def profile_summary() -> ProfileSummaryResponse:
         vintage_newest=max(vintages) if vintages else None,
     )
 
-    # Enriched natural-language palate portrait via Ollama (graceful fallback)
+    # Enriched natural-language palate portrait via Claude (graceful fallback)
     style_summary: Optional[str] = None
     try:
-        enriched = enrich_profile_with_ollama(profile_data, OLLAMA_URL, OLLAMA_MODEL)
+        enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
         raw_summary = enriched.get("style_summary", "")
         style_summary = raw_summary.strip() or None
     except Exception:
@@ -467,8 +478,8 @@ async def recommend(
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
     enriched_profile = None
     try:
-        logger.info("recommend: attempting to build enriched profile with ollama_url=%s ollama_model=%s", OLLAMA_URL, OLLAMA_MODEL)
-        enriched_profile = build_enriched_profile_text(OLLAMA_URL, OLLAMA_MODEL)
+        logger.info("recommend: attempting to build enriched profile with anthropic_model=%s", ANTHROPIC_MODEL)
+        enriched_profile = build_enriched_profile_text(ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
         # Safeguard: if enrichment produced an empty or suspicious result, discard it
         if not enriched_profile or len(enriched_profile) < 20:
             logger.warning("recommend: enriched profile is empty or too short (len=%d), falling back to standard profile", len(enriched_profile or ""))
@@ -509,7 +520,7 @@ async def recommend(
 <<<<<<< HEAD
     try:
         recommendation = get_recommendation(
-            wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
+            wine_list_text, meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL, image_b64
         )
         try:
             scoring_result = score_recommendation(recommendation, wine_list_text, taste_profile)

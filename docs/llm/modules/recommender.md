@@ -2,12 +2,12 @@
 
 ## Responsibility
 
-Call Ollama LLM with structured output schema, retry on garbage/invalid responses, parse and validate JSON, return structured recommendation or raise error.
+Call Anthropic Claude API with tool use for structured output, retry on schema validation failures, return validated recommendation or raise error.
 
 ## Dependencies
 
-- `httpx` (sync HTTP client — not async despite FastAPI context; used inside `with httpx.Client()`)
-- `json`, `re` (JSON parsing + markdown fence stripping)
+- `anthropic` (Anthropic Python SDK — manages HTTP, retries, auth)
+- `json` (serialising tool input to llm.log)
 - `pydantic.ValidationError` (schema validation errors)
 - `models.RecommendationResponse` (output schema)
 
@@ -17,8 +17,8 @@ Call Ollama LLM with structured output schema, retry on garbage/invalid response
 - `wine_list_text`: Parsed text from wine list (PDF/text)
 - `meal`: Meal description string
 - `system_prompt`: Complete prompt with profile + schema
-- `ollama_url`, `ollama_model`: Ollama configuration
-- `image_b64`: Optional base64-encoded image for vision models
+- `anthropic_api_key`, `anthropic_model`: Anthropic API configuration
+- `image_b64`: Optional base64-encoded JPEG image for multimodal input
 
 **Outputs**: `RecommendationResponse` (validated Pydantic model) or `HTTPException(502)`.
 
@@ -26,12 +26,13 @@ Call Ollama LLM with structured output schema, retry on garbage/invalid response
 
 ### Public entry point: `get_recommendation()`
 
-1. **Prompt construction**: `text_payload` = wine list + meal. If image provided, wine list omitted (vision model reads it directly).
-2. **Retry loop**: Up to `_MAX_ATTEMPTS = 3` attempts on `ValueError` (bad LLM output). Network/HTTP errors abort immediately.
+1. **Prompt construction**: `text_payload` = wine list + meal. If image provided, wine list omitted (Claude reads it from the image).
+2. **Retry loop**: Up to `_MAX_ATTEMPTS = 3` attempts on `ValueError` (schema validation failure). API errors abort immediately.
 3. Each attempt calls `_attempt_recommendation()`.
 
 ### `_attempt_recommendation()`
 
+<<<<<<< HEAD
 1. Call `_call_ollama()` with `_RESPONSE_SCHEMA` (structured output).
 <<<<<<< HEAD
 2. If Ollama returns 400 or 500 (old version or overloaded, rejects schema dict): retry with `format="json"` (plain JSON mode).
@@ -44,24 +45,28 @@ Call Ollama LLM with structured output schema, retry on garbage/invalid response
 6. `json.loads()` — raise `ValueError` on failure.
 7. Garbage key detection: if any key is `""` or contains `"<|"`, raise `ValueError`.
 8. `RecommendationResponse(**data)` — raise `ValueError` on Pydantic schema mismatch.
+=======
+1. Build Anthropic `messages` content: optional image block (type=`"image"`, source=base64) + text block.
+2. Call `client.messages.create()` with `tools=[_RECOMMENDATION_TOOL]` and `tool_choice={"type": "tool", "name": "provide_recommendations"}` — forces Claude to use the tool.
+3. Extract the `tool_use` block from `response.content` by name.
+4. Read `tool_block.input` — already a parsed dict, no JSON parsing needed.
+5. `RecommendationResponse(**data)` — raise `ValueError` on Pydantic schema mismatch.
+6. Log system prompt + user payload + tool input dict to `llm.log`.
+>>>>>>> 90359d9 (Ported to Anthropic)
 
-### `_call_ollama()`
+## Tool Definition (`_RECOMMENDATION_TOOL`)
 
-- POST to `/api/chat` with system+user messages and `format=<schema>`.
-- If 404: fall back to `/api/generate` with same schema.
-
-## Structured Output Schema (`_RESPONSE_SCHEMA`)
-
-Grammar-constrained sampling — forces Ollama to emit exact keys/types. Requires Ollama ≥ 0.5.1. Falls back to `format="json"` on 400.
+Passed to Claude as a tool; `tool_choice` forces its use, giving structured output without JSON parsing.
 
 Key schema fields:
-- `recommendations[].reasoning`: Requires 2–4 sentences opening with a personal comparison to owned bottle.
+- `recommendations[].reasoning`: 2–4 sentences opening with personal comparison to owned bottle.
 - `recommendations[].confidence`: Format `"high|medium|low — single clause reason"`.
 - `profile_match_summary`: Required top-level field.
 - `list_quality_note`: Optional top-level string.
 
 ## Patterns & Gotchas
 
+<<<<<<< HEAD
 - **Timeout**: 120-second timeout per attempt (Ollama can be slow on CPU). Total max wall time ≈ 6 minutes (3 × 120s).
 - **Retry classification**: `ValueError` (bad output) → retry. `httpx.HTTPStatusError` or `Exception` (network/HTTP error) → raise 502 immediately, no retry.
 - **Markdown fences**: Always stripped despite prompt instruction ("ONLY valid JSON").
@@ -76,20 +81,24 @@ Key schema fields:
 =======
 - **Schema fallback**: Ollama < 0.5.1 returns 400 for `format=<dict>` → falls back to `format="json"` automatically per attempt.
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+- **Tool use = no JSON repair**: `tool_block.input` is a pre-parsed dict. All brace-repair, fence-stripping, and key-aliasing logic from the prior Ollama implementation has been removed.
+- **Retry classification**: `ValueError` (Pydantic validation failure) → retry up to 3×. `anthropic.APIError` or other exceptions → raise 502 immediately.
+- **Multimodal**: Images passed as `{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": <b64>}}` content block. Must be JPEG; media type hardcoded.
+- **Max tokens**: 4096 (sufficient for 3 recommendations with reasoning).
+- **No timeout config**: Anthropic SDK uses its own default timeouts and built-in retry for transient errors.
+>>>>>>> 90359d9 (Ported to Anthropic)
 
 ## Known Issues / TODOs
 
-- Image support tested at integration level; assumes Ollama vision model supports `messages[i]["images"]` field.
-- Timeout hardcoded at 120s (not configurable via env).
-- LLM temperature/seed not configurable (uses Ollama defaults).
+- Image media type hardcoded to `image/jpeg`; PNG uploads would need the media type inferred from the upload.
+- LLM temperature not configurable (uses Anthropic defaults).
 - No exponential backoff between retries (immediate retry).
 
 ## Testing
 
-Test with a wine list PDF + meal description + valid Ollama endpoint. Verify:
-1. JSON with markdown fences (` ```json ... ``` `) is parsed correctly.
-2. Truncated JSON (missing `}`) is repaired and parsed.
-3. Invalid JSON exhausts retries and raises HTTPException(502).
-4. Valid JSON with missing required fields raises HTTPException(502).
-5. Valid complete JSON returns RecommendationResponse.
-6. Old Ollama (400 on schema dict) falls back to plain JSON mode and succeeds.
+1. Upload wine list PDF + meal description → valid `RecommendationResponse` returned.
+2. Upload wine list image (multimodal path) → same response structure.
+3. Verify `llm.log` shows `--- TOOL USE INPUT (PARSED) ---` with a JSON dict.
+4. Schema validation failure (e.g. missing `profile_match_summary`) → retries then raises HTTPException(502).
+5. Invalid API key → immediate HTTPException(502), no retry.

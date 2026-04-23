@@ -1,17 +1,19 @@
-"""Wine recommendation via Ollama/LLM."""
+"""Wine recommendation via Anthropic Claude API."""
 
-import base64
 import json
 import logging
 <<<<<<< HEAD
 import logging.handlers
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 import re
+=======
+>>>>>>> 90359d9 (Ported to Anthropic)
 from pathlib import Path
 from typing import Optional
 
-import httpx
+import anthropic
 from fastapi import HTTPException
 from pydantic import ValidationError
 
@@ -44,12 +46,14 @@ def _log_llm_exchange(attempt: int, system_prompt: str, user_payload: str, raw_r
     entry = (
         f"--- SYSTEM PROMPT ---\n{system_prompt}\n\n"
         f"--- USER PAYLOAD ---\n{user_payload}\n\n"
-        f"--- RAW RESPONSE ---\n{raw_response}"
+        f"--- TOOL USE INPUT (PARSED) ---\n{raw_response}"
     )
     _llm_logger.debug(entry, extra={"attempt": attempt})
 
+
 _MAX_ATTEMPTS = 3
 
+<<<<<<< HEAD
 # JSON Schema passed to Ollama's structured-output feature (format=<dict>).
 # Grammar-constrained sampling forces the model to emit these exact keys/types
 # regardless of whether it follows the system-prompt instructions.
@@ -128,77 +132,105 @@ _RESPONSE_SCHEMA = {
                             "or 'medium — right style but the vintage may be too young'."
 >>>>>>> faa3422 (Commit despite broken recommendation engine)
                         ),
+=======
+# Tool definition passed to Claude for structured output via tool use.
+# Claude is forced to call this tool, returning a parsed dict directly —
+# no JSON parsing or repair logic required.
+_RECOMMENDATION_TOOL: dict = {
+    "name": "provide_recommendations",
+    "description": "Provide ranked wine recommendations from the restaurant wine list.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "recommendations": {
+                "type": "array",
+                "description": "Top 3 wine recommendations from the list, ranked best-first.",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "rank":      {"type": "integer"},
+                        "wine_name": {"type": "string"},
+                        "producer":  {"type": "string"},
+                        "vintage":   {"type": "integer"},
+                        "region":    {"type": "string"},
+                        "price":     {"type": "number"},
+                        "reasoning": {
+                            "type": "string",
+                            "description": (
+                                "2-4 sentences explaining why this restaurant wine was selected. "
+                                "REQUIRED FIRST SENTENCE: either (a) if a specific owned bottle from the cellar list is a close stylistic match, "
+                                "open with 'Like your [Producer + Wine name], but [how this differs/excels]' — "
+                                "only use this form when you can name a real bottle; or (b) if no close cellar match exists, "
+                                "open by naming a concrete preference from the taste profile directly, "
+                                "e.g. 'Delivers the mineral-driven acidity you consistently reach for.' "
+                                "FORBIDDEN: using 'Like your [no specific owned bottle]' or any bracket placeholder. "
+                                "Where relevant, contrast against an avoided style: 'Unlike [avoided style], no [unwanted trait].' "
+                                "Then briefly add meal synergy only if it adds genuine insight beyond the profile match."
+                            ),
+                        },
+                        "confidence": {
+                            "type": "string",
+                            "description": (
+                                "MUST start with exactly the word 'high', 'medium', or 'low', then ' — ', "
+                                "then a single clause explaining the rating. "
+                                "FORBIDDEN: numeric scores (8/10, 85%), percentages, HTML tags, or any other format. "
+                                "Examples: 'high — hits your preference for grower Champagne with mineral complexity' "
+                                "or 'medium — right style but the vintage may be too young'."
+                            ),
+                        },
+>>>>>>> 90359d9 (Ported to Anthropic)
                     },
+                    "required": ["rank", "wine_name", "reasoning", "confidence"],
                 },
-                "required": ["rank", "wine_name", "reasoning", "confidence"],
             },
+            "list_quality_note":     {"type": "string"},
+            "profile_match_summary": {"type": "string"},
         },
-        "list_quality_note":    {"type": "string"},
-        "profile_match_summary": {"type": "string"},
+        "required": ["recommendations", "profile_match_summary"],
     },
-    "required": ["recommendations", "profile_match_summary"],
 }
-
-
-def _call_ollama(
-    http_client: httpx.Client,
-    ollama_url: str,
-    ollama_model: str,
-    system_prompt: str,
-    text_payload: str,
-    image_b64: Optional[str],
-    fmt: object,
-) -> httpx.Response:
-    """POST to /api/chat (with /api/generate fallback on 404)."""
-    chat_payload: dict = {
-        "model": ollama_model,
-        "stream": False,
-        "format": fmt,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": text_payload},
-        ],
-    }
-    if image_b64:
-        chat_payload["messages"][1]["images"] = [image_b64]
-
-    response = http_client.post(f"{ollama_url}/api/chat", json=chat_payload)
-
-    if response.status_code == 404:
-        logger.warning("ollama_chat_404_fallback_to_generate model=%s", ollama_model)
-        generate_payload: dict = {
-            "model": ollama_model,
-            "stream": False,
-            "format": fmt,
-            "system": system_prompt,
-            "prompt": text_payload,
-        }
-        if image_b64:
-            generate_payload["images"] = [image_b64]
-        response = http_client.post(f"{ollama_url}/api/generate", json=generate_payload)
-
-    return response
 
 
 def _attempt_recommendation(
     text_payload: str,
     system_prompt: str,
-    ollama_url: str,
-    ollama_model: str,
+    anthropic_api_key: str,
+    anthropic_model: str,
     image_b64: Optional[str],
     attempt: int,
 ) -> RecommendationResponse:
-    """Single attempt at calling Ollama and parsing the response.
+    """Single attempt at calling Claude and extracting a structured recommendation.
 
-    Raises ValueError on bad/garbage LLM output (retriable).
-    Raises HTTPException on network/HTTP errors (not retriable).
+    Raises ValueError on schema validation failures (retriable).
+    Raises HTTPException on API errors (not retriable).
     """
-    with httpx.Client(timeout=120.0) as http_client:
-        response = _call_ollama(
-            http_client, ollama_url, ollama_model,
-            system_prompt, text_payload, image_b64, _RESPONSE_SCHEMA,
-        )
+    client = anthropic.Anthropic(api_key=anthropic_api_key)
 
+    content: list = []
+    if image_b64:
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64},
+        })
+    content.append({"type": "text", "text": text_payload})
+
+    try:
+        response = client.messages.create(
+            model=anthropic_model,
+            max_tokens=4096,
+            system=system_prompt,
+            messages=[{"role": "user", "content": content}],
+            tools=[_RECOMMENDATION_TOOL],
+            tool_choice={"type": "tool", "name": "provide_recommendations"},
+        )
+    except anthropic.APIError as exc:
+        logger.exception("anthropic_api_error status=%s", getattr(exc, "status_code", "unknown"))
+        raise HTTPException(
+            status_code=502,
+            detail=f"Recommendation provider API error: {exc}",
+        ) from exc
+
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         # Ollama < 0.5.1 rejects a schema dict with 400 or 500 — fall back to plain JSON mode.
@@ -218,31 +250,21 @@ def _attempt_recommendation(
                 http_client, ollama_url, ollama_model,
                 system_prompt, text_payload, image_b64, "json",
             )
+=======
+    tool_block = next(
+        (b for b in response.content if b.type == "tool_use" and b.name == "provide_recommendations"),
+        None,
+    )
+    if not tool_block:
+        raise ValueError("Claude did not use the recommendation tool")
+>>>>>>> 90359d9 (Ported to Anthropic)
 
-        response.raise_for_status()
-
-    body = response.json()
-    result = (body.get("message", {}).get("content") or body.get("response") or "").strip()
-    if not result:
-        raise ValueError("Ollama returned an empty response")
-
-    logger.info("attempt=%d raw_response_length=%d", attempt, len(result))
-    _log_llm_exchange(attempt, system_prompt, text_payload, result)
-
-    # Strip markdown fences if LLM wrapped the JSON despite instructions
-    if result.startswith("```"):
-        result = re.sub(r"^```(?:json)?\s*", "", result)
-        result = re.sub(r"\s*```$", "", result)
-        result = result.strip()
-
-    # Repair truncated JSON (missing closing braces)
-    opened = result.count("{")
-    closed = result.count("}")
-    if opened > closed:
-        result += "}" * (opened - closed)
-        logger.info("attempt=%d repaired_missing_braces=%d", attempt, opened - closed)
+    data = tool_block.input  # Already a parsed dict — no JSON parsing needed
+    logger.info("attempt=%d tool_use_received keys=%s", attempt, list(data.keys()))
+    _log_llm_exchange(attempt, system_prompt, text_payload, json.dumps(data, indent=2))
 
     try:
+<<<<<<< HEAD
         recommendation_data = json.loads(result)
     except json.JSONDecodeError as e:
         logger.warning("attempt=%d json_parse_failed error=%s raw_response=%s", attempt, e, result)
@@ -353,6 +375,12 @@ def _attempt_recommendation(
     except ValidationError as e:
         logger.warning("attempt=%d schema_validation_failed error=%s raw_response=%s", attempt, e, result)
         raise ValueError(f"Schema mismatch: {e}") from e
+=======
+        recommendation = RecommendationResponse(**data)
+    except ValidationError as exc:
+        logger.warning("attempt=%d schema_validation_failed error=%s", attempt, exc)
+        raise ValueError(f"Schema validation failed: {exc}") from exc
+>>>>>>> 90359d9 (Ported to Anthropic)
 
     logger.info("attempt=%d schema_validation_passed wines=%d", attempt, len(recommendation.recommendations))
     return recommendation
@@ -362,17 +390,16 @@ def get_recommendation(
     wine_list_text: str,
     meal: str,
     system_prompt: str,
-    ollama_url: str,
-    ollama_model: str,
+    anthropic_api_key: str,
+    anthropic_model: str,
     image_b64: Optional[str] = None,
 ) -> RecommendationResponse:
-    """
-    Get wine recommendation from Ollama/LLM.
+    """Get wine recommendation from Anthropic Claude.
 
-    Retries up to _MAX_ATTEMPTS times on garbage/invalid LLM output.
+    Retries up to _MAX_ATTEMPTS times on schema validation errors.
 
     Raises:
-        HTTPException: On Ollama network failure or all attempts exhausted.
+        HTTPException: On API failure or all attempts exhausted.
     """
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -414,21 +441,14 @@ def get_recommendation(
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             return _attempt_recommendation(
-                text_payload, system_prompt, ollama_url, ollama_model, image_b64, attempt
+                text_payload, system_prompt, anthropic_api_key, anthropic_model, image_b64, attempt
             )
         except ValueError as exc:
-            # Bad LLM output — log and retry
             last_err = exc
             logger.warning("get_recommendation: attempt=%d/%d failed: %s", attempt, _MAX_ATTEMPTS, exc)
-        except httpx.HTTPStatusError as exc:
-            # HTTP error from Ollama — not worth retrying
-            logger.exception("recommend_provider_http_error status=%s", exc.response.status_code)
-            raise HTTPException(
-                status_code=502,
-                detail=f"Recommendation provider HTTP error: {exc.response.status_code}",
-            ) from exc
+        except HTTPException:
+            raise
         except Exception as exc:
-            # Network/unexpected error — not worth retrying
             logger.exception("recommend_provider_error error=%s", type(exc).__name__)
             raise HTTPException(
                 status_code=502,

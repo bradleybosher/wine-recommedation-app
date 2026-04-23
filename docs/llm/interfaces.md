@@ -124,12 +124,13 @@ def get_recommendation(
   wine_list_text: str,
   meal: str,
   system_prompt: str,
-  ollama_url: str,
-  ollama_model: str,
+  anthropic_api_key: str,
+  anthropic_model: str,
   image_b64: Optional[str] = None
 ) → RecommendationResponse
-  Call Ollama /api/chat (fallback /api/generate). Parse JSON, strip markdown fences.
-  Validate via Pydantic. Raise HTTPException(502) on LLM error or schema mismatch.
+  Call Anthropic Claude via tool use (provide_recommendations tool). tool_block.input is a
+  pre-parsed dict — no JSON parsing needed. Retry up to 3× on Pydantic ValidationError.
+  Raise HTTPException(502) on API error or unrecoverable schema mismatch.
 ```
 
 ### prompt.py
@@ -172,14 +173,16 @@ def build_enhanced_profile_text() → str
   Format taste profile as prose paragraph for system prompt.
   Fallback to OWNER_PROFILE constant if no profile data.
 
-def build_enriched_profile_text(ollama_url: str, ollama_model: str) → str
-  Like build_enhanced_profile_text() but calls enrich_profile_with_ollama() first.
+def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) → str
+  Like build_enhanced_profile_text() but calls enrich_profile_with_anthropic() first.
   Prepends style_summary sentence if enrichment succeeded.
   This is the function called from main.py (not build_enhanced_profile_text).
 
-def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) → dict
-  POST frequency-derived profile to Ollama; get back multi-word style phrases + style_summary.
-  Returns raw unchanged on any error. 30s timeout.
+def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_model: str) → dict
+  Call Anthropic Claude via tool use (enrich_taste_profile tool); get back multi-word style
+  phrases + style_summary. tool_block.input is pre-parsed — no JSON parsing needed.
+  Returns raw unchanged on any error (fully safe fallback).
+  enrich_profile_with_ollama is kept as a backward-compat alias.
 
 def build_taste_profile_pydantic(profile_data: dict) → TasteProfile
   Calls build_taste_profile() and maps result to TasteProfile Pydantic model.
@@ -361,7 +364,7 @@ def log_recommendation_event(
   Bust cache. Return confirmation.
 
 @router.get("/debug/config") → Dict
-  Return OLLAMA_URL, OLLAMA_MODEL, and full environment dict (careful in production!).
+  Return anthropic_model and anthropic_api_key_set (bool — key never exposed).
 
 @router.get("/debug/logs/recent?limit=50") → Dict
   Last N lines from logs/api.log.
