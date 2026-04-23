@@ -103,6 +103,14 @@ _FOOD_KEYWORDS = {
     "non-alcoholic", "mocktail", "juice", "coffee", "tea",
 }
 
+_WINE_TRIAGE_KEYWORDS = {
+    "wine", "red", "white", "rosé", "rose", "sparkling", "champagne",
+    "cabernet", "merlot", "pinot", "syrah", "grenache", "chardonnay",
+    "sauvignon", "riesling", "prosecco", "cava", "crémant", "cremant",
+    "port", "sherry", "madeira", "sauternes", "tokaji", "vintage",
+    "producer", "varietal", "appellation", "domaine", "château", "chateau",
+}
+
 
 class OCRError(ValueError):
     """Raised when Haiku vision extraction fails (API error, network, etc.)."""
@@ -139,7 +147,7 @@ def _call_haiku_vision(image_bytes: bytes) -> WineListExtraction:
         max_tokens=8000,
         tools=[_RECORD_WINE_LIST_TOOL],
         tool_choice={"type": "tool", "name": "record_wine_list"},
-        system=OCR_SYSTEM_PROMPT,
+        system=[{"type": "text", "text": OCR_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
         messages=[{
             "role": "user",
             "content": [
@@ -258,13 +266,26 @@ def should_use_vision_extraction(pdf_bytes: bytes) -> bool:
 
 
 def _extract_pdf_via_vision(pdf_bytes: bytes) -> str:
-    """Render each PDF page as JPEG and extract wines via Haiku vision."""
+    """Render each PDF page as JPEG and extract wines via Haiku vision.
+
+    Pages with ≥150 chars of extractable text containing wine keywords skip
+    the Haiku call and contribute their raw text directly, reducing API costs.
+    """
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     all_wines: list[WineListEntry] = []
     all_notes: list[str] = []
     seen_raw: set[str] = set()
+    raw_text_pages: list[str] = []
 
     for page_num, page in enumerate(doc, start=1):
+        page_text = page.get_text().strip()
+        text_has_wine = any(kw in page_text.lower() for kw in _WINE_TRIAGE_KEYWORDS)
+        if len(page_text) >= 150 and text_has_wine:
+            logger.info("PDF page %d: text triage SKIP_VISION (%d chars)", page_num, len(page_text))
+            raw_text_pages.append(page_text)
+            continue
+
+        logger.info("PDF page %d: text triage CALL_VISION (%d chars, has_wine_kw=%s)", page_num, len(page_text), text_has_wine)
         pixmap = page.get_pixmap(matrix=fitz.Matrix(2, 2))
         jpeg_bytes = pixmap.tobytes("jpeg")
         try:
@@ -286,6 +307,7 @@ def _extract_pdf_via_vision(pdf_bytes: bytes) -> str:
     if all_notes:
         logger.info("PDF vision confidence notes: %s", "; ".join(all_notes))
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         # RGB → greyscale → stretch contrast → binarise → sharpen
         image = image.convert("RGB").convert("L")
@@ -381,6 +403,15 @@ def _extract_pdf_via_vision(pdf_bytes: bytes) -> str:
     merged = WineListExtraction(wines=all_wines, confidence_notes="; ".join(all_notes))
     return _format_extraction(merged)
 >>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
+=======
+    parts: list[str] = []
+    if all_wines:
+        merged = WineListExtraction(wines=all_wines, confidence_notes="; ".join(all_notes))
+        parts.append(_format_extraction(merged))
+    if raw_text_pages:
+        parts.append("\n".join(raw_text_pages))
+    return "\n".join(parts)
+>>>>>>> 97b0c05 (Cost improvement of haiku usage)
 
 
 def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Optional[str]) -> str:

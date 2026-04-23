@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-SQLite-based response caching. Prevent redundant LLM calls for identical wine_list + meal + inventory + profile combinations.
+SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running Haiku vision for the same PDF regardless of meal/profile changes; (2) **response cache** — avoid full LLM recommendation calls for identical wine_list + meal + inventory + profile combinations.
 
 ## Constants
 
@@ -25,9 +25,22 @@ SQLite-based response caching. Prevent redundant LLM calls for identical wine_li
 ## Key Functions
 
 **init_db()** → None:
-  - Create response_cache table if not exists
-  - Schema: (key TEXT PRIMARY KEY, response TEXT, created_at REAL)
+  - Create `response_cache` and `parse_cache` tables if not exist
+  - response_cache schema: (key TEXT PRIMARY KEY, response TEXT, created_at REAL)
+  - parse_cache schema: (pdf_hash TEXT PRIMARY KEY, wine_list_text TEXT, created_at REAL)
   - Called once at app startup
+
+**make_parse_key(pdf_bytes)** → str:
+  - SHA256 of PDF bytes only — independent of meal, inventory, profile
+  - Used to check parse cache before running vision extraction
+
+**get_parse_cached(pdf_hash)** → Optional[str]:
+  - SELECT wine_list_text + created_at from parse_cache
+  - Same TTL eviction pattern as get_cached()
+  - Returns None if not found or expired
+
+**set_parse_cached(pdf_hash, wine_list_text)** → None:
+  - INSERT OR REPLACE into parse_cache with current timestamp
 
 **make_key(image_bytes, meal, inventory_hash, profile_hash)** → str:
   - SHA256 of concatenated bytes
@@ -44,8 +57,8 @@ SQLite-based response caching. Prevent redundant LLM calls for identical wine_li
   - Otherwise return JSON response string
 
 **purge_expired()** → int:
-  - DELETE all rows where age > CACHE_TTL_HOURS
-  - Returns count of deleted rows
+  - DELETE expired rows from both response_cache and parse_cache
+  - Returns total count of deleted rows
   - Called once at app startup (after init_db)
 
 **set_cached(key, response)** → None:
@@ -53,7 +66,7 @@ SQLite-based response caching. Prevent redundant LLM calls for identical wine_li
   - Auto-record created_at timestamp
 
 **bust_cache()** → None:
-  - DELETE all cache entries
+  - DELETE all entries from both response_cache and parse_cache
   - Called after inventory or profile upload
 
 **_conn()** → sqlite3.Connection:
@@ -62,8 +75,9 @@ SQLite-based response caching. Prevent redundant LLM calls for identical wine_li
 
 ## Patterns & Gotchas
 
-- **Cache key design**: Includes image bytes (not just hash) to handle image changes. Inventory + profile hashes prevent stale caches when user updates cellar/taste.
-- **TTL**: `CACHE_TTL_HOURS = 168` (7 days). `get_cached` lazily evicts expired entries on read; `purge_expired` bulk-clears at startup. `bust_cache` remains a full wipe (called on inventory/profile upload).
+- **Two-tier caching**: Parse cache (keyed by PDF bytes alone) sits upstream of the response cache (keyed by PDF + meal + inventory + profile). Parse cache prevents re-running Haiku even when meal or profile changes.
+- **Cache key design**: Response cache includes image bytes (not just hash) to handle image changes. Inventory + profile hashes prevent stale caches when user updates cellar/taste.
+- **TTL**: `CACHE_TTL_HOURS = 168` (7 days), applied equally to both tables. `get_cached`/`get_parse_cached` lazily evict on read; `purge_expired` bulk-clears both tables at startup. `bust_cache` wipes both tables (called on inventory/profile upload).
 - **Concurrency**: SQLite single-writer. If multiple requests hit at once, one may lock temporarily. Acceptable for portfolio app.
 - **Cache hit**: Client receives cached JSON immediately (no LLM call).
 - **INSERT OR REPLACE**: Updates if key exists, avoiding duplicates.

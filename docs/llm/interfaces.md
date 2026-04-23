@@ -263,22 +263,31 @@ def get_relevant_bottles(bottles: list[dict], style_terms: list[str]) → List[D
 
 ```python
 def init_db() → None
-  Create response_cache table if not exists.
+  Create response_cache and parse_cache tables if not exist.
+
+def make_parse_key(pdf_bytes: bytes) → str
+  SHA256(pdf_bytes) only — independent of meal, inventory, profile. Key for parse cache.
+
+def get_parse_cached(pdf_hash: str) → Optional[str]
+  SELECT wine_list_text FROM parse_cache WHERE pdf_hash. Return text or None if missing/expired.
+
+def set_parse_cached(pdf_hash: str, wine_list_text: str) → None
+  INSERT OR REPLACE into parse_cache.
 
 def make_key(image_bytes: bytes, meal: str, inventory_hash: str, profile_hash: str) → str
-  SHA256(image + meal + inventory_hash + profile_hash).
+  SHA256(image + meal + inventory_hash + profile_hash). Key for response cache.
 
 def inventory_hash(bottles: list[dict]) → str
   MD5(JSON-sorted bottles).
 
 def get_cached(key: str) → Optional[str]
-  SELECT response FROM cache WHERE key. Return JSON string or None.
+  SELECT response FROM response_cache WHERE key. Return JSON string or None.
 
 def set_cached(key: str, response: str) → None
-  INSERT OR REPLACE into cache.
+  INSERT OR REPLACE into response_cache.
 
 def bust_cache() → None
-  DELETE all cache entries.
+  DELETE all entries from response_cache and parse_cache.
 ```
 
 ### parser.py

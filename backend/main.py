@@ -53,7 +53,7 @@ from inventory import (
 <<<<<<< HEAD
     filter_wine_list,
 )
-from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
+from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired, make_parse_key, get_parse_cached, set_parse_cached
 from prompt import build_system_prompt
 <<<<<<< HEAD
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
@@ -395,6 +395,7 @@ async def recommend(
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
     from parser import OCRError
 =======
@@ -423,6 +424,20 @@ async def recommend(
         wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
     except OCRError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+=======
+    # Parse wine list — check parse cache first (keyed by PDF bytes only, independent of meal/profile).
+    from parser import OCRError
+    parse_key = make_parse_key(raw_bytes)
+    wine_list_text = get_parse_cached(parse_key)
+    if wine_list_text:
+        logger.info("recommend: parse cache hit, skipping vision extraction")
+    else:
+        try:
+            wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
+        except OCRError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        set_parse_cached(parse_key, wine_list_text)
+>>>>>>> 97b0c05 (Cost improvement of haiku usage)
 
     wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
     taste_profile = build_taste_profile_pydantic(load_profile_data())
