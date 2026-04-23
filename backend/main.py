@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import json
 import logging
@@ -308,26 +307,12 @@ async def recommend(
         except (json.JSONDecodeError, ValueError):
             logger.warning("cached response failed validation, regenerating")
 
-    # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
+    # Parse wine list — images and PDFs are routed through Haiku vision as needed.
     from parser import OCRError
-    media_type = (wine_list.content_type or "").lower()
-    is_image_upload = media_type.startswith("image/") or any(
-        (wine_list.filename or "").lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
-    )
-
-    image_b64: Optional[str] = None
     try:
         wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
     except OCRError as exc:
-        # OCR failed — attempt multimodal path (requires a vision-capable Ollama model).
-        # If the model is text-only this will also fail, but at least it won't silently
-        # recommend from the cellar.
-        logger.warning("recommend: OCR failed (%s); attempting multimodal fallback", exc)
-        if is_image_upload:
-            image_b64 = base64.standard_b64encode(raw_bytes).decode()
-            wine_list_text = ""
-        else:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
     taste_profile = build_taste_profile_pydantic(load_profile_data())
@@ -384,7 +369,7 @@ async def recommend(
     # Get recommendation from LLM
     try:
         recommendation = get_recommendation(
-            wine_list_text, meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL, image_b64
+            wine_list_text, meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
         )
         try:
             scoring_result = score_recommendation(recommendation, wine_list_text, taste_profile)

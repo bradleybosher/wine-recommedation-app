@@ -2,75 +2,88 @@
 
 ## Responsibility
 
-Dispatch wine list parsing based on file type. Extract text from PDFs, text uploads, and images (via OCR).
+Dispatch wine list parsing based on file type. Extract wine lists from PDFs (text or scanned), images, and plain-text uploads. Images and qualifying PDFs are routed through Claude Haiku vision for structured extraction and automatic wine/non-wine filtering.
 
 ## Dependencies
 
-- `fitz` (PyMuPDF, PDF extraction)
-- `pytesseract` (Tesseract OCR wrapper for image text extraction)
-- `PIL` (Pillow, image pre-processing: RGB conversion, greyscale, sharpening)
-- `inventory.decode_cellartracker_upload()` (encoding handling)
-- `logging` (error reporting)
+- `fitz` (PyMuPDF, PDF text extraction and page rendering)
+- `anthropic` (Haiku vision API for image OCR)
+- `PIL` (Pillow, image resize/JPEG conversion before vision call)
+- `pydantic` (WineListEntry, WineListExtraction models)
+- `inventory.decode_cellartracker_upload()` (encoding handling for text uploads)
 
 ## Inputs/Outputs
 
-**Inputs**: 
+**Inputs**:
 - `file_bytes`: Raw file content
 - `content_type`: MIME type (e.g., "application/pdf", "text/plain", "image/jpeg")
 - `filename`: Original filename (fallback type detection)
 
-**Outputs**: Text string (wine list or error message).
+**Outputs**: Text string (formatted wine list or error message).
 
 ## Key Functions
 
-**extract_text_from_pdf(pdf_bytes)** → str:
-  - Use PyMuPDF to open PDF
-  - Iterate pages, extract text via `page.get_text()`
-  - Return concatenated text or error message
-  - Handles all PDF types (scanned, native, encrypted?)
+**parse_wine_list(file_bytes, content_type, filename)** → str:
+- Detect type: is_pdf_upload, is_text_upload, is_image_upload
+- PDF: call `should_use_vision_extraction()` first; if True → `_extract_pdf_via_vision()`, else → `extract_text_from_pdf()`
+- Image: `extract_text_from_image()`
+- Text: `decode_cellartracker_upload()`
+- Fallback: unknown type → attempt text decode, return error if fails
 
 **extract_text_from_image(image_bytes)** → str:
-  - Load image from bytes via PIL
-  - Pre-process: convert to RGB → greyscale → apply SHARPEN filter (improves OCR accuracy on phone photos)
-  - Extract text via pytesseract
-  - Validation: return error if OCR yields < 20 words
-  - Error handling:
-    - `EnvironmentError` (Tesseract missing): "OCR unavailable: Tesseract not installed. Upload a PDF instead."
-    - Insufficient text: "OCR returned no usable text. Try a clearer photo or upload a PDF."
-    - Other exceptions: return error message string
-  - All errors logged at WARNING level
+- Resize to ≤2000px JPEG via `prepare_image()`
+- Call Claude Haiku with `record_wine_list` tool (forced tool use)
+- Validate response into `WineListExtraction`, format via `_format_extraction()`
+- Raises `OCRError` only on API/network failure
 
-**parse_wine_list(file_bytes, content_type, filename)** → str:
-  - Detect type: is_pdf_upload, is_text_upload, is_image_upload
-  - Route: PDF → extract_text_from_pdf, text → decode_cellartracker_upload, image → extract_text_from_image
-  - Fallback: unknown type → attempt text decode, return error if fails
-  - Return text or error message
+**extract_text_from_pdf(pdf_bytes)** → str:
+- PyMuPDF page-by-page text extraction
+- Returns `""` (not error message) when no text found, so `should_use_vision_extraction()` can detect scanned PDFs
+
+**should_use_vision_extraction(pdf_bytes)** → bool:
+- Calls `extract_text_from_pdf()` then evaluates 3 signals:
+  1. ≥3 food keywords found → combined menu, needs filtering
+  2. avg line length > 120 → column-collapsed text
+  3. total text < 100 chars → scanned/image PDF
+- Returns True if Haiku vision should be used instead of raw text
+
+**_extract_pdf_via_vision(pdf_bytes)** → str:
+- Renders each page as JPEG via `page.get_pixmap(matrix=fitz.Matrix(2, 2)).tobytes("jpeg")`
+- Calls `_call_haiku_vision()` per page
+- Merges all `WineListEntry` lists, deduplicates by `raw_text`
+- Returns formatted text
+
+**prepare_image(image_bytes, max_dim=2000)** → bytes:
+- PIL `thumbnail()` to ≤2000px, convert to RGB JPEG at quality 85
+
+**_format_extraction(extraction)** → str:
+- Converts `WineListExtraction` to one line per wine: `Producer WineName Vintage — Region | Varietal — $Price`
+
+## Data Models
+
+**WineListEntry**: producer (str|None), wine_name (str), vintage (int|None), region (str|None), varietal (str|None), price (float|None), bottle_size (str|None), raw_text (str)
+
+**WineListExtraction**: wines (list[WineListEntry]), confidence_notes (str)
+
+## Constants
+
+- `OCR_SYSTEM_PROMPT`: Instructs Haiku to extract only wines, ignore food/cocktails/spirits; rules for null fields, NV vintages, multi-size entries
+- `_RECORD_WINE_LIST_TOOL`: JSON schema for the `record_wine_list` tool passed to Haiku
+- `_FOOD_KEYWORDS`: Set of ~30 terms used to detect combined menus in PDFs
 
 ## Patterns & Gotchas
 
-- **Type detection**: Check MIME type first, fallback to filename extension.
-- **MIME types checked**: 
-  - PDF: "application/pdf", ".pdf"
-  - Text: "text/*", ".txt"
-  - Image: "image/*", ".jpg/.jpeg/.png/.gif/.bmp"
-- **Image pre-processing**: Greyscale + sharpening improves OCR accuracy on phone photos of wine lists.
-- **OCR validation**: Returns error message if Tesseract produces < 20 words (prevents noisy/blank extractions from being passed to the recommendation engine).
-- **Tesseract dependency**: pytesseract requires the Tesseract binary to be installed on the system. Missing Tesseract raises EnvironmentError, caught and returned as user-friendly error.
-- **Fallback decode**: Unknown types attempted as text with encoding fallback (see inventory.decode_cellartracker_upload).
-- **Error convention**: All extraction failures return error strings (not raised); logged at WARNING level.
-
-## Known Issues / TODOs
-
-- PDF extraction may fail on encrypted PDFs (no handling; returns error message).
-- Image path is dual: OCR text is extracted here for inclusion in the text prompt; main.py also passes raw base64 to Ollama for vision-capable models. Vision path is not formally tested.
-- Large PDF parsing may be slow (PyMuPDF is generally fast but no timeout).
-- OCR accuracy depends on image quality and Tesseract configuration (no language packs or custom preprocessing flags set).
+- **Type detection**: MIME type first, then filename extension.
+- **Vision filtering**: Haiku's system prompt explicitly excludes food, cocktails, spirits — structured extraction is also a filter pass.
+- **PDF routing**: `should_use_vision_extraction()` runs a cheap text extract first to decide whether vision is needed. The extra PyMuPDF call is negligible vs. avoiding an unnecessary Haiku API call.
+- **OCRError**: Only raised on Haiku API/network failure. No longer raised for low word count (Haiku is reliable enough that an empty extraction is a valid result for a blank image).
+- **Confidence notes**: Logged at INFO level. Useful for debugging ambiguous menus.
 
 ## Testing
 
-1. Upload a PDF wine list → verify text extracted.
-2. Upload a text file → verify decoded correctly.
-3. Upload an image (clear photo or scan) → verify OCR extracts text.
-4. Upload a blurry/low-quality image → verify returns "no usable text" error gracefully.
-5. Test without Tesseract installed → verify returns "Tesseract not installed" error.
-6. Upload an unknown file type → verify fallback behavior.
+1. Upload a JPG wine list photo → verify Haiku extracts wines and returns formatted text.
+2. Upload a text-only PDF → verify PyMuPDF path (no Haiku call).
+3. Upload a full restaurant menu PDF (with food) → verify food keywords trigger Haiku vision + only wines returned.
+4. Upload a scanned PDF → verify vision fallback renders pages and extracts wines.
+5. Upload a text file → verify decoded correctly.
+6. Check logs for "Haiku OCR: extracted N wines" and confidence notes.
