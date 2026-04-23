@@ -284,12 +284,29 @@ def bust_cache() → None
 ### parser.py
 
 ```python
-def extract_text_from_pdf(pdf_bytes: bytes) → str
-  Use PyMuPDF (fitz). Return text or error message if parsing fails.
-
 def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Optional[str]) → str
-  Dispatch: PDF → extract_text_from_pdf, text → decode, image → "OCR not implemented" warning.
-  Fallback to text decode if content type unknown. Return text or error message.
+  Dispatch: PDF → should_use_vision_extraction() → _extract_pdf_via_vision() or extract_text_from_pdf();
+  image → extract_text_from_image(); text → decode_cellartracker_upload(). Returns formatted wine list text.
+
+def extract_text_from_image(image_bytes: bytes) → str
+  Resize image, call Claude Haiku vision with record_wine_list tool, return formatted wine list text.
+  Raises OCRError on API/network failure.
+
+def extract_text_from_pdf(pdf_bytes: bytes) → str
+  Use PyMuPDF (fitz). Returns "" (empty) when no text layer found (scanned PDF).
+
+def should_use_vision_extraction(pdf_bytes: bytes) → bool
+  Run cheap text extract, check for food keywords / column collapse / empty result.
+  Returns True if PDF should be routed to Haiku vision.
+
+def prepare_image(image_bytes: bytes, max_dim: int = 2000) → bytes
+  Resize to ≤max_dim px, convert to RGB JPEG at quality 85.
+
+class WineListEntry(BaseModel)
+  producer, wine_name, vintage, region, varietal, price, bottle_size, raw_text
+
+class WineListExtraction(BaseModel)
+  wines: list[WineListEntry], confidence_notes: str
 ```
 
 ### meal_parser.py
