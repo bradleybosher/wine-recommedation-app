@@ -48,12 +48,21 @@ _TARGET_RECS = 3
 # Individual dimension scorers
 # ---------------------------------------------------------------------------
 
+def _normalize_confidence_level(raw_confidence: str) -> str:
+    """Extract normalized confidence level from raw LLM text."""
+    normalized = (raw_confidence or "").lower().strip()
+    for level in _CONFIDENCE_MAP:
+        if normalized.startswith(level):
+            return level
+    return normalized
+
+
 def _score_confidence(response: RecommendationResponse) -> float:
     """Average mapped confidence across all recommendations."""
     recs = response.recommendations
     if not recs:
         return 0.0
-    scores = [_CONFIDENCE_MAP.get(r.confidence.lower().strip(), 0.5) for r in recs]
+    scores = [_CONFIDENCE_MAP.get(_normalize_confidence_level(r.confidence), 0.5) for r in recs]
     return sum(scores) / len(scores)
 
 
