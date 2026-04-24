@@ -26,6 +26,7 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 *.bat
+*.env
 testdata/*
 # --- Media ---
 frontend/public/assets/
