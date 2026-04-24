@@ -183,6 +183,7 @@ export type Bottle = {
 };
 
 /**
+<<<<<<< HEAD
  * CellarStats
  *
  * Aggregate statistics computed from the user's cellar inventory.
@@ -207,6 +208,8 @@ export type CellarStats = {
 };
 
 /**
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -268,12 +271,15 @@ export type ProfileSummaryResponse = {
      * Avgspend
      */
     avgSpend?: number | null;
+<<<<<<< HEAD
     /**
      * Stylesummary
      */
     styleSummary?: string | null;
     tasteMarkers?: TasteMarkers | null;
     cellarStats?: CellarStats | null;
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 };
 
 /**
@@ -295,6 +301,7 @@ export type RecommendationResponse = {
 };
 
 /**
+<<<<<<< HEAD
  * TasteMarkers
  *
  * Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high).
@@ -319,6 +326,8 @@ export type TasteMarkers = {
 };
 
 /**
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
  * TasteProfile
  *
  * Source-agnostic taste profile schema (quiz, CellarTracker, manual, etc.)

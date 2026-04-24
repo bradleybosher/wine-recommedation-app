@@ -133,6 +133,7 @@ This guide maps common task types to the documentation you should include when a
 
 ---
 
+<<<<<<< HEAD
 ## Analysing Recommendation Quality / Scoring
 
 **Task**: "Tune scoring weights", "Why is grounding low?", "Add a new scoring dimension", "Inspect recommendations.jsonl"
@@ -152,6 +153,8 @@ This guide maps common task types to the documentation you should include when a
 
 ---
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ## Writing Tests
 
 **Task**: "How do I test the profile inference?" or "Set up integration test"
@@ -196,7 +199,11 @@ This guide maps common task types to the documentation you should include when a
 | conventions.md | Patterns, error handling, libraries | 600 |
 | architecture.md | Stack, module map, data flow | 300 |
 | interfaces.md | All public function signatures | 800 |
+<<<<<<< HEAD
 | modules/main.md | FastAPI app, endpoints | 280 |
+=======
+| modules/main.md | FastAPI app, endpoints | 250 |
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 | modules/recommender.md | LLM calls, JSON parsing | 200 |
 | modules/prompt.md | System prompt construction | 150 |
 | modules/profile.md | Taste profile inference | 250 |

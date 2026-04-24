@@ -17,8 +17,11 @@ import logging
 from inventory import decode_cellartracker_upload
 from models import TasteProfile
 
+<<<<<<< HEAD
 from typing import List
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 _SOM_DIR = Path(__file__).resolve().parent
 PROFILE_DATA_PATH = _SOM_DIR / "profile_data.json"
  
@@ -411,6 +414,7 @@ def _format_taste_profile_paragraph(p: dict) -> str:
     return f"Based on cellar and tasting history: {body}."
  
  
+<<<<<<< HEAD
 def extract_profile_preference_terms(profile_data: dict) -> dict:
     """Extract matchable keyword lists from structured profile data.
 
@@ -429,6 +433,8 @@ def extract_profile_preference_terms(profile_data: dict) -> dict:
     return {"preferred": preferred, "avoided": []}
 
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 def build_enhanced_profile_text() -> str:
     """Build taste profile text from loaded profile data or return owner default."""
     if not PROFILE_DATA_PATH.is_file():
@@ -469,6 +475,7 @@ def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) ->
     logger.info("enrich_profile_with_ollama: starting enrichment with model=%s url=%s", ollama_model, ollama_url)
 
     prompt_text = (
+<<<<<<< HEAD
         "You are a master sommelier building a palate profile for a wine buyer.\n"
         "Your job: translate raw frequency data into STYLE descriptors — focus on "
         "texture, weight, and flavour character. Ignore grape variety and region labels; "
@@ -492,6 +499,21 @@ def enrich_profile_with_ollama(raw: dict, ollama_url: str, ollama_model: str) ->
         '  "preferred_styles": [],\n'
         '  "avoided_styles": [],\n'
         '  "style_summary": ""\n'
+=======
+        "You are a wine expert. Analyse the raw preference data below and "
+        "synthesise a higher-quality palate profile.\n\n"
+        f"Top varietals: {raw.get('top_varietals', [])[:7]}\n"
+        f"Top regions: {raw.get('top_regions', [])[:5]}\n"
+        f"Tasting-note tokens (frequency-ranked): {raw.get('preferred_descriptors', [])}\n"
+        f"Low-score note tokens: {raw.get('avoided_styles', [])}\n"
+        f"Average spend: {raw.get('avg_spend')}\n"
+        f"Sample producers: {raw.get('top_producers', [])[:5]}\n\n"
+        "Return ONLY valid JSON — no markdown, no explanation:\n"
+        '{\n'
+        '  "preferred_styles": ["3-6 multi-word phrases describing preferred style"],\n'
+        '  "avoided_styles": ["2-4 multi-word phrases describing avoided style"],\n'
+        '  "style_summary": "One sentence, 20-30 words, capturing overall palate character."\n'
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
         '}'
     )
     enrichment_schema = {
@@ -646,6 +668,7 @@ def build_enriched_profile_text(ollama_url: str, ollama_model: str) -> str:
     logger.debug("build_enriched_profile_text: final text (first 400 chars)=%s", result[:400])
 
     return result
+<<<<<<< HEAD
 
 
 def derive_taste_markers(descriptors: List[str]) -> dict:
@@ -691,3 +714,5 @@ def derive_taste_markers(descriptors: List[str]) -> dict:
         "body":    _score(_HIGH_BODY, _LOW_BODY),
         "oak":     _score(_HIGH_OAK,  _LOW_OAK),
     }
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)

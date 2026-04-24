@@ -6,8 +6,13 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
 
 ## Dependencies
 
+<<<<<<< HEAD
 - `profile.build_enhanced_profile_text()` (standard taste profile prose, no Ollama call)
 - No other imports; bottle dicts are plain `dict`, not `models.Bottle`
+=======
+- `profile.build_enhanced_profile_text()` (taste profile prose)
+- `models.Bottle` (for bottle fields)
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Inputs/Outputs
 
@@ -33,6 +38,7 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
   7. Append reasoning structure notes (4-step format) and confidence format note
   8. Return full prompt; also writes to `prompt.log` via dedicated `_prompt_logger`
 
+<<<<<<< HEAD
 ## Profile Function Disambiguation
 
 Two separate functions live in `profile.py`; `prompt.py` uses the first:
@@ -41,6 +47,9 @@ Two separate functions live in `profile.py`; `prompt.py` uses the first:
 - **`build_enriched_profile_text(ollama_url, ollama_model)`** — calls Ollama first to enrich the profile with multi-word style phrases, then formats. Called from `main.py` before the main recommendation call; the result is passed in as `taste_profile_override`.
 
 `OWNER_PROFILE` (the hardcoded fallback string) lives in `profile.py`, not `prompt.py`.
+=======
+**OWNER_PROFILE**: Module-level constant string. Default taste profile text used when no CellarTracker data is loaded. Imported by `profile.py` as a fallback.
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Reasoning Field Structure (enforced in prompt)
 

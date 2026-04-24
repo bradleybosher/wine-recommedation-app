@@ -24,8 +24,11 @@ def get_inventory() → InventoryResponse
 @app.get("/profile-summary")
 def profile_summary() → ProfileSummaryResponse
   Build taste profile from saved profile data. Returns top varietals, regions, etc.
+<<<<<<< HEAD
   Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
   cellar_stats (total_bottles, unique_wines, vintage range from inventory).
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 @app.post("/recommend")
 async def recommend(wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
@@ -74,6 +77,7 @@ class UploadProfileResponse(BaseModel):
   message: str
   taste_profile: Optional[TasteProfile] = None  # Derived immediately on upload
 
+<<<<<<< HEAD
 class TasteMarkers(BaseModel):
   acidity, tannin, body, oak: int  # 1–5 scale
 
@@ -81,14 +85,19 @@ class CellarStats(BaseModel):
   total_bottles, unique_wines: int
   vintage_oldest, vintage_newest: Optional[int]
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 class ProfileSummaryResponse(BaseModel):
   top_varietals, top_regions, top_producers: List[str]
   highly_rated: List[Dict[str, str]]
   preferred_descriptors, avoided_styles: List[str]
   avg_spend: Optional[int]
+<<<<<<< HEAD
   style_summary: Optional[str]      # Ollama palate portrait sentence
   taste_markers: Optional[TasteMarkers]
   cellar_stats: Optional[CellarStats]
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ```
 
 ### recommender.py
@@ -163,17 +172,24 @@ def _infer_avoided_styles(profile_data: dict) → List[str]
   Scan tasting notes (type "notes", "consumed") for wines with low scores.
   Auto-detect score scale (max > 10 → 100-pt scale, threshold 60; else 5-pt scale, threshold 3.0).
   Only count tokens in hardcoded negative_indicator_words set. Return top 10 with freq ≥ 2.
+<<<<<<< HEAD
 
 def derive_taste_markers(descriptors: List[str]) → dict
   Heuristic keyword scan of preferred descriptors. Returns {acidity, tannin, body, oak} as int 1–5.
   No LLM call — deterministic. Default score 3; ±1 per matching high/low keyword; clamped [1,5].
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ```
 
 ### inventory.py
 
 ```python
 def decode_cellartracker_upload(raw: bytes) → str
+<<<<<<< HEAD
   Try UTF-8-sig, UTF-8, cp1252, latin-1. Return decoded string or lossy fallback.
+=======
+  Try UTF-8, UTF-8-sig, cp1252, latin-1. Return decoded string or lossy fallback.
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 def parse_ct_csv(csv_text: str) → List[Dict]
   Parse TSV, filter rows where Quantity > 0. Return list of dicts.
@@ -184,6 +200,7 @@ def save_inventory(csv_text: str) → List[Dict]
 def load_inventory() → Optional[Dict]
   Load inventory.json. Return dict with bottles, age_hours, stale. None if missing.
 
+<<<<<<< HEAD
 def extract_terms_from_wine_list_text(text: str) → List[str]
   Scan raw restaurant wine list text for known style/varietal/region keywords.
   Returns matched keywords deduplicated and sorted longest-first (multi-word before component words).
@@ -208,6 +225,12 @@ def get_relevant_bottles(
   float("-inf") for avoided style match (hard exclusion).
   override_terms: when provided, expanded via _STYLE_MAP and used instead of restaurant_terms.
   Returns top limit non-excluded bottles sorted by score descending.
+=======
+def get_relevant_bottles(bottles: list[dict], style_terms: list[str]) → List[Dict]
+  Filter bottles by style_terms (e.g., "burgundy" → ["pinot noir", ...]).
+  Case-insensitive, accent-folded match on Varietal/Appellation/Wine/Producer.
+  Return matching bottles or all if no keywords.
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ```
 
 ### cache.py
@@ -259,6 +282,7 @@ def infer_wine_style_from_meal(profile: MealProfile) → List[str]
   Not currently connected to the recommend flow.
 ```
 
+<<<<<<< HEAD
 ### scorer.py
 
 ```python
@@ -296,6 +320,8 @@ def log_recommendation_event(
   Never raises to caller; internal errors swallowed via logger.exception.
 ```
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ### routes/debug.py
 
 ```python

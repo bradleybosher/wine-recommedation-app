@@ -23,8 +23,11 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [cache.py](modules/cache.md) — SQLite response caching
 - [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
 - [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
+<<<<<<< HEAD
 - scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
 - logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ### Frontend (Generated SDK)
 
@@ -56,8 +59,13 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ## Document Statistics
 
+<<<<<<< HEAD
 - **Total files**: 14 (4 core + 9 modules + 1 index) — scorer.py and logging_utils.py documented inline in interfaces.md
 - **Estimated total tokens**: ~5,800 (manageable in most LLM contexts)
+=======
+- **Total files**: 14 (4 core + 9 modules + 1 index)
+- **Estimated total tokens**: ~5,500 (manageable in most LLM contexts)
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 - **Typical focused task**: 1,500–2,000 tokens (architecture + glossary + 2–3 modules)
 
 ## Key Design Principles (Quick Summary)
@@ -81,7 +89,10 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 | Add new endpoint | conventions + modules/main + interfaces (models) | 1,500 |
 | Improve taste profile inference | glossary + modules/profile + modules/inventory | 1,000 |
 | Debug recommendation output | architecture + modules/recommender + modules/prompt + glossary | 1,600 |
+<<<<<<< HEAD
 | Analyse recommendation quality | architecture + interfaces (scorer/logging_utils) + modules/main | 1,200 |
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 | Add OCR support | modules/parser + conventions | 600 |
 | Optimize cache | modules/cache + modules/main | 800 |
 | Review PR | conventions + relevant modules | Variable |

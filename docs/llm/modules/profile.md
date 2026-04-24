@@ -98,6 +98,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - **Enrichment safety**: `enrich_profile_with_ollama()` catches all exceptions and returns `raw` unchanged. The 30-second timeout prevents enrichment from blocking the recommend call.
 - **style_summary vs. paragraph**: If enrichment succeeds, `build_enriched_profile_text()` returns `"{style_summary} {paragraph}"`. If enrichment failed/empty, returns just the paragraph.
 
+<<<<<<< HEAD
 **derive_taste_markers(descriptors)** → dict:
   - Joins all descriptor strings into a single lowercase text blob
   - Scores Acidity, Tannin, Body, and Oak on a 1–5 integer scale using keyword heuristics
@@ -110,6 +111,8 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Returns dict with keys: `acidity`, `tannin`, `body`, `oak` — suitable for `TasteMarkers(**result)`
   - No LLM call; purely deterministic from descriptor tokens
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ## Known Issues / TODOs
 
 - Negative indicators hardcoded; should be tunable or learned.

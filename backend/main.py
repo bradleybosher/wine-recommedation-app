@@ -1,10 +1,20 @@
 import base64
+<<<<<<< HEAD
 import hashlib
 import json
 import logging
 import logging.handlers
 import os
 from pathlib import Path
+=======
+from collections import Counter
+import hashlib
+import json
+import logging
+import os
+from pathlib import Path
+import re
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 import time
 import uuid
 from typing import Optional, Dict, Any
@@ -14,26 +24,39 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
+<<<<<<< HEAD
 import re
 from collections import Counter
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 from inventory import (
     decode_cellartracker_upload,
     save_inventory,
     load_inventory,
     get_relevant_bottles,
+<<<<<<< HEAD
     filter_wine_list,
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
+=======
+)
+from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
+from prompt import build_system_prompt
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
     UploadProfileResponse,
     ProfileSummaryResponse,
+<<<<<<< HEAD
     TasteMarkers,
     CellarStats,
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     RecommendRequest,
     RecommendationResponse,
     Bottle
@@ -41,8 +64,11 @@ from models import (
 from meal_parser import parse_meal_description, meal_to_wine_hints
 from parser import parse_wine_list
 from recommender import get_recommendation
+<<<<<<< HEAD
 from scorer import score_recommendation
 from logging_utils import log_recommendation_event
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 # Import debug routes
 from routes.debug import router as debug_router
@@ -57,6 +83,7 @@ _log_path = _log_dir / "api.log"
 # share the same file and stream handlers.
 _root_logger = logging.getLogger("sommelier")
 if not _root_logger.handlers:
+<<<<<<< HEAD
     _root_logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s %(levelname)s [%(name)s] %(message)s"
@@ -64,6 +91,13 @@ if not _root_logger.handlers:
     file_handler = logging.handlers.RotatingFileHandler(
         _log_path, maxBytes=1_000_000, backupCount=2, encoding="utf-8"
     )
+=======
+    _root_logger.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+    )
+    file_handler = logging.FileHandler(_log_path, encoding="utf-8")
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     file_handler.setFormatter(formatter)
     _root_logger.addHandler(file_handler)
     _root_logger.addHandler(logging.StreamHandler())
@@ -73,7 +107,11 @@ logger = logging.getLogger("sommelier.api")
 load_dotenv(_som_dir / ".env")
 load_dotenv()
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+<<<<<<< HEAD
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+=======
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama-gpu")
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -247,6 +285,7 @@ def get_inventory() -> InventoryResponse:
 @app.get("/profile-summary")
 def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
+<<<<<<< HEAD
 
     # Heuristic taste markers (instant — no LLM needed)
     markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
@@ -281,6 +320,9 @@ def profile_summary() -> ProfileSummaryResponse:
         taste_markers=taste_markers,
         cellar_stats=cellar_stats,
     )
+=======
+    return ProfileSummaryResponse(**profile_data)
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 @app.post("/recommend")
 async def recommend(
@@ -306,12 +348,20 @@ async def recommend(
         except (json.JSONDecodeError, ValueError):
             logger.warning("cached response failed validation, regenerating")
 
+<<<<<<< HEAD
     # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
     from parser import OCRError
+=======
+    # Parse wine list
+    wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
+
+    # Determine image upload path
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     media_type = (wine_list.content_type or "").lower()
     is_image_upload = media_type.startswith("image/") or any(
         (wine_list.filename or "").lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
     )
+<<<<<<< HEAD
 
     image_b64: Optional[str] = None
     try:
@@ -348,6 +398,17 @@ async def recommend(
     _after = len(wine_list_text.splitlines())
     logger.debug("wine_list_filter before=%d lines, after=%d lines", _before, _after)
 
+=======
+    image_b64 = base64.standard_b64encode(raw_bytes).decode() if is_image_upload else None
+
+    # Build system prompt with cellar context
+    top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
+    cellar_summary = _cellar_character_from_terms(top5_terms)
+    override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
+    terms = override_terms if override_terms else _inventory_terms_by_frequency(bottles, limit=10)
+    logger.info("recommend_terms source=%s terms=%s", "override" if override_terms else "derived", terms)
+    relevant = get_relevant_bottles(bottles, terms)
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     enriched_profile = None
     try:
         logger.info("recommend: attempting to build enriched profile with ollama_url=%s ollama_model=%s", OLLAMA_URL, OLLAMA_MODEL)
@@ -366,6 +427,7 @@ async def recommend(
     if enriched_profile is None:
         logger.info("recommend: using standard profile (enrichment not available)")
 
+<<<<<<< HEAD
     top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
     cellar_summary = _cellar_character_from_terms(top5_terms)
     override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
@@ -374,12 +436,15 @@ async def recommend(
     profile_prefs = extract_profile_preference_terms(load_profile_data())
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     meal_hints = meal_to_wine_hints(parse_meal_description(meal))
     system = build_system_prompt(relevant, cellar_summary=cellar_summary, taste_profile_override=enriched_profile, meal_hints=meal_hints)
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])
 
     # Get recommendation from LLM
+<<<<<<< HEAD
     try:
         recommendation = get_recommendation(
             wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
@@ -401,3 +466,12 @@ async def recommend(
             status_code=502,
             detail=f"Recommendation provider failed: {type(exc).__name__}",
         ) from exc
+=======
+    recommendation = get_recommendation(
+        wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
+    )
+
+    # Cache and return
+    set_cached(cache_key, recommendation.model_dump_json())
+    return recommendation
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)

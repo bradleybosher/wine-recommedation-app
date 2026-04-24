@@ -103,6 +103,7 @@ Fields:
 - `richness`: str = "medium"
 - `dominant_flavors`: List[str]
 
+<<<<<<< HEAD
 ### TasteMarkers
 
 Heuristic taste-marker scores derived from the user's preferred descriptors. Each field is an int on a 1–5 scale (1 = very low, 5 = very high).
@@ -126,15 +127,23 @@ Fields:
 ### ProfileSummaryResponse
 
 Returned by `GET /profile-summary`. Derived taste profile plus enriched data.
+=======
+### ProfileSummaryResponse
+
+Returned by `GET /profile-summary`. Derived taste profile.
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 Fields:
 - `top_varietals`, `top_regions`, `top_producers`: List[str]
 - `highly_rated`: List[Dict[str, str]] (producer, wine, vintage per item)
 - `preferred_descriptors`, `avoided_styles`: List[str]
 - `avg_spend`: Optional[int] (rounded to nearest 5)
+<<<<<<< HEAD
 - `style_summary`: Optional[str] — Ollama-generated one-sentence palate portrait; null if Ollama unavailable
 - `taste_markers`: Optional[TasteMarkers] — heuristic scores derived from descriptors
 - `cellar_stats`: Optional[CellarStats] — computed from inventory at request time
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Patterns
 

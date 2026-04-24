@@ -1,17 +1,25 @@
 import csv
+<<<<<<< HEAD
 import datetime
 import io
 import json
 import logging
 import re
+=======
+import io
+import json
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 import time
 import unicodedata
 from pathlib import Path
 
+<<<<<<< HEAD
 from models import TasteProfile
 
 logger = logging.getLogger("sommelier.inventory")
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 _SOM_DIR = Path(__file__).resolve().parent
 CACHE_PATH = _SOM_DIR / "inventory.json"
 CACHE_TTL  = 60 * 60 * 24 * 7  # 1 week — you trigger refresh manually
@@ -68,6 +76,7 @@ def _fold_for_match(text: str) -> str:
     return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
 
 
+<<<<<<< HEAD
 # ---------------------------------------------------------------------------
 # Known wine style / varietal / region keywords used for heuristic extraction
 # from unstructured restaurant wine list text.
@@ -507,3 +516,35 @@ def get_relevant_bottles(
     scored = [(b, s) for b, s in scored if s > float("-inf")]
     scored.sort(key=lambda x: x[1], reverse=True)
     return [b for b, _ in scored[:limit]]
+=======
+def get_relevant_bottles(bottles: list[dict], style_terms: list[str]) -> list[dict]:
+    style_map = {
+        "burgundy":   ["pinot noir", "burgundy", "bourgogne", "gevrey", "chambolle"],
+        "chablis":    ["chablis", "chardonnay"],
+        "champagne":  ["champagne", "blanc de noirs", "crémant"],
+        "nebbiolo":   ["nebbiolo", "barolo", "barbaresco"],
+        "chenin":     ["chenin", "vouvray", "savennières"],
+        "rhone":      ["syrah", "grenache", "côte-rôtie", "hermitage"],
+        "loire":      ["cabernet franc", "chinon", "bourgueil"],
+        "beaujolais": ["gamay", "beaujolais", "morgon", "moulin"],
+    }
+    terms = [t.lower() for t in style_terms]
+    keywords = []
+    for t in terms:
+        keywords += style_map.get(t, [t])
+
+    if not keywords:
+        return list(bottles)
+
+    folded_keywords = [_fold_for_match(kw) for kw in keywords]
+
+    def matches(b):
+        haystack_raw = " ".join(
+            str(b.get(k) or "")
+            for k in ("Varietal", "Appellation", "Wine", "Producer")
+        )
+        hay = _fold_for_match(haystack_raw)
+        return any(fk in hay for fk in folded_keywords if fk)
+
+    return [b for b in bottles if matches(b)]
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)

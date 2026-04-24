@@ -3,7 +3,10 @@
 import base64
 import json
 import logging
+<<<<<<< HEAD
 import logging.handlers
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 import re
 from pathlib import Path
 from typing import Optional
@@ -21,9 +24,13 @@ _log_dir = Path(__file__).resolve().parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
 _llm_logger = logging.getLogger("sommelier.llm.raw")
 if not _llm_logger.handlers:
+<<<<<<< HEAD
     _llm_handler = logging.handlers.RotatingFileHandler(
         _log_dir / "llm.log", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
     )
+=======
+    _llm_handler = logging.FileHandler(_log_dir / "llm.log", encoding="utf-8")
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     _llm_handler.setFormatter(
         logging.Formatter("%(asctime)s [attempt=%(attempt)s]\n%(message)s\n" + "=" * 80)
     )
@@ -64,6 +71,7 @@ _RESPONSE_SCHEMA = {
                     "reasoning":  {
                         "type": "string",
                         "description": (
+<<<<<<< HEAD
                             "2-4 sentences explaining why this restaurant wine was selected. "
                             "REQUIRED FIRST SENTENCE: either (a) if a specific owned bottle from the cellar list is a close stylistic match, "
                             "open with 'Like your [Producer + Wine name], but [how this differs/excels]' — "
@@ -73,10 +81,18 @@ _RESPONSE_SCHEMA = {
                             "FORBIDDEN: using 'Like your [no specific owned bottle]' or any bracket placeholder. "
                             "Where relevant, contrast against an avoided style: 'Unlike [avoided style], no [unwanted trait].' "
                             "Then briefly add meal synergy only if it adds genuine insight beyond the profile match."
+=======
+                            "2-4 sentences. Lead with a personal comparison: "
+                            "'Like your [specific bottle the user owns], but [how this differs or excels].' "
+                            "Where relevant, contrast against an avoided style: "
+                            "'Unlike [avoided bottle/style], no [unwanted trait].' "
+                            "Then add meal synergy if it adds genuine insight beyond the profile match."
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
                         ),
                     },
                     "confidence": {
                         "type": "string",
+<<<<<<< HEAD
                         "pattern": "^(high|medium|low)",
                         "description": (
                             "MUST start with exactly the word 'high', 'medium', or 'low', then ' — ', "
@@ -84,6 +100,12 @@ _RESPONSE_SCHEMA = {
                             "FORBIDDEN: numeric scores (8/10, 85%), percentages, HTML tags, or any other format. "
                             "Examples: 'high — hits your preference for grower Champagne with mineral complexity' "
                             "or 'medium — right style but the vintage may be too young'."
+=======
+                        "description": (
+                            "Start with 'high', 'medium', or 'low', then a dash and a single clause "
+                            "explaining why — e.g. 'high — hits your preference for grower Champagne "
+                            "with mineral complexity' or 'medium — style is right but the vintage is young'."
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
                         ),
                     },
                 },
@@ -156,9 +178,15 @@ def _attempt_recommendation(
             system_prompt, text_payload, image_b64, _RESPONSE_SCHEMA,
         )
 
+<<<<<<< HEAD
         # Ollama < 0.5.1 rejects a schema dict with 400 or 500 — fall back to plain JSON mode.
         if response.status_code in (400, 500):
             logger.warning("attempt=%d schema_format_rejected_fallback_to_plain_json status=%d", attempt, response.status_code)
+=======
+        # Ollama < 0.5.1 rejects a schema dict with 400 — fall back to plain JSON mode.
+        if response.status_code == 400:
+            logger.warning("attempt=%d schema_format_rejected_fallback_to_plain_json status=400", attempt)
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
             response = _call_ollama(
                 http_client, ollama_url, ollama_model,
                 system_prompt, text_payload, image_b64, "json",
@@ -201,6 +229,7 @@ def _attempt_recommendation(
         logger.warning("attempt=%d garbage_keys_detected keys=%s raw_response=%s", attempt, keys, result)
         raise ValueError(f"LLM returned garbage keys: {keys}")
 
+<<<<<<< HEAD
     # Normalize common key aliases the model emits when ignoring the schema.
     # Fixed aliases for summary/note fields:
     _TOP_ALIASES = {
@@ -284,6 +313,8 @@ def _attempt_recommendation(
         recommendation_data["profile_match_summary"] = "Recommendations selected from the restaurant wine list based on taste profile."
         logger.info("attempt=%d synthesized_profile_match_summary", attempt)
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     try:
         recommendation = RecommendationResponse(**recommendation_data)
     except ValidationError as e:
@@ -310,6 +341,7 @@ def get_recommendation(
     Raises:
         HTTPException: On Ollama network failure or all attempts exhausted.
     """
+<<<<<<< HEAD
     meal_line = f"Tonight's meal: {meal}" if meal else ""
     user_prompt = (
         f"{meal_line}\n\n"
@@ -324,6 +356,12 @@ def get_recommendation(
             f"Restaurant wine list (select your top 3 recommendations from this list):\n{wine_list_text}\n\n{user_prompt}"
             if wine_list_text else user_prompt
         )
+=======
+    user_prompt = f"My meal: {meal}\n\nWhat should I order?"
+    text_payload = (
+        user_prompt if image_b64
+        else f"Restaurant wine list:\n{wine_list_text}\n\n{user_prompt}"
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     )
 
     last_err: Exception = RuntimeError("no attempts made")

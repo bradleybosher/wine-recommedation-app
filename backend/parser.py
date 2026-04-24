@@ -36,14 +36,18 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         return f"Error extracting text from PDF: {str(e)}"
 
 
+<<<<<<< HEAD
 class OCRError(ValueError):
     """Raised when OCR fails to extract usable text from an image."""
 
 
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 def extract_text_from_image(image_bytes: bytes) -> str:
     """
     Extract text from image bytes using pytesseract + Pillow.
 
+<<<<<<< HEAD
     Pre-processes image (scale to ≥2000px wide → greyscale → contrast → threshold → sharpen)
     before OCR to improve accuracy on restaurant menu photos.
 
@@ -95,6 +99,35 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     except Exception as e:
         logger.warning("Image parsing failed: %s", e)
         raise OCRError(f"Image parsing failed: {e}") from e
+=======
+    Pre-processes image (RGB → greyscale → sharpen) before OCR.
+    Returns extracted text or error message.
+    """
+    try:
+        # Load image from bytes
+        image = Image.open(io.BytesIO(image_bytes))
+
+        # Pre-process: RGB → greyscale → sharpen
+        image = image.convert("RGB").convert("L")
+        image = image.filter(ImageFilter.SHARPEN)
+
+        # Extract text
+        text = pytesseract.image_to_string(image)
+
+        # Check if OCR returned usable text
+        non_whitespace_count = len(text.split())
+        if non_whitespace_count < 20:
+            logger.warning("OCR returned insufficient text (fewer than 20 words)")
+            return "OCR returned no usable text. Try a clearer photo or upload a PDF."
+
+        return text
+    except EnvironmentError as e:
+        logger.warning(f"Tesseract not installed: {e}")
+        return "OCR unavailable: Tesseract not installed. Upload a PDF instead."
+    except Exception as e:
+        logger.warning(f"Image parsing failed: {e}")
+        return f"Image parsing failed: {str(e)}"
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 
 def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Optional[str]) -> str:
@@ -116,7 +149,10 @@ def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Op
     elif is_text_upload:
         return decode_cellartracker_upload(file_bytes)
     elif is_image_upload:
+<<<<<<< HEAD
         # OCRError propagates to the caller — do not catch here.
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
         return extract_text_from_image(file_bytes)
     else:
         # Attempt as text; if it fails, return a warning

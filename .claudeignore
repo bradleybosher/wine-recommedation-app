@@ -10,7 +10,10 @@ backend/*.tmp
 # every time you ask for a code change.
 backend/*.db
 backend/data/
+<<<<<<< HEAD
 backend/profile_data.json
+=======
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 # --- Frontend Junk ---
 frontend/node_modules/

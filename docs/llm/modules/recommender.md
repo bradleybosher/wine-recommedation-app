@@ -33,7 +33,11 @@ Call Ollama LLM with structured output schema, retry on garbage/invalid response
 ### `_attempt_recommendation()`
 
 1. Call `_call_ollama()` with `_RESPONSE_SCHEMA` (structured output).
+<<<<<<< HEAD
 2. If Ollama returns 400 or 500 (old version or overloaded, rejects schema dict): retry with `format="json"` (plain JSON mode).
+=======
+2. If Ollama returns 400 (old version, rejects schema dict): retry with `format="json"` (plain JSON mode).
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 3. Parse `message.content` (chat) or `response` (generate) from body.
 4. Strip markdown fences if present.
 5. Repair truncated JSON: count `{` vs `}`, append missing closing braces.
@@ -64,10 +68,14 @@ Key schema fields:
 - **Truncated JSON repair**: Counts `{`/`}` imbalance, appends missing `}`. Protects against cut-off responses.
 - **Garbage keys**: `""` key or `"<|"` prefix (special-token leakage) → raise ValueError → trigger retry.
 - **Dual response formats**: `body["message"]["content"]` (chat endpoint) OR `body["response"]` (generate endpoint). Both handled.
+<<<<<<< HEAD
 - **Schema fallback**: Ollama < 0.5.1 returns 400 for `format=<dict>` → falls back to `format="json"` automatically per attempt. Code also catches 500 in the same check.
 - **Extended alias recovery for `wine_name`**: After fixed aliases (`name`, `wineName`, `title`), code also checks `wine`, `label`, `bottle`, `category`, `varietal`, `grape` in order; last resort picks the shortest string field in the item dict.
 - **Extended alias recovery for `reasoning`**: After fixed aliases (`description`, `explanation`, `notes`), code also checks `rationale`, `match`, `why`, `comment`, `detail` in order; last resort picks the longest remaining string field, or synthesises from a numeric `score` field if present (`"Rated N/10 against the taste profile…"`).
 - **`confidence` synthesis**: If missing entirely, derived from `score` field (≥9.0 → high, ≥7.5 → medium, else low); defaults to `"low"` if no score present.
+=======
+- **Schema fallback**: Ollama < 0.5.1 returns 400 for `format=<dict>` → falls back to `format="json"` automatically per attempt.
+>>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Known Issues / TODOs
 
