@@ -123,7 +123,11 @@ Notes for confidence field:
 Return ONLY the JSON object, no other text."""
     _prompt_logger.debug(prompt)
 <<<<<<< HEAD
+<<<<<<< HEAD
     return prompt
 =======
     return prompt
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+    return prompt
+>>>>>>> faa3422 (Commit despite broken recommendation engine)

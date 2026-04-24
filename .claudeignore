@@ -11,9 +11,13 @@ backend/*.tmp
 backend/*.db
 backend/data/
 <<<<<<< HEAD
+<<<<<<< HEAD
 backend/profile_data.json
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+backend/profile_data.json
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
 
 # --- Frontend Junk ---
 frontend/node_modules/

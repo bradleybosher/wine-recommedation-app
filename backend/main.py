@@ -1,5 +1,6 @@
 import base64
 <<<<<<< HEAD
+<<<<<<< HEAD
 import hashlib
 import json
 import logging
@@ -8,13 +9,18 @@ import os
 from pathlib import Path
 =======
 from collections import Counter
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
 import hashlib
 import json
 import logging
 import os
 from pathlib import Path
+<<<<<<< HEAD
 import re
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
 import time
 import uuid
 from typing import Optional, Dict, Any
@@ -25,11 +31,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import re
 from collections import Counter
 
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+import re
+from collections import Counter
+
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
 from inventory import (
     decode_cellartracker_upload,
     save_inventory,
@@ -45,8 +57,12 @@ from profile import save_profile_export, load_profile_data, build_taste_profile,
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
 from prompt import build_system_prompt
+<<<<<<< HEAD
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
@@ -349,6 +365,7 @@ async def recommend(
             logger.warning("cached response failed validation, regenerating")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
     from parser import OCRError
 =======
@@ -357,10 +374,15 @@ async def recommend(
 
     # Determine image upload path
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+    # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
+    from parser import OCRError
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     media_type = (wine_list.content_type or "").lower()
     is_image_upload = media_type.startswith("image/") or any(
         (wine_list.filename or "").lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
     )
+<<<<<<< HEAD
 <<<<<<< HEAD
 
     image_b64: Optional[str] = None
@@ -409,6 +431,26 @@ async def recommend(
     logger.info("recommend_terms source=%s terms=%s", "override" if override_terms else "derived", terms)
     relevant = get_relevant_bottles(bottles, terms)
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+
+    image_b64: Optional[str] = None
+    try:
+        wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
+    except OCRError as exc:
+        # OCR failed — attempt multimodal path (requires a vision-capable Ollama model).
+        # If the model is text-only this will also fail, but at least it won't silently
+        # recommend from the cellar.
+        logger.warning("recommend: OCR failed (%s); attempting multimodal fallback", exc)
+        if is_image_upload:
+            image_b64 = base64.standard_b64encode(raw_bytes).decode()
+            wine_list_text = ""
+        else:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
+    taste_profile = build_taste_profile_pydantic(load_profile_data())
+
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     enriched_profile = None
     try:
         logger.info("recommend: attempting to build enriched profile with ollama_url=%s ollama_model=%s", OLLAMA_URL, OLLAMA_MODEL)
@@ -428,6 +470,9 @@ async def recommend(
         logger.info("recommend: using standard profile (enrichment not available)")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
     cellar_summary = _cellar_character_from_terms(top5_terms)
     override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
@@ -436,8 +481,11 @@ async def recommend(
     profile_prefs = extract_profile_preference_terms(load_profile_data())
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     meal_hints = meal_to_wine_hints(parse_meal_description(meal))
     system = build_system_prompt(relevant, cellar_summary=cellar_summary, taste_profile_override=enriched_profile, meal_hints=meal_hints)
     logger.info("recommend: system prompt built (len=%d)", len(system))

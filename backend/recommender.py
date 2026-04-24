@@ -72,6 +72,7 @@ _RESPONSE_SCHEMA = {
                         "type": "string",
                         "description": (
 <<<<<<< HEAD
+<<<<<<< HEAD
                             "2-4 sentences explaining why this restaurant wine was selected. "
                             "REQUIRED FIRST SENTENCE: either (a) if a specific owned bottle from the cellar list is a close stylistic match, "
                             "open with 'Like your [Producer + Wine name], but [how this differs/excels]' — "
@@ -88,10 +89,21 @@ _RESPONSE_SCHEMA = {
                             "'Unlike [avoided bottle/style], no [unwanted trait].' "
                             "Then add meal synergy if it adds genuine insight beyond the profile match."
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+                            "2-4 sentences explaining why this restaurant wine was selected. "
+                            "REQUIRED FIRST SENTENCE: reference a specific, named preference from the owner's taste profile — "
+                            "e.g. 'Delivers the [named trait] you consistently reach for' or 'Hits your preference for [named style].' "
+                            "FORBIDDEN as a first sentence: any generic tannin/acidity/structure/flavor observation "
+                            "that does not quote or paraphrase a concrete trait from the taste profile. "
+                            "Where relevant, contrast against an avoided style: "
+                            "'Unlike [avoided style], no [unwanted trait].' "
+                            "Then briefly add meal synergy only if it adds genuine insight beyond the profile match."
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
                         ),
                     },
                     "confidence": {
                         "type": "string",
+<<<<<<< HEAD
 <<<<<<< HEAD
                         "pattern": "^(high|medium|low)",
                         "description": (
@@ -106,6 +118,15 @@ _RESPONSE_SCHEMA = {
                             "explaining why — e.g. 'high — hits your preference for grower Champagne "
                             "with mineral complexity' or 'medium — style is right but the vintage is young'."
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+                        "pattern": "^(high|medium|low)",
+                        "description": (
+                            "MUST start with exactly the word 'high', 'medium', or 'low', then ' — ', "
+                            "then a single clause explaining the rating. "
+                            "FORBIDDEN: numeric scores (8/10, 85%), percentages, HTML tags, or any other format. "
+                            "Examples: 'high — hits your preference for grower Champagne with mineral complexity' "
+                            "or 'medium — right style but the vintage may be too young'."
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
                         ),
                     },
                 },
@@ -179,6 +200,7 @@ def _attempt_recommendation(
         )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         # Ollama < 0.5.1 rejects a schema dict with 400 or 500 — fall back to plain JSON mode.
         if response.status_code in (400, 500):
             logger.warning("attempt=%d schema_format_rejected_fallback_to_plain_json status=%d", attempt, response.status_code)
@@ -187,6 +209,11 @@ def _attempt_recommendation(
         if response.status_code == 400:
             logger.warning("attempt=%d schema_format_rejected_fallback_to_plain_json status=400", attempt)
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+        # Ollama < 0.5.1 rejects a schema dict with 400 or 500 — fall back to plain JSON mode.
+        if response.status_code in (400, 500):
+            logger.warning("attempt=%d schema_format_rejected_fallback_to_plain_json status=%d", attempt, response.status_code)
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
             response = _call_ollama(
                 http_client, ollama_url, ollama_model,
                 system_prompt, text_payload, image_b64, "json",
@@ -230,6 +257,9 @@ def _attempt_recommendation(
         raise ValueError(f"LLM returned garbage keys: {keys}")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     # Normalize common key aliases the model emits when ignoring the schema.
     # Fixed aliases for summary/note fields:
     _TOP_ALIASES = {
@@ -313,8 +343,11 @@ def _attempt_recommendation(
         recommendation_data["profile_match_summary"] = "Recommendations selected from the restaurant wine list based on taste profile."
         logger.info("attempt=%d synthesized_profile_match_summary", attempt)
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     try:
         recommendation = RecommendationResponse(**recommendation_data)
     except ValidationError as e:
@@ -342,6 +375,9 @@ def get_recommendation(
         HTTPException: On Ollama network failure or all attempts exhausted.
     """
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     meal_line = f"Tonight's meal: {meal}" if meal else ""
     user_prompt = (
         f"{meal_line}\n\n"
@@ -350,6 +386,7 @@ def get_recommendation(
         "Recommend ONLY wines that appear on the restaurant wine list — do not hallucinate or substitute. "
         "Return only the JSON response — no preamble."
     ).strip()
+<<<<<<< HEAD
     text_payload = (
         user_prompt if image_b64
         else (
@@ -362,6 +399,14 @@ def get_recommendation(
         user_prompt if image_b64
         else f"Restaurant wine list:\n{wine_list_text}\n\n{user_prompt}"
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+=======
+    text_payload = (
+        user_prompt if image_b64
+        else (
+            f"Restaurant wine list (select your top 3 recommendations from this list):\n{wine_list_text}\n\n{user_prompt}"
+            if wine_list_text else user_prompt
+        )
+>>>>>>> faa3422 (Commit despite broken recommendation engine)
     )
 
     last_err: Exception = RuntimeError("no attempts made")
