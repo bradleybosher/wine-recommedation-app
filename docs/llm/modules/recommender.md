@@ -61,6 +61,7 @@ Passed to Claude as a tool; `tool_choice` forces its use, giving structured outp
 Key schema fields:
 - `recommendations[].reasoning`: 2–4 sentences opening with personal comparison to owned bottle.
 - `recommendations[].confidence`: Format `"high|medium|low — single clause reason"`.
+- `recommendations[].fit_markers`: Optional array of 2–3 short tags (each ≤ 8 words) grounding the pick in a concrete profile signal (top region/varietal/producer, preferred descriptor, avoided style, or taste-marker level). Claude is instructed to omit the field entirely (not return an empty array) when no clean signal applies.
 - `profile_match_summary`: Required top-level field.
 - `list_quality_note`: Optional top-level string.
 

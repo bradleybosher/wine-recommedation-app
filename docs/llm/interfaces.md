@@ -62,6 +62,7 @@ class WineRecommendation(BaseModel):
   price: Optional[float]  # coerce_price validator strips currency symbols
   reasoning: str (2–4 sentences, structured: personal comparison → contrast → food → cellar note)
   confidence: str (format: "high|medium|low — single clause reason")
+  fit_markers: Optional[List[str]]  # 2–3 short tags grounding pick in profile signals; omitted when no clean match
 
 class RecommendationResponse(BaseModel):
   recommendations: List[WineRecommendation]
@@ -452,6 +453,7 @@ export default function RecommendationScreen({ onReset })
 export default function RecommendationResults({ response })
   Render WineRecommendation[] as ranked cards.
   Display confidence badges, vintage, region, price, reasoning.
+  Render "Why this fits you" panel of fitMarkers tags when present (omitted otherwise).
   Copy-to-clipboard for wine details.
 ```
 

@@ -1,8 +1,5 @@
 import logging
-<<<<<<< HEAD
 import logging.handlers
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 import os
 from pathlib import Path
 from profile import build_enhanced_profile_text
@@ -12,14 +9,8 @@ _log_dir.mkdir(parents=True, exist_ok=True)
 
 _prompt_logger = logging.getLogger("prompt.debug")
 if not _prompt_logger.handlers:
-<<<<<<< HEAD
     _handler = logging.handlers.RotatingFileHandler(
         _log_dir / "prompt.log", maxBytes=1_000_000, backupCount=2, encoding="utf-8"
-=======
-    _handler = logging.FileHandler(
-        _log_dir / "prompt.log",
-        encoding="utf-8",
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     )
     _handler.setFormatter(logging.Formatter("%(asctime)s\n%(message)s\n" + "=" * 80))
     _prompt_logger.addHandler(_handler)
@@ -76,12 +67,9 @@ or if a bottle is worth ordering specifically because they don't have it.
       "vintage": "integer or null",
       "region": "string or null",
       "price": "number or null",
-<<<<<<< HEAD
       "reasoning": "string (2-4 sentences — if a cellar bottle is a close match, open with 'Like your [Producer Wine], but [how it differs]'; otherwise open by naming a concrete taste profile preference; contrast avoided styles where relevant)",
-=======
-      "reasoning": "string (2-4 sentences — lead with 'Like your [owned bottle], but [how it differs/excels]'; contrast avoided styles where relevant)",
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-      "confidence": "string — 'high|medium|low — short clause explaining why, e.g. high — hits your preference for grower Champagne with mineral complexity'"
+      "confidence": "string — 'high|medium|low — short clause explaining why, e.g. high — hits your preference for grower Champagne with mineral complexity'",
+      "fit_markers": ["string", "string", "string"]
     }
   ],
   "list_quality_note": "string or null (e.g., 'Limited white selection')",
@@ -106,11 +94,7 @@ significantly better value than alternatives with equal profile fit.
 {schema}
 
 Notes for reasoning field (follow this structure exactly):
-<<<<<<< HEAD
 1. PERSONAL COMPARISON: If a bottle from the cellar list is a genuine stylistic match, open with "Like your [Producer + Wine name], but [how this wine differs or excels]." ONLY use this opener when you can name a specific bottle from the cellar list — do NOT use it if there is no close match. If there is no close cellar match, skip this opener entirely and instead open by referencing a named style or preference from the taste profile directly (e.g., "Delivers the mineral-driven acidity you consistently reach for").
-=======
-1. PERSONAL COMPARISON (required): Open with "Like your [specific bottle the user owns from the cellar list], but [how this wine differs or excels]." If no close cellar match exists, anchor to a style they strongly prefer instead.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 2. CONTRAST (where relevant): Follow with "Unlike [an avoided bottle/style from the profile], no [unwanted trait]." Only include if it adds genuine distinction.
 3. FOOD CONTEXT (secondary): Briefly note meal synergy only if it adds insight beyond the profile match.
 4. CELLAR NOTE: If outclassed by something they own, say so; if worth ordering despite owning something similar, explain why.
@@ -120,14 +104,13 @@ Notes for confidence field:
 - The clause should name the specific preference being matched or the doubt causing uncertainty.
 - Examples: "high — hits your preference for grower Champagne with mineral complexity" / "medium — right style but the vintage may be too young"
 
+Notes for fit_markers field (optional):
+- Provide 2-3 short tags (each <= 8 words) per recommendation, surfacing concrete profile signals that drove the pick.
+- Each tag MUST cite a real signal from the taste profile above: a top region/varietal/producer, a preferred descriptor, an avoided style, or a derived taste marker (acidity/tannin/body/oak level).
+- Good: "Matches your high-acidity preference", "Aligned with your top region: Northern Rhône", "Avoids the oaky profile you down-rate".
+- Bad (forbidden — too generic): "Great with food", "Crowd pleaser", "Classic choice".
+- If no clean signal applies, OMIT the field entirely. Do not return an empty array and do not invent signals not present in the profile.
+
 Return ONLY the JSON object, no other text."""
     _prompt_logger.debug(prompt)
-<<<<<<< HEAD
-<<<<<<< HEAD
     return prompt
-=======
-    return prompt
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-    return prompt
->>>>>>> faa3422 (Commit despite broken recommendation engine)

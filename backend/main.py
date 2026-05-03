@@ -1,31 +1,14 @@
-<<<<<<< HEAD
 import base64
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
 import hashlib
 import json
 import logging
 import logging.handlers
 import os
-from pathlib import Path
-=======
-from collections import Counter
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-import hashlib
-import json
-import logging
-import os
-from pathlib import Path
-<<<<<<< HEAD
 import re
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
 import time
 import uuid
+from collections import Counter
+from pathlib import Path
 from typing import Optional, Dict, Any
 
 from fastapi import FastAPI, UploadFile, Form, File, HTTPException, Request
@@ -33,61 +16,23 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-import re
-from collections import Counter
-
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-import re
-from collections import Counter
-
->>>>>>> faa3422 (Commit despite broken recommendation engine)
 from inventory import (
     decode_cellartracker_upload,
     save_inventory,
     load_inventory,
     get_relevant_bottles,
-<<<<<<< HEAD
     filter_wine_list,
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired, make_parse_key, get_parse_cached, set_parse_cached
 from prompt import build_system_prompt
-<<<<<<< HEAD
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_ollama, derive_taste_markers
-<<<<<<< HEAD
-=======
-)
-from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired
-from prompt import build_system_prompt
-<<<<<<< HEAD
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-=======
->>>>>>> b169158 (Added my profile tab)
-=======
 from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_anthropic, derive_taste_markers
->>>>>>> 90359d9 (Ported to Anthropic)
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
     UploadProfileResponse,
     ProfileSummaryResponse,
-<<<<<<< HEAD
-<<<<<<< HEAD
     TasteMarkers,
     CellarStats,
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-    TasteMarkers,
-    CellarStats,
->>>>>>> b169158 (Added my profile tab)
     RecommendRequest,
     RecommendationResponse,
     Bottle
@@ -95,11 +40,8 @@ from models import (
 from meal_parser import parse_meal_description, meal_to_wine_hints
 from parser import parse_wine_list
 from recommender import get_recommendation
-<<<<<<< HEAD
 from scorer import score_recommendation
 from logging_utils import log_recommendation_event
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 # Import debug routes
 from routes.debug import router as debug_router
@@ -109,12 +51,8 @@ _log_dir = _som_dir / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
 _log_path = _log_dir / "api.log"
 
-# Configure the "sommelier" parent logger so all child loggers
-# (sommelier.api, sommelier.recommender, sommelier.profile, etc.)
-# share the same file and stream handlers.
 _root_logger = logging.getLogger("sommelier")
 if not _root_logger.handlers:
-<<<<<<< HEAD
     _root_logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s %(levelname)s [%(name)s] %(message)s"
@@ -122,13 +60,6 @@ if not _root_logger.handlers:
     file_handler = logging.handlers.RotatingFileHandler(
         _log_path, maxBytes=1_000_000, backupCount=2, encoding="utf-8"
     )
-=======
-    _root_logger.setLevel(logging.INFO)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s [%(name)s] %(message)s"
-    )
-    file_handler = logging.FileHandler(_log_path, encoding="utf-8")
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
     file_handler.setFormatter(formatter)
     _root_logger.addHandler(file_handler)
     _root_logger.addHandler(logging.StreamHandler())
@@ -137,19 +68,11 @@ logger = logging.getLogger("sommelier.api")
 
 load_dotenv(_som_dir / ".env")
 load_dotenv()
-<<<<<<< HEAD
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-<<<<<<< HEAD
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-=======
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama-gpu")
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 if not ANTHROPIC_API_KEY:
     raise ValueError("ANTHROPIC_API_KEY environment variable is not set. Add it to backend/.env")
->>>>>>> 90359d9 (Ported to Anthropic)
+
 app = FastAPI()
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -276,7 +199,7 @@ async def upload_inventory(file: UploadFile = File(...)) -> UploadInventoryRespo
     bottles = save_inventory(text)
     bust_cache()
     return UploadInventoryResponse(
-        count=len(bottles), 
+        count=len(bottles),
         message=f"Saved {len(bottles)} bottles. Response cache cleared."
     )
 
@@ -311,8 +234,7 @@ def get_inventory() -> InventoryResponse:
     inv = load_inventory()
     if not inv:
         return InventoryResponse(bottles=[], age_hours=None, stale=False)
-    
-    # Convert raw dicts to Bottle models
+
     bottles = [Bottle(**bottle) for bottle in inv.get("bottles", [])]
     return InventoryResponse(
         bottles=bottles,
@@ -323,16 +245,10 @@ def get_inventory() -> InventoryResponse:
 @app.get("/profile-summary")
 def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b169158 (Added my profile tab)
 
-    # Heuristic taste markers (instant — no LLM needed)
     markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
     taste_markers = TasteMarkers(**markers_dict)
 
-    # Cellar stats from inventory (fast local file read)
     inv = load_inventory() or {}
     raw_bottles = inv.get("bottles", [])
     vintages = [
@@ -346,7 +262,6 @@ def profile_summary() -> ProfileSummaryResponse:
         vintage_newest=max(vintages) if vintages else None,
     )
 
-    # Enriched natural-language palate portrait via Claude (graceful fallback)
     style_summary: Optional[str] = None
     try:
         enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
@@ -361,12 +276,6 @@ def profile_summary() -> ProfileSummaryResponse:
         taste_markers=taste_markers,
         cellar_stats=cellar_stats,
     )
-<<<<<<< HEAD
-=======
-    return ProfileSummaryResponse(**profile_data)
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> b169158 (Added my profile tab)
 
 @app.post("/recommend")
 async def recommend(
@@ -383,7 +292,6 @@ async def recommend(
     inv_hash = inventory_hash(bottles)
     cache_key = make_key(raw_bytes, meal, inv_hash, profile_hash)
 
-    # Check cache
     cached_json = get_cached(cache_key)
     if cached_json:
         try:
@@ -392,40 +300,7 @@ async def recommend(
         except (json.JSONDecodeError, ValueError):
             logger.warning("cached response failed validation, regenerating")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-    # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
-    from parser import OCRError
-=======
-    # Parse wine list
-    wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
-
-    # Determine image upload path
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-    # Parse wine list — OCR images to text; fall back to multimodal only if OCR fails.
-    from parser import OCRError
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-    media_type = (wine_list.content_type or "").lower()
-    is_image_upload = media_type.startswith("image/") or any(
-        (wine_list.filename or "").lower().endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp"]
-    )
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-    image_b64: Optional[str] = None
-=======
-    # Parse wine list — images and PDFs are routed through Haiku vision as needed.
-    from parser import OCRError
->>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
-    try:
-        wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
-    except OCRError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-=======
-    # Parse wine list — check parse cache first (keyed by PDF bytes only, independent of meal/profile).
+    # Parse wine list — check parse cache first (keyed by file bytes only, independent of meal/profile).
     from parser import OCRError
     parse_key = make_parse_key(raw_bytes)
     wine_list_text = get_parse_cached(parse_key)
@@ -437,15 +312,11 @@ async def recommend(
         except OCRError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         set_parse_cached(parse_key, wine_list_text)
->>>>>>> 97b0c05 (Cost improvement of haiku usage)
 
     wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
     taste_profile = build_taste_profile_pydantic(load_profile_data())
 
-    # Remove invisible unicode characters (zero-width spaces, BOM, soft hyphens,
-    # directional marks) that OCR/PDF extraction commonly produces, then strip
-    # each line and drop blanks so the filter operates on genuinely clean text.
-    _INVISIBLE_RE = re.compile(r"[\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]")
+    _INVISIBLE_RE = re.compile(r"[­​-‏‪-‮⁠-⁤﻿]")
     wine_list_text = _INVISIBLE_RE.sub("", wine_list_text)
     wine_list_text = "\n".join(
         line.strip() for line in wine_list_text.splitlines() if line.strip()
@@ -453,49 +324,16 @@ async def recommend(
 
     _before = len(wine_list_text.splitlines())
     wine_list_text = filter_wine_list(wine_list_text, taste_profile)
-    # Final pass: drop any blank lines the filter may have re-introduced
     wine_list_text = "\n".join(
         line for line in wine_list_text.splitlines() if line.strip()
     )
     _after = len(wine_list_text.splitlines())
     logger.debug("wine_list_filter before=%d lines, after=%d lines", _before, _after)
 
-=======
-    image_b64 = base64.standard_b64encode(raw_bytes).decode() if is_image_upload else None
-
-    # Build system prompt with cellar context
-    top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
-    cellar_summary = _cellar_character_from_terms(top5_terms)
-    override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
-    terms = override_terms if override_terms else _inventory_terms_by_frequency(bottles, limit=10)
-    logger.info("recommend_terms source=%s terms=%s", "override" if override_terms else "derived", terms)
-    relevant = get_relevant_bottles(bottles, terms)
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-
-    image_b64: Optional[str] = None
-    try:
-        wine_list_text = parse_wine_list(raw_bytes, wine_list.content_type, wine_list.filename)
-    except OCRError as exc:
-        # OCR failed — attempt multimodal path (requires a vision-capable Ollama model).
-        # If the model is text-only this will also fail, but at least it won't silently
-        # recommend from the cellar.
-        logger.warning("recommend: OCR failed (%s); attempting multimodal fallback", exc)
-        if is_image_upload:
-            image_b64 = base64.standard_b64encode(raw_bytes).decode()
-            wine_list_text = ""
-        else:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
-    taste_profile = build_taste_profile_pydantic(load_profile_data())
-
->>>>>>> faa3422 (Commit despite broken recommendation engine)
     enriched_profile = None
     try:
         logger.info("recommend: attempting to build enriched profile with anthropic_model=%s", ANTHROPIC_MODEL)
         enriched_profile = build_enriched_profile_text(ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
-        # Safeguard: if enrichment produced an empty or suspicious result, discard it
         if not enriched_profile or len(enriched_profile) < 20:
             logger.warning("recommend: enriched profile is empty or too short (len=%d), falling back to standard profile", len(enriched_profile or ""))
             enriched_profile = None
@@ -509,10 +347,6 @@ async def recommend(
     if enriched_profile is None:
         logger.info("recommend: using standard profile (enrichment not available)")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
     top5_terms = _inventory_terms_by_frequency(bottles, limit=5)
     cellar_summary = _cellar_character_from_terms(top5_terms)
     override_terms = [t.strip() for t in style_terms.split(",") if t.strip()]
@@ -521,18 +355,11 @@ async def recommend(
     profile_prefs = extract_profile_preference_terms(load_profile_data())
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
-<<<<<<< HEAD
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
     meal_hints = meal_to_wine_hints(parse_meal_description(meal))
     system = build_system_prompt(relevant, cellar_summary=cellar_summary, taste_profile_override=enriched_profile, meal_hints=meal_hints)
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])
 
-    # Get recommendation from LLM
-<<<<<<< HEAD
     try:
         recommendation = get_recommendation(
             wine_list_text, meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
@@ -554,12 +381,3 @@ async def recommend(
             status_code=502,
             detail=f"Recommendation provider failed: {type(exc).__name__}",
         ) from exc
-=======
-    recommendation = get_recommendation(
-        wine_list_text, meal, system, OLLAMA_URL, OLLAMA_MODEL, image_b64
-    )
-
-    # Cache and return
-    set_cached(cache_key, recommendation.model_dump_json())
-    return recommendation
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)

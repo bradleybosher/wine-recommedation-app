@@ -2,7 +2,7 @@ import React from 'react';
 import type { RecommendationResponse, WineRecommendation } from '@/client/types.gen';
 import GlassCard from '@/components/ui/GlassCard';
 import WineBottleIcon, { getWineStyle } from '@/components/ui/WineBottleIcon';
-import { Copy } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
 
 interface RecommendationResultsProps {
   response: RecommendationResponse;
@@ -104,6 +104,22 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
                 <h4 className="text-sm font-semibold text-white/80 mb-2">Why this wine?</h4>
                 <p className="text-white/80 leading-relaxed">{rec.reasoning}</p>
               </div>
+
+              {rec.fitMarkers && rec.fitMarkers.length > 0 && (
+                <div className="mb-4 pt-3 border-t border-white/10">
+                  <h5 className="text-xs uppercase tracking-wide text-white/60 mb-2">
+                    Why this fits you
+                  </h5>
+                  <ul className="space-y-1">
+                    {rec.fitMarkers.map((marker, idx) => (
+                      <li key={idx} className="text-sm text-white/80 flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 mt-0.5 text-wine-gold shrink-0" strokeWidth={1.5} />
+                        <span>{marker}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <button
                 onClick={() => handleCopyClick(rec)}

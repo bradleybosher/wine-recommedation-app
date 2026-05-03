@@ -12,7 +12,10 @@
       "Bash(\".\\\\\\\\.venv\\\\\\\\Scripts\\\\\\\\python.exe\" -c \"import main\")",
       "Bash(ls -la \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\"/*.bat)",
       "Bash(ls -la /c/Users/Brad/Desktop/wine-recommendation-app/backend/*.py)",
-      "Bash(npx skills:*)"
+      "Bash(npx skills:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
     ]
   },
   "model": "sonnet",

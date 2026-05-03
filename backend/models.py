@@ -41,11 +41,10 @@ class Bottle(BaseModel):
     PScore: Optional[str] = None
     CNotes: Optional[str] = None
     CScore: Optional[str] = None
-    
-    # For TypeScript camelCase compatibility - allow both snake_case and camelCase
+
     model_config = ConfigDict(
         alias_generator=to_camel,
-        populate_by_name=True  # Allow both original field names and aliases
+        populate_by_name=True
     )
 
 
@@ -53,7 +52,7 @@ class InventoryResponse(BaseModel):
     bottles: List[Bottle] = Field(default_factory=list)
     age_hours: Optional[float] = None
     stale: bool = False
-    
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
@@ -66,17 +65,6 @@ class InventoryResponse(BaseModel):
 class UploadInventoryResponse(BaseModel):
     count: int
     message: str
-    
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True
-    )
-
-
-class UploadProfileResponse(BaseModel):
-    export_type: str
-    message: str
-    taste_profile: Optional[TasteProfile] = None
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -84,10 +72,6 @@ class UploadProfileResponse(BaseModel):
     )
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b169158 (Added my profile tab)
 class TasteMarkers(BaseModel):
     """Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high)."""
     acidity: int = 3
@@ -114,11 +98,38 @@ class CellarStats(BaseModel):
     )
 
 
-<<<<<<< HEAD
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> b169158 (Added my profile tab)
+class TasteProfile(BaseModel):
+    """Source-agnostic taste profile schema (quiz, CellarTracker, manual, etc.)"""
+    preferred_styles: List[str] = Field(default_factory=list)
+    preferred_regions: List[str] = Field(default_factory=list)
+    preferred_grapes: List[str] = Field(default_factory=list)
+    avoided_styles: List[str] = Field(default_factory=list)
+
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+
+    occasion: Optional[str] = None
+    food_pairing: Optional[str] = None
+
+    profile_source: str = "manual"
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
+class UploadProfileResponse(BaseModel):
+    export_type: str
+    message: str
+    taste_profile: Optional[TasteProfile] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
 class ProfileSummaryResponse(BaseModel):
     top_varietals: List[str] = Field(default_factory=list)
     top_regions: List[str] = Field(default_factory=list)
@@ -127,32 +138,20 @@ class ProfileSummaryResponse(BaseModel):
     preferred_descriptors: List[str] = Field(default_factory=list)
     avoided_styles: List[str] = Field(default_factory=list)
     avg_spend: Optional[int] = None
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b169158 (Added my profile tab)
     style_summary: Optional[str] = None
     taste_markers: Optional[TasteMarkers] = None
     cellar_stats: Optional[CellarStats] = None
 
-<<<<<<< HEAD
-=======
-    
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> b169158 (Added my profile tab)
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True
     )
 
 
-
-
 class RecommendRequest(BaseModel):
     meal: str
     style_terms: Optional[str] = ""
-     
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True
@@ -168,6 +167,7 @@ class WineRecommendation(BaseModel):
     price: Optional[float] = None
     reasoning: str
     confidence: str  # "high" | "medium" | "low"
+    fit_markers: Optional[List[str]] = None
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -206,29 +206,4 @@ class MealProfile(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
-    )
-
-
-class TasteProfile(BaseModel):
-    """Source-agnostic taste profile schema (quiz, CellarTracker, manual, etc.)"""
-    # Core preferences
-    preferred_styles: List[str] = Field(default_factory=list)
-    preferred_regions: List[str] = Field(default_factory=list)
-    preferred_grapes: List[str] = Field(default_factory=list)
-    avoided_styles: List[str] = Field(default_factory=list)
-
-    # Budget
-    budget_min: Optional[float] = None
-    budget_max: Optional[float] = None
-
-    # Optional context
-    occasion: Optional[str] = None
-    food_pairing: Optional[str] = None
-
-    # Onboarding source (informational only)
-    profile_source: str = "manual"
-
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True
     )

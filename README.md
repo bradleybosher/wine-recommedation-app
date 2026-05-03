@@ -20,6 +20,7 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 >>>>>>> b169158 (Added my profile tab)
 - **LLM-Powered Recommendations:** Structured wine recommendations via local Ollama inference
 - **Structured Output:** JSON-validated top-3 recommendations with reasoning, confidence scores, and quality assessment
+- **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
 - **Offline-First:** Runs entirely locally (Ollama-based); no external API keys or account required
 - **Responsive UI:** React 19 + Tailwind CSS; works on desktop and tablet
 

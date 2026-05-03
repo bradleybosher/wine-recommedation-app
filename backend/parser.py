@@ -205,38 +205,6 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         return f"Error extracting text from PDF: {str(e)}"
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-class OCRError(ValueError):
-    """Raised when OCR fails to extract usable text from an image."""
-
-
-<<<<<<< HEAD
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-def extract_text_from_image(image_bytes: bytes) -> str:
-    """
-    Extract text from image bytes using pytesseract + Pillow.
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-    Pre-processes image (scale to ≥2000px wide → greyscale → contrast → threshold → sharpen)
-    before OCR to improve accuracy on restaurant menu photos.
-
-    Returns extracted text.
-    Raises OCRError if Tesseract is unavailable or returns insufficient text.
-<<<<<<< HEAD
-    """
-    try:
-        image = Image.open(io.BytesIO(image_bytes))
-=======
 def should_use_vision_extraction(pdf_bytes: bytes) -> bool:
     """Return True if a PDF should be routed through Haiku vision rather than text extraction."""
     text = extract_text_from_pdf(pdf_bytes)
@@ -302,108 +270,10 @@ def _extract_pdf_via_vision(pdf_bytes: bytes) -> str:
             logger.warning("PDF page %d vision failed: %s", page_num, e)
 
     doc.close()
->>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
 
     if all_notes:
         logger.info("PDF vision confidence notes: %s", "; ".join(all_notes))
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # RGB → greyscale → stretch contrast → binarise → sharpen
-        image = image.convert("RGB").convert("L")
-
-        # Autocontrast stretches the histogram to use the full 0-255 range
-        from PIL import ImageOps
-        image = ImageOps.autocontrast(image, cutoff=2)
-
-        # Binarise with a fixed threshold (menu text on white/cream paper)
-        image = image.point(lambda px: 255 if px > 160 else 0)
-
-        image = image.filter(ImageFilter.SHARPEN)
-
-        # PSM 4: assume a single column of text of variable sizes (good for menus)
-        text = pytesseract.image_to_string(image, config="--psm 4")
-
-        word_count = len(text.split())
-        logger.info("OCR: extracted %d words", word_count)
-
-        if word_count < 20:
-            raise OCRError(
-                f"OCR extracted only {word_count} words — image may be too blurry or low-contrast. "
-                "Try a clearer photo or upload a PDF."
-            )
-
-        return text
-    except OCRError:
-        raise
-    except EnvironmentError as e:
-        logger.warning("Tesseract not installed: %s", e)
-        raise OCRError("OCR unavailable: Tesseract is not installed. Upload a PDF instead.") from e
-    except Exception as e:
-        logger.warning("Image parsing failed: %s", e)
-        raise OCRError(f"Image parsing failed: {e}") from e
-=======
-    Pre-processes image (RGB → greyscale → sharpen) before OCR.
-    Returns extracted text or error message.
-=======
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-    """
-    try:
-        image = Image.open(io.BytesIO(image_bytes))
-
-        # Scale up small images — Tesseract accuracy degrades below ~150dpi equivalent.
-        # Target a minimum width of 2000px while preserving aspect ratio.
-        min_width = 2000
-        if image.width < min_width:
-            scale = min_width / image.width
-            new_size = (min_width, int(image.height * scale))
-            image = image.resize(new_size, Image.LANCZOS)
-            logger.debug("OCR: upscaled image to %dx%d", *new_size)
-
-        # RGB → greyscale → stretch contrast → binarise → sharpen
-        image = image.convert("RGB").convert("L")
-
-        # Autocontrast stretches the histogram to use the full 0-255 range
-        from PIL import ImageOps
-        image = ImageOps.autocontrast(image, cutoff=2)
-
-        # Binarise with a fixed threshold (menu text on white/cream paper)
-        image = image.point(lambda px: 255 if px > 160 else 0)
-
-        image = image.filter(ImageFilter.SHARPEN)
-
-        # PSM 4: assume a single column of text of variable sizes (good for menus)
-        text = pytesseract.image_to_string(image, config="--psm 4")
-
-        word_count = len(text.split())
-        logger.info("OCR: extracted %d words", word_count)
-
-        if word_count < 20:
-            raise OCRError(
-                f"OCR extracted only {word_count} words — image may be too blurry or low-contrast. "
-                "Try a clearer photo or upload a PDF."
-            )
-
-        return text
-    except OCRError:
-        raise
-    except EnvironmentError as e:
-        logger.warning("Tesseract not installed: %s", e)
-        raise OCRError("OCR unavailable: Tesseract is not installed. Upload a PDF instead.") from e
-    except Exception as e:
-<<<<<<< HEAD
-        logger.warning(f"Image parsing failed: {e}")
-        return f"Image parsing failed: {str(e)}"
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-        logger.warning("Image parsing failed: %s", e)
-        raise OCRError(f"Image parsing failed: {e}") from e
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-=======
-    merged = WineListExtraction(wines=all_wines, confidence_notes="; ".join(all_notes))
-    return _format_extraction(merged)
->>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
-=======
     parts: list[str] = []
     if all_wines:
         merged = WineListExtraction(wines=all_wines, confidence_notes="; ".join(all_notes))
@@ -411,7 +281,6 @@ def _extract_pdf_via_vision(pdf_bytes: bytes) -> str:
     if raw_text_pages:
         parts.append("\n".join(raw_text_pages))
     return "\n".join(parts)
->>>>>>> 97b0c05 (Cost improvement of haiku usage)
 
 
 def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Optional[str]) -> str:
@@ -433,17 +302,6 @@ def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Op
     elif is_text_upload:
         return decode_cellartracker_upload(file_bytes)
     elif is_image_upload:
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # OCRError propagates to the caller — do not catch here.
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-        # OCRError propagates to the caller — do not catch here.
->>>>>>> faa3422 (Commit despite broken recommendation engine)
-=======
->>>>>>> 0d27b4b (Replaced OCR with Haiku vision match, routed messy PDFs to Haiku)
         return extract_text_from_image(file_bytes)
     else:
         try:

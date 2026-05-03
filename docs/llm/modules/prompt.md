@@ -64,6 +64,10 @@ The prompt instructs the LLM to follow a 4-step structure for `reasoning`:
 `"[high|medium|low] — [single clause reason]"`  
 Examples: `"high — hits your preference for grower Champagne with mineral complexity"` / `"medium — right style but the vintage may be too young"`
 
+## Fit Markers Field (enforced in prompt)
+
+Optional per-recommendation `fit_markers: string[]` — 2–3 short tags (each ≤ 8 words) that ground the pick in a concrete signal from the taste profile. The prompt requires each tag to cite a real signal: a top region/varietal/producer, a preferred descriptor, an avoided style, or a derived taste-marker level (acidity/tannin/body/oak). Generic phrases ("Great with food", "Crowd pleaser") are forbidden. The model is instructed to omit the field entirely (not return an empty array) when no clean signal applies. Rendered by the frontend as a "Why this fits you" panel on each card.
+
 ## Pattern & Gotchas
 
 - **Sommelier persona**: "Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, no explanation)."

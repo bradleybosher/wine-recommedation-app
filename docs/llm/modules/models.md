@@ -49,6 +49,7 @@ Fields:
 - `price`: Optional[float]
 - `reasoning`: str (2–4 sentences, specific to profile match)
 - `confidence`: str ("high" | "medium" | "low")
+- `fit_markers`: Optional[List[str]] — 2–3 short tags grounding the pick in concrete profile signals (top region/varietal, preferred descriptor, avoided style, taste-marker level). Omitted when no clean signal applies; rendered by the frontend as a "Why this fits you" panel.
 
 ### RecommendationResponse
 
