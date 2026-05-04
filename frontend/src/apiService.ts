@@ -1,10 +1,6 @@
 import {
   getInventoryInventoryGet,
   profileSummaryProfileSummaryGet,
-  recommendRecommendPost,
-  type InventoryResponse as SDKInventoryResponse,
-  type ProfileSummaryResponse as SDKProfileSummaryResponse,
-  type RecommendResponse as SDKRecommendResponse
 } from '@/client';
 
 // DEPRECATED: Use SDK functions directly from '@/client'

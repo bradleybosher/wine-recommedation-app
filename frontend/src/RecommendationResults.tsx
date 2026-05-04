@@ -1,18 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { RecommendationResponse, WineRecommendation } from '@/client/types.gen';
 import GlassCard from '@/components/ui/GlassCard';
 import WineBottleIcon, { getWineStyle } from '@/components/ui/WineBottleIcon';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Loader2, Sparkles } from 'lucide-react';
+
+const RERANK_CHIPS: { label: string; terms: string }[] = [
+  { label: 'Under $80', terms: 'budget under $80, value-focused' },
+  { label: 'More adventurous', terms: 'natural, funky, off-beat, lesser-known producers' },
+  { label: 'Food match first', terms: 'pairing-led, classic match for the meal' },
+  { label: 'Safer crowd-pleaser', terms: 'crowd-pleasing, approachable, classic style' },
+];
 
 interface RecommendationResultsProps {
   response: RecommendationResponse;
   onNewSearch: () => void;
+  onRerank?: (terms: string) => void;
+  isRerankLoading?: boolean;
 }
 
 const RecommendationResults: React.FC<RecommendationResultsProps> = ({
   response,
-  onNewSearch
+  onNewSearch,
+  onRerank,
+  isRerankLoading = false,
 }) => {
+  const [activeChip, setActiveChip] = useState<string | null>(null);
+
+  const handleChipClick = (label: string, terms: string) => {
+    if (!onRerank || isRerankLoading) return;
+    setActiveChip(label);
+    onRerank(terms);
+  };
+
   const getConfidenceBadgeColor = (confidence: string): string => {
     const level = confidence.split(/[\s—–-]/)[0].toLowerCase();
     switch (level) {
@@ -57,8 +76,38 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
         </div>
       )}
 
+      {onRerank && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="inline-flex items-center text-xs uppercase tracking-wide text-white/60 mr-1">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-wine-gold" strokeWidth={1.5} />
+            Refine
+          </span>
+          {RERANK_CHIPS.map((chip) => {
+            const isActive = activeChip === chip.label;
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() => handleChipClick(chip.label, chip.terms)}
+                disabled={isRerankLoading}
+                className={`inline-flex items-center rounded-full px-3 py-1 text-sm border transition-colors focus:outline-none focus:ring-2 focus:ring-wine-rose ${
+                  isActive
+                    ? 'bg-wine-burgundy/40 border-wine-rose/40 text-white'
+                    : 'border-glass-border text-white/80 hover:bg-glass-surface-hover'
+                } ${isRerankLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                {isActive && isRerankLoading && (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" strokeWidth={1.5} />
+                )}
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {response.recommendations.length > 0 ? (
-        <div className="space-y-6">
+        <div className={`space-y-6 transition-opacity ${isRerankLoading ? 'opacity-50' : ''}`}>
           {response.recommendations.map((rec) => (
             <GlassCard key={rec.rank} className="p-6 hover:bg-glass-surface-hover transition-colors">
               <div className="flex items-start justify-between gap-4 mb-4">

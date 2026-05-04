@@ -63,19 +63,20 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
   // --- Form Submission ---
   const isSubmitDisabled = !fileData.file || mealDescription.trim() === '';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitDisabled) return;
+  const runRecommend = async (overrideTerms?: string, isRerank = false) => {
+    if (!fileData.file || mealDescription.trim() === '') return;
 
     setIsLoading(true);
     setError('');
-    setRecommendationResponse(null);
+    if (!isRerank) setRecommendationResponse(null);
+
+    const effectiveTerms = overrideTerms !== undefined ? overrideTerms : styleOverrides.trim();
 
     try {
       const requestBody = {
-        wine_list: fileData.file!,
+        wine_list: fileData.file,
         meal: mealDescription.trim(),
-        ...(styleOverrides.trim() && { style_terms: styleOverrides.trim() })
+        ...(effectiveTerms && { style_terms: effectiveTerms })
       };
 
       const response = await recommendRecommendPost({
@@ -98,6 +99,17 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitDisabled) return;
+    runRecommend();
+  };
+
+  const handleRerank = (terms: string) => {
+    if (!fileData.file || isLoading) return;
+    runRecommend(terms, true);
   };
 
   const handleNewSearch = () => {
@@ -230,6 +242,8 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
               <RecommendationResults
                 response={recommendationResponse}
                 onNewSearch={handleNewSearch}
+                onRerank={handleRerank}
+                isRerankLoading={isLoading}
               />
             )}
           </>

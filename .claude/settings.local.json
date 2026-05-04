@@ -15,7 +15,8 @@
       "Bash(npx skills:*)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(Sort-Object)"
+      "Bash(Sort-Object)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\")"
     ]
   },
   "model": "sonnet",
