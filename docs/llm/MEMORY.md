@@ -9,6 +9,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [Domain Glossary](glossary.md) — Wine terms, CellarTracker fields, domain-specific abbreviations
 - [Code Conventions](conventions.md) — Error handling, naming patterns, preferred libraries, patterns used consistently
 - [Context Guide](context-guide.md) — Maps task types to which docs to inject
+- [Improvement Backlog](improvement-backlog.md) — Prioritized list of known issues with file:line references and recommended fixes
 
 ## Module Documentation
 
@@ -23,11 +24,8 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [cache.py](modules/cache.md) — SQLite response caching
 - [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
 - [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
-<<<<<<< HEAD
 - scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
 - logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ### Frontend (Generated SDK)
 
@@ -60,12 +58,8 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 ## Document Statistics
 
 <<<<<<< HEAD
-- **Total files**: 14 (4 core + 9 modules + 1 index) — scorer.py and logging_utils.py documented inline in interfaces.md
-- **Estimated total tokens**: ~5,800 (manageable in most LLM contexts)
-=======
-- **Total files**: 14 (4 core + 9 modules + 1 index)
-- **Estimated total tokens**: ~5,500 (manageable in most LLM contexts)
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+- **Total files**: 15 (4 core + 9 modules + 1 index + 1 backlog) — scorer.py and logging_utils.py documented inline in interfaces.md
+- **Estimated total tokens**: ~7,500 (manageable in most LLM contexts)
 - **Typical focused task**: 1,500–2,000 tokens (architecture + glossary + 2–3 modules)
 
 ## Key Design Principles (Quick Summary)
@@ -91,6 +85,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 | Debug recommendation output | architecture + modules/recommender + modules/prompt + glossary | 1,600 |
 <<<<<<< HEAD
 | Analyse recommendation quality | architecture + interfaces (scorer/logging_utils) + modules/main | 1,200 |
+| Work from improvement backlog | improvement-backlog.md + relevant modules | Variable |
 =======
 >>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 | Add OCR support | modules/parser + conventions | 600 |
