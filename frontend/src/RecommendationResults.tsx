@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { RecommendationResponse, WineRecommendation } from '@/client/types.gen';
 import GlassCard from '@/components/ui/GlassCard';
 import WineBottleIcon, { getWineStyle } from '@/components/ui/WineBottleIcon';
-import { Copy, Check, Loader2, Sparkles } from 'lucide-react';
+import { Copy, Check, Loader2, Sparkles, Scale } from 'lucide-react';
 
 const RERANK_CHIPS: { label: string; terms: string }[] = [
   { label: 'Under $80', terms: 'budget under $80, value-focused' },
@@ -25,6 +25,10 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
   isRerankLoading = false,
 }) => {
   const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
+
+  const canCompare = response.recommendations.length >= 2;
+  const top2 = response.recommendations.slice(0, 2);
 
   const handleChipClick = (label: string, terms: string) => {
     if (!onRerank || isRerankLoading) return;
@@ -104,6 +108,84 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
             );
           })}
         </div>
+      )}
+
+      {canCompare && (
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => setShowCompare((v) => !v)}
+            className={`inline-flex items-center rounded-full px-3 py-1 text-sm border transition-colors focus:outline-none focus:ring-2 focus:ring-wine-rose ${
+              showCompare
+                ? 'bg-wine-burgundy/40 border-wine-rose/40 text-white'
+                : 'border-glass-border text-white/80 hover:bg-glass-surface-hover'
+            }`}
+          >
+            <Scale className="w-3.5 h-3.5 mr-1.5" strokeWidth={1.5} />
+            Compare Top 2
+          </button>
+        </div>
+      )}
+
+      {showCompare && canCompare && (
+        <GlassCard className="p-5 mb-6">
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-4">
+            Side-by-Side Comparison
+          </h3>
+          <div className="grid grid-cols-[auto_1fr_1fr] gap-x-5">
+            {/* Header */}
+            <div />
+            {top2.map((rec) => (
+              <div key={rec.rank} className="pb-3 border-b border-white/10">
+                <div className="text-sm font-semibold text-white leading-tight">{rec.wineName}</div>
+                {rec.producer && <div className="text-xs text-white/60 mt-0.5">{rec.producer}</div>}
+              </div>
+            ))}
+
+            {/* Data rows */}
+            {(
+              [
+                {
+                  label: 'Style',
+                  getValue: (rec: WineRecommendation) =>
+                    rec.fitMarkers?.[0] ?? rec.region ?? '—',
+                },
+                {
+                  label: 'Confidence',
+                  getValue: (rec: WineRecommendation) => rec.confidence,
+                },
+                {
+                  label: 'Price',
+                  getValue: (rec: WineRecommendation) =>
+                    rec.price ? `$${rec.price}` : 'Not listed',
+                },
+                {
+                  label: 'Vintage',
+                  getValue: (rec: WineRecommendation) =>
+                    rec.vintage ? String(rec.vintage) : 'NV',
+                },
+                {
+                  label: 'At a glance',
+                  getValue: (rec: WineRecommendation) => {
+                    const first = rec.reasoning.split(/\.\s+/)[0];
+                    return first.endsWith('.') ? first : `${first}.`;
+                  },
+                },
+              ] as { label: string; getValue: (rec: WineRecommendation) => string }[]
+            ).map((row) => (
+              <React.Fragment key={row.label}>
+                <div className="text-xs text-white/50 uppercase tracking-wide pr-3 whitespace-nowrap pt-3">
+                  {row.label}
+                </div>
+                {top2.map((rec) => (
+                  <div key={rec.rank} className="text-sm text-white/85 pt-3">
+                    {row.getValue(rec)}
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+        </GlassCard>
       )}
 
       {response.recommendations.length > 0 ? (
