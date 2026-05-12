@@ -9,6 +9,9 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 ## Features
 
 - **Smart Wine Parsing:** Extract structured wine data from restaurant PDFs via PyMuPDF
+- **Two Onboarding Paths:**
+  - CellarTracker TSV import — highest-fidelity, grounded in your actual ratings.
+  - **Seed-bottle onboarding** — name 3–7 wines you have loved (and a few you disliked); Claude infers your palate in 60 seconds. Profiles are tagged `medium`/`high` confidence and downstream recommendations are flagged as directional.
 - **Taste Profile:** One-click CellarTracker import (TSV export) to understand user preferences
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -111,15 +114,24 @@ Open http://127.0.0.1:5173 in your browser.
 
 ## Usage Walkthrough
 
-### 1. Upload Wine Inventory
-- Click **"Start"** on the onboarding screen
-- Upload a CellarTracker TSV export (export from cellartracker.com → Downloads → List)
-- The app parses your cellar and extracts style preferences
+### 1. Choose Your Pathway
+On first launch, pick how you want to build a taste profile:
+- **I use CellarTracker** — upload your cellar + tasting-history TSV exports (highest fidelity).
+- **Name a few wines I love** — type 3–7 wines you have loved (and optionally a few you disliked). No exports required. Claude infers your palate via a single tool-use call.
 
-### 2. Upload Taste Profile (Optional)
+### 2a. CellarTracker pathway — Upload Wine Inventory
+- Upload a CellarTracker TSV export (export from cellartracker.com → Downloads → List), or skip.
+- The app parses your cellar and extracts style preferences.
+
+### 2b. CellarTracker pathway — Upload Taste Profile (Optional)
 - Upload a CellarTracker **"Notes"** export to add tasting notes
 - Wines with low ratings inform the `avoided_styles` field
 - You can skip this; recommendations work with inventory alone
+
+### 2c. Seed-bottle pathway — Name Your Wines
+- Enter producer, wine, and (optional) vintage for 3–7 loved bottles.
+- Add up to 3 disliked bottles to sharpen the signal.
+- Submit; the inferred profile renders inline with style descriptors, grapes, regions, and a confidence tag. The profile is marked `seed_bottles` and per-recommendation confidence is capped at `medium`.
 
 ### 3. Get Recommendations
 - Choose a restaurant wine list (PDF, JPEG, PNG, or similar)
@@ -162,8 +174,10 @@ Cache response for identical inputs → return structured recommendations
 | `parser.py` | PDF extraction (PyMuPDF) |
 | `recommender.py` | LLM call + JSON parsing with error handling |
 | `prompt.py` | System prompt construction + schema definition |
-| `profile.py` | CellarTracker parsing, taste profile building |
+| `profile.py` | CellarTracker parsing, taste profile building; short-circuits to seed-derived `_inferred` profile when present |
+| `seed_profile.py` | Seed-bottle onboarding: Anthropic-driven inference of a taste profile from 3–7 named wines |
 | `inventory.py` | Cellar inventory loading, style-based filtering |
+| `scorer.py` | Recommendation scoring; caps per-wine confidence at "medium" for seed-derived profiles |
 | `cache.py` | SQLite response caching |
 
 ---

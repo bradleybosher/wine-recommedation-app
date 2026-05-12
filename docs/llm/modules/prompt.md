@@ -21,6 +21,7 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
 - `cellar_summary`: Prose summary of what user's cellar skews toward (e.g., "skews heavily toward Burgundy and Champagne")
 - `taste_profile_override`: Optional pre-built profile string (from `build_enriched_profile_text()`). If provided, skips the internal `build_enhanced_profile_text()` call.
 - `meal_hints`: Optional newline-separated pairing hints string (from `meal_to_wine_hints()`). Injected as `### TONIGHT'S MEAL` section.
+- `profile_source`: One of `"cellartracker"` (default), `"seed_bottles"`, `"manual"`. When `"seed_bottles"`, a one-line caveat is prepended to the taste-profile block instructing the model to treat signals as directional, not authoritative.
 
 **Outputs**: Complete system prompt string (1000+ words) with embedded JSON schema.
 

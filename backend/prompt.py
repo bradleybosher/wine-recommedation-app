@@ -30,6 +30,7 @@ def build_system_prompt(
     cellar_summary: str = "",
     taste_profile_override: str | None = None,
     meal_hints: str = "",
+    profile_source: str = "cellartracker",
 ) -> str:
     import logging
     logger = logging.getLogger(__name__)
@@ -55,6 +56,14 @@ or if a bottle is worth ordering specifically because they don't have it.
     else:
         taste_profile = build_enhanced_profile_text()
         logger.info("build_system_prompt: using standard build_enhanced_profile_text (len=%d)", len(taste_profile))
+
+    if profile_source == "seed_bottles":
+        taste_profile = (
+            "(Profile inferred from a small set of seed bottles the user named — "
+            "treat as directional, not authoritative; prefer recommendations that match "
+            "the dominant style signals over edge-of-profile picks.)\n"
+            + taste_profile
+        )
 
     meal_section = f"### TONIGHT'S MEAL\n{meal_hints}\n" if meal_hints else ""
 

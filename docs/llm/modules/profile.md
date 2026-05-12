@@ -35,6 +35,11 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Return type detected
 
 **build_taste_profile(profile_data)** → dict:
+  - **Short-circuit**: if `profile_data["_inferred"]` exists (seed-bottle pathway),
+    return that dict directly — it was synthesized by
+    `seed_profile.infer_profile_from_seeds()` and is already shaped like this
+    function's normal output.
+  - Otherwise:
   - Extract top 10 varietals from consumed wines (from Varietal / MasterVarietal)
   - Extract top 8 regions/subregions/appellations
   - Extract top 10 producers from all exports

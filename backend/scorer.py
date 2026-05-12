@@ -57,12 +57,22 @@ def _normalize_confidence_level(raw_confidence: str) -> str:
     return normalized
 
 
-def _score_confidence(response: RecommendationResponse) -> float:
-    """Average mapped confidence across all recommendations."""
+def _score_confidence(response: RecommendationResponse, cap_at_medium: bool = False) -> float:
+    """Average mapped confidence across all recommendations.
+
+    When ``cap_at_medium`` is True (e.g. for seed-bottle inferred profiles), any
+    per-wine "high" confidence is downgraded to "medium" before scoring — the
+    profile itself is directional, so per-wine certainty cannot exceed it.
+    """
     recs = response.recommendations
     if not recs:
         return 0.0
-    scores = [_CONFIDENCE_MAP.get(_normalize_confidence_level(r.confidence), 0.5) for r in recs]
+    scores = []
+    for r in recs:
+        level = _normalize_confidence_level(r.confidence)
+        if cap_at_medium and level == "high":
+            level = "medium"
+        scores.append(_CONFIDENCE_MAP.get(level, 0.5))
     return sum(scores) / len(scores)
 
 
@@ -132,6 +142,7 @@ def score_recommendation(
     response: RecommendationResponse,
     wine_list_text: str,
     profile: Optional[TasteProfile] = None,
+    cap_confidence: bool = False,
 ) -> ScoringResult:
     """
     Score a RecommendationResponse on four weighted dimensions.
@@ -149,7 +160,7 @@ def score_recommendation(
     """
     try:
         breakdown = {
-            "confidence":   _score_confidence(response),
+            "confidence":   _score_confidence(response, cap_at_medium=cap_confidence),
             "completeness": _score_completeness(response),
             "grounding":    _score_grounding(response, wine_list_text),
             "budget_fit":   _score_budget_fit(response, profile),

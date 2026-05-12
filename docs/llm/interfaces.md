@@ -35,10 +35,35 @@ def profile_summary() → ProfileSummaryResponse
   cellar_stats (total_bottles, unique_wines, vintage range from inventory).
 >>>>>>> b169158 (Added my profile tab)
 
+@app.post("/seed-profile")
+async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
+  Alternative to /upload-profile. Infer a taste profile from 3–7 loved (and 0–3 disliked)
+  wine names via a single Anthropic tool-use call. Wipes profile_data.json and persists the
+  inferred structured profile under the "_inferred" key. Returns taste_profile with
+  profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
+
 @app.post("/recommend")
 async def recommend(wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
   Main endpoint. Parse wine list, build prompt with profile/inventory context, call LLM.
-  Cache by SHA256(wine_list_bytes, meal, inventory_hash, profile_hash).
+  Cache by SHA256(wine_list_bytes, meal, inventory_hash, profile_hash). Threads
+  taste_profile.profile_source into build_system_prompt and caps scorer confidence at
+  "medium" when the profile is seed-derived.
+```
+
+### seed_profile.py
+
+```python
+def infer_profile_from_seeds(req: SeedProfileRequest, anthropic_api_key: str, anthropic_model: str) → dict
+  Single Anthropic tool-use call to identify each named wine and synthesize aggregate
+  signals (top_varietals, top_regions, top_producers, highly_rated, preferred_descriptors,
+  avoided_styles, avg_spend, style_summary, taste_markers, inference_confidence,
+  profile_source="seed_bottles", seed_bottle_count).
+
+def persist_seed_profile(inferred: dict) → None
+  Overwrite profile_data.json with {"_inferred": inferred}, clearing any legacy CT keys.
+
+def load_inferred_profile() → dict | None
+  Return the inferred profile if present.
 ```
 
 ### models.py
@@ -52,7 +77,19 @@ class TasteProfile(BaseModel):
   preferred_styles, preferred_regions, preferred_grapes, avoided_styles: List[str]
   budget_min, budget_max: Optional[float]
   occasion, food_pairing: Optional[str]
-  profile_source: str = "manual"
+  profile_source: str = "manual"  # "cellartracker" | "seed_bottles" | "manual"
+  inference_confidence: Optional[str]  # "high"|"medium"|"low", set when profile_source=="seed_bottles"
+
+class SeedBottle(BaseModel):
+  producer: str
+  wine: str
+  vintage: Optional[int]
+  sentiment: Literal["loved", "disliked"] = "loved"
+  note: Optional[str]
+
+class SeedProfileRequest(BaseModel):
+  loved: List[SeedBottle]      # 3..7
+  disliked: List[SeedBottle]   # 0..3
 
 class WineRecommendation(BaseModel):
   rank: int

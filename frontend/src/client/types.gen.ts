@@ -274,6 +274,18 @@ export type ProfileSummaryResponse = {
     styleSummary?: string | null;
     tasteMarkers?: TasteMarkers | null;
     cellarStats?: CellarStats | null;
+    /**
+     * Profilesource
+     */
+    profileSource?: string | null;
+    /**
+     * Inferenceconfidence
+     */
+    inferenceConfidence?: string | null;
+    /**
+     * Seedbottlecount
+     */
+    seedBottleCount?: number | null;
 };
 
 /**
@@ -292,6 +304,50 @@ export type RecommendationResponse = {
      * Profilematchsummary
      */
     profileMatchSummary: string;
+};
+
+/**
+ * SeedBottle
+ *
+ * A single wine the user names during seed-bottle onboarding.
+ */
+export type SeedBottle = {
+    /**
+     * Producer
+     */
+    producer: string;
+    /**
+     * Wine
+     */
+    wine: string;
+    /**
+     * Vintage
+     */
+    vintage?: number | null;
+    /**
+     * Sentiment
+     */
+    sentiment?: 'loved' | 'disliked';
+    /**
+     * Note
+     */
+    note?: string | null;
+};
+
+/**
+ * SeedProfileRequest
+ *
+ * Request body for POST /seed-profile.
+ */
+export type SeedProfileRequest = {
+    /**
+     * Loved
+     */
+    loved?: Array<SeedBottle>;
+    /**
+     * Disliked
+     */
+    disliked?: Array<SeedBottle>;
 };
 
 /**
@@ -360,6 +416,10 @@ export type TasteProfile = {
      * Profilesource
      */
     profileSource?: string;
+    /**
+     * Inferenceconfidence
+     */
+    inferenceConfidence?: string | null;
 };
 
 /**
@@ -724,6 +784,31 @@ export type UploadProfileUploadProfilePostResponses = {
 };
 
 export type UploadProfileUploadProfilePostResponse = UploadProfileUploadProfilePostResponses[keyof UploadProfileUploadProfilePostResponses];
+
+export type SeedProfileSeedProfilePostData = {
+    body: SeedProfileRequest;
+    path?: never;
+    query?: never;
+    url: '/seed-profile';
+};
+
+export type SeedProfileSeedProfilePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SeedProfileSeedProfilePostError = SeedProfileSeedProfilePostErrors[keyof SeedProfileSeedProfilePostErrors];
+
+export type SeedProfileSeedProfilePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UploadProfileResponse;
+};
+
+export type SeedProfileSeedProfilePostResponse = SeedProfileSeedProfilePostResponses[keyof SeedProfileSeedProfilePostResponses];
 
 export type GetInventoryInventoryGetData = {
     body?: never;

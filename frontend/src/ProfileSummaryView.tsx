@@ -64,6 +64,26 @@ const ProfileSummaryView = () => {
 
       {profileData && !loading && (
         <div className="space-y-6">
+          {/* Provenance badge */}
+          {profileData.profileSource && (
+            <div className={`p-3 rounded-lg text-sm flex items-center justify-between ${
+              profileData.profileSource === 'seed_bottles'
+                ? 'bg-amber-50 border border-amber-200 text-amber-900'
+                : 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+            }`}>
+              <span className="font-medium">
+                Profile: {profileData.profileSource === 'seed_bottles'
+                  ? `inferred from ${profileData.seedBottleCount ?? '?'} seed bottle${profileData.seedBottleCount === 1 ? '' : 's'}`
+                  : 'CellarTracker tasting history'}
+              </span>
+              <span className="text-xs uppercase tracking-wide font-semibold">
+                {profileData.profileSource === 'seed_bottles'
+                  ? `${profileData.inferenceConfidence ?? 'medium'} confidence`
+                  : 'high confidence'}
+              </span>
+            </div>
+          )}
+
           {/* Top Varietals */}
           {profileData.topVarietals && profileData.topVarietals.length > 0 && (
             <div className="bg-gray-50 p-4 rounded-lg">

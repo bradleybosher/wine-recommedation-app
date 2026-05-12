@@ -212,9 +212,18 @@ def _infer_avoided_styles(profile_data: dict) -> list[str]:
 
 
 def build_taste_profile(profile_data: dict) -> dict:
-    """Derive structured taste signals from merged profile export data."""
+    """Derive structured taste signals from merged profile export data.
+
+    If a seed-bottle inferred profile is present (key ``_inferred``), return it
+    directly — it is already shaped like this function's output, having been
+    synthesized by seed_profile.infer_profile_from_seeds().
+    """
     if not isinstance(profile_data, dict):
         profile_data = {}
+
+    inferred = profile_data.get("_inferred")
+    if isinstance(inferred, dict) and inferred:
+        return inferred
 
     list_consumed_notes = list(
         _iter_export_rows(profile_data, "list", "consumed", "notes")
@@ -310,6 +319,9 @@ def build_taste_profile_pydantic(profile_data: dict) -> TasteProfile:
         budget_min = max(0, int(round(avg_spend)) - 10)
         budget_max = int(round(avg_spend)) + 10
 
+    profile_source = structured.get("profile_source", "cellartracker")
+    inference_confidence = structured.get("inference_confidence") if profile_source == "seed_bottles" else None
+
     return TasteProfile(
         preferred_grapes=preferred_grapes,
         preferred_regions=preferred_regions,
@@ -317,14 +329,18 @@ def build_taste_profile_pydantic(profile_data: dict) -> TasteProfile:
         avoided_styles=avoided_styles,
         budget_min=budget_min,
         budget_max=budget_max,
-        profile_source="cellartracker",
+        profile_source=profile_source,
+        inference_confidence=inference_confidence,
     )
 
 
 def _profile_data_empty(profile_data: dict) -> bool:
     if not profile_data:
         return True
-    return not any(isinstance(v, list) and len(v) > 0 for v in profile_data.values())
+    return not any(
+        (isinstance(v, list) and len(v) > 0) or (isinstance(v, dict) and len(v) > 0)
+        for v in profile_data.values()
+    )
 
 
 def _display_label(s: str) -> str:
@@ -564,8 +580,12 @@ def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) ->
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
 
-    logger.info("build_enriched_profile_text: calling enrich_profile_with_anthropic")
-    enriched = enrich_profile_with_anthropic(structured, anthropic_api_key, anthropic_model)
+    if structured.get("profile_source") == "seed_bottles":
+        logger.info("build_enriched_profile_text: seed-bottle profile already enriched, skipping anthropic call")
+        enriched = structured
+    else:
+        logger.info("build_enriched_profile_text: calling enrich_profile_with_anthropic")
+        enriched = enrich_profile_with_anthropic(structured, anthropic_api_key, anthropic_model)
 
     enrichment_happened = "style_summary" in enriched and bool(enriched.get("style_summary", "").strip())
     logger.warning("build_enriched_profile_text: enrichment_happened=%s", enrichment_happened)

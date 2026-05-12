@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
@@ -112,11 +112,53 @@ class TasteProfile(BaseModel):
     food_pairing: Optional[str] = None
 
     profile_source: str = "manual"
+    inference_confidence: Optional[str] = None  # "high" | "medium" | "low"; set when profile_source == "seed_bottles"
 
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True
     )
+
+
+class SeedBottle(BaseModel):
+    """A single wine the user names during seed-bottle onboarding."""
+    producer: str
+    wine: str
+    vintage: Optional[int] = None
+    sentiment: Literal["loved", "disliked"] = "loved"
+    note: Optional[str] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
+class SeedProfileRequest(BaseModel):
+    """Request body for POST /seed-profile."""
+    loved: List[SeedBottle] = Field(default_factory=list)
+    disliked: List[SeedBottle] = Field(default_factory=list)
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+    @field_validator("loved")
+    @classmethod
+    def _enforce_min_loved(cls, v: List[SeedBottle]) -> List[SeedBottle]:
+        if len(v) < 3:
+            raise ValueError("Provide at least 3 loved wines to seed a profile.")
+        if len(v) > 7:
+            raise ValueError("Provide at most 7 loved wines.")
+        return v
+
+    @field_validator("disliked")
+    @classmethod
+    def _enforce_max_disliked(cls, v: List[SeedBottle]) -> List[SeedBottle]:
+        if len(v) > 3:
+            raise ValueError("Provide at most 3 disliked wines.")
+        return v
 
 
 class UploadProfileResponse(BaseModel):
@@ -141,6 +183,9 @@ class ProfileSummaryResponse(BaseModel):
     style_summary: Optional[str] = None
     taste_markers: Optional[TasteMarkers] = None
     cellar_stats: Optional[CellarStats] = None
+    profile_source: Optional[str] = None  # "cellartracker" | "seed_bottles" | "manual"
+    inference_confidence: Optional[str] = None  # populated only when profile_source == "seed_bottles"
+    seed_bottle_count: Optional[int] = None  # number of seed bottles, when profile is seed-derived
 
     model_config = ConfigDict(
         alias_generator=to_camel,

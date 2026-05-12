@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import type { RecommendationResponse, WineRecommendation } from '@/client/types.gen';
+import React, { useEffect, useState } from 'react';
+import type { ProfileSummaryResponse, RecommendationResponse, WineRecommendation } from '@/client/types.gen';
+import { profileSummaryProfileSummaryGet } from '@/client';
 import GlassCard from '@/components/ui/GlassCard';
 import WineBottleIcon, { getWineStyle } from '@/components/ui/WineBottleIcon';
-import { Copy, Check, Loader2, Sparkles, Scale } from 'lucide-react';
+import { Copy, Check, Info, Loader2, Sparkles, Scale } from 'lucide-react';
 
 const RERANK_CHIPS: { label: string; terms: string }[] = [
   { label: 'Under $80', terms: 'budget under $80, value-focused' },
@@ -26,6 +27,23 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
 }) => {
   const [activeChip, setActiveChip] = useState<string | null>(null);
   const [showCompare, setShowCompare] = useState(false);
+  const [profileMeta, setProfileMeta] = useState<ProfileSummaryResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    profileSummaryProfileSummaryGet()
+      .then((r) => {
+        if (!cancelled && r.data) setProfileMeta(r.data);
+      })
+      .catch(() => {
+        /* non-fatal */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isSeedDerived = profileMeta?.profileSource === 'seed_bottles';
 
   const canCompare = response.recommendations.length >= 2;
   const top2 = response.recommendations.slice(0, 2);
@@ -66,6 +84,16 @@ const RecommendationResults: React.FC<RecommendationResultsProps> = ({
   return (
     <div className="mt-10">
       <h2 className="text-2xl font-bold text-white mb-6">Your Wine Recommendations</h2>
+
+      {isSeedDerived && (
+        <div className="flex items-center gap-2 bg-wine-amber/10 border border-wine-amber/30 text-white/90 px-4 py-2.5 rounded-xl mb-4 text-sm">
+          <Info className="h-4 w-4 text-wine-gold shrink-0" strokeWidth={1.5} />
+          <span>
+            Profile inferred from {profileMeta?.seedBottleCount ?? 'a few'} seed bottle{profileMeta?.seedBottleCount === 1 ? '' : 's'} —
+            recommendations are directional ({profileMeta?.inferenceConfidence ?? 'medium'} confidence). Name more wines or upload CellarTracker history to sharpen them.
+          </span>
+        </div>
+      )}
 
       {response.profileMatchSummary && (
         <div className="bg-wine-purple-mid/20 border border-wine-rose/25 text-white/90 p-4 rounded-xl mb-6">

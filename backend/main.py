@@ -35,8 +35,10 @@ from models import (
     CellarStats,
     RecommendRequest,
     RecommendationResponse,
-    Bottle
+    Bottle,
+    SeedProfileRequest,
 )
+from seed_profile import infer_profile_from_seeds, persist_seed_profile, load_inferred_profile
 from meal_parser import parse_meal_description, meal_to_wine_hints
 from parser import parse_wine_list
 from recommender import get_recommendation
@@ -229,6 +231,41 @@ async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
         taste_profile=taste_profile,
     )
 
+@app.post("/seed-profile")
+async def seed_profile(req: SeedProfileRequest) -> UploadProfileResponse:
+    """Infer a taste profile from 3-7 loved (and 0-3 disliked) seed wines.
+
+    Alternative to /upload-profile for users without a CellarTracker account.
+    Wipes any existing profile_data.json so sources never silently mix.
+    """
+    try:
+        inferred = infer_profile_from_seeds(req, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
+    except anthropic_module_error_types() as exc:
+        logger.exception("seed_profile_inference_failed err=%s", type(exc).__name__)
+        raise HTTPException(status_code=502, detail=f"Seed-profile inference failed: {type(exc).__name__}")
+
+    persist_seed_profile(inferred)
+    bust_cache()
+
+    profile_data = load_profile_data()
+    taste_profile = build_taste_profile_pydantic(profile_data)
+
+    return UploadProfileResponse(
+        export_type="seed_bottles",
+        message=(
+            f"Profile inferred from {len(req.loved)} loved and {len(req.disliked)} disliked wines. "
+            f"Inference confidence: {inferred.get('inference_confidence', 'medium')}. Response cache cleared."
+        ),
+        taste_profile=taste_profile,
+    )
+
+
+def anthropic_module_error_types() -> tuple[type, ...]:
+    """Tuple of exception types to catch around the seed-profile Anthropic call."""
+    import anthropic as _a
+    return (_a.APIError, RuntimeError, ValueError)
+
+
 @app.get("/inventory")
 def get_inventory() -> InventoryResponse:
     inv = load_inventory()
@@ -246,8 +283,13 @@ def get_inventory() -> InventoryResponse:
 def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
 
-    markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
-    taste_markers = TasteMarkers(**markers_dict)
+    is_seed_derived = profile_data.get("profile_source") == "seed_bottles"
+
+    if is_seed_derived and isinstance(profile_data.get("taste_markers"), dict):
+        taste_markers = TasteMarkers(**profile_data["taste_markers"])
+    else:
+        markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
+        taste_markers = TasteMarkers(**markers_dict)
 
     inv = load_inventory() or {}
     raw_bottles = inv.get("bottles", [])
@@ -263,18 +305,35 @@ def profile_summary() -> ProfileSummaryResponse:
     )
 
     style_summary: Optional[str] = None
-    try:
-        enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
-        raw_summary = enriched.get("style_summary", "")
+    if is_seed_derived:
+        raw_summary = profile_data.get("style_summary", "") or ""
         style_summary = raw_summary.strip() or None
-    except Exception:
-        pass
+    else:
+        try:
+            enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
+            raw_summary = enriched.get("style_summary", "")
+            style_summary = raw_summary.strip() or None
+        except Exception:
+            pass
+
+    # ProfileSummaryResponse expects only its declared fields — strip enrichment-only keys
+    # from profile_data before splatting so Pydantic doesn't reject extras.
+    summary_fields = {
+        k: profile_data.get(k)
+        for k in (
+            "top_varietals", "top_regions", "top_producers", "highly_rated",
+            "preferred_descriptors", "avoided_styles", "avg_spend",
+        )
+    }
 
     return ProfileSummaryResponse(
-        **profile_data,
+        **{k: v for k, v in summary_fields.items() if v is not None},
         style_summary=style_summary,
         taste_markers=taste_markers,
         cellar_stats=cellar_stats,
+        profile_source=profile_data.get("profile_source", "cellartracker"),
+        inference_confidence=profile_data.get("inference_confidence") if is_seed_derived else None,
+        seed_bottle_count=profile_data.get("seed_bottle_count") if is_seed_derived else None,
     )
 
 @app.post("/recommend")
@@ -356,7 +415,13 @@ async def recommend(
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
     meal_hints = meal_to_wine_hints(parse_meal_description(meal))
-    system = build_system_prompt(relevant, cellar_summary=cellar_summary, taste_profile_override=enriched_profile, meal_hints=meal_hints)
+    system = build_system_prompt(
+        relevant,
+        cellar_summary=cellar_summary,
+        taste_profile_override=enriched_profile,
+        meal_hints=meal_hints,
+        profile_source=taste_profile.profile_source,
+    )
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])
 
@@ -365,7 +430,10 @@ async def recommend(
             wine_list_text, meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
         )
         try:
-            scoring_result = score_recommendation(recommendation, wine_list_text, taste_profile)
+            scoring_result = score_recommendation(
+                recommendation, wine_list_text, taste_profile,
+                cap_confidence=(taste_profile.profile_source == "seed_bottles"),
+            )
             log_recommendation_event(meal, profile_hash, recommendation, scoring_result, wine_list_hash)
         except Exception as score_err:
             logger.exception("scoring_and_logging_failed: %s", score_err)

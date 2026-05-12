@@ -8,10 +8,14 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 
 ## Data Flow
 ```
-CellarTracker TSV → inventory.json | CellarTracker export → profile_data.json
-→ wine list upload (PDF/photo) → parser.py → Claude (enrich profile) → Claude (recommend) → top-3
+Profile source (one of):
+  (a) CellarTracker TSV (inventory)       → inventory.json
+      CellarTracker TSV (tasting history) → profile_data.json
+  (b) 3-7 named seed bottles → /seed-profile → Claude (infer) → profile_data.json["_inferred"]
+→ wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
+→ Claude (recommend) → top-3 (per-wine confidence capped at "medium" for seed-derived)
 ```
-**Modules:** `main.py` (routes), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `prompt.py` (prompt), `cache.py` (SQLite) — all in `backend/`
+**Modules:** `main.py` (routes), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal

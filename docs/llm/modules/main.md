@@ -28,9 +28,11 @@ FastAPI application root. Defines all user-facing endpoints, request/response lo
 
 **upload_profile**: Detect and save profile export type. Bust cache. Build Pydantic TasteProfile via `build_taste_profile_pydantic()`. Return type string + taste_profile.
 
+**seed_profile** (`POST /seed-profile`): Accepts `SeedProfileRequest` JSON (3–7 loved + 0–3 disliked named wines). Calls `seed_profile.infer_profile_from_seeds()`, persists via `persist_seed_profile()`, busts cache, returns `UploadProfileResponse` with `export_type="seed_bottles"` and the populated `TasteProfile` carrying `profile_source="seed_bottles"` + `inference_confidence`.
+
 **get_inventory**: Load and return current inventory with age_hours + stale flag.
 
-**profile_summary**: Load profile data, build taste profile, return structured response.
+**profile_summary**: Load profile data, build taste profile, return structured response. Surfaces `profile_source`, `inference_confidence`, and `seed_bottle_count`. Skips the Anthropic enrichment call when the profile is already seed-derived (it carries its own `style_summary`).
 
 **startup sequence** (module level):
   1. `init_db()` — ensure cache table exists

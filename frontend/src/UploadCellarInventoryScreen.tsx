@@ -7,9 +7,10 @@ import { CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface UploadCellarInventoryScreenProps {
   onSuccess: (response: UploadInventoryResponse) => void;
+  onSkip?: () => void;
 }
 
-const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = ({ onSuccess }) => {
+const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = ({ onSuccess, onSkip }) => {
   const [fileData, setFileData] = useState({
     file: null as File | null,
     previewUrl: '',
@@ -141,24 +142,36 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
           error={error}
         />
 
-        <button
-          type="submit"
-          disabled={!fileData.file || isLoading}
-          className={`w-full flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-            !fileData.file || isLoading
-              ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
-              : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
-          }`}
-        >
-          {isLoading ? (
-            <div className="flex items-center">
-              <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
-              Uploading inventory...
-            </div>
-          ) : (
-            'Upload & Continue'
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            disabled={!fileData.file || isLoading}
+            className={`flex-1 flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+              !fileData.file || isLoading
+                ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
+                : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
+            }`}
+          >
+            {isLoading ? (
+              <div className="flex items-center">
+                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
+                Uploading inventory...
+              </div>
+            ) : (
+              'Upload & Continue'
+            )}
+          </button>
+
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              className="flex justify-center py-3 px-4 border border-white/20 rounded-md text-lg font-medium text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wine-rose transition-colors"
+            >
+              Skip
+            </button>
           )}
-        </button>
+        </div>
       </form>
     </GlassCard>
   );

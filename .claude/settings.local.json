@@ -16,7 +16,9 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\")"
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\" -Recurse -File -Filter \"*.py\")",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import main; print\\('OK'\\); print\\('routes:', [r.path for r in main.app.routes if hasattr\\(r, 'path'\\)]\\)\")",
+      "Bash(backend/.venv/Scripts/python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import main; print\\('OK'\\); print\\([r.path for r in main.app.routes if hasattr\\(r, 'path'\\)]\\)\")"
     ]
   },
   "model": "sonnet",
