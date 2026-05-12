@@ -154,6 +154,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
           Selected: {file.name} ({getFileTypeDisplay(file)}, {Math.round(file.size / 1024)} KB)
         </p>
       )}
+      {file && isImageFile(file) && !error && (
+        <p className="text-xs text-white/45 mt-1">
+          Photo uploads use OCR — for best results, crop out glare and ensure the text is sharp.
+        </p>
+      )}
     </div>
   );
 };
