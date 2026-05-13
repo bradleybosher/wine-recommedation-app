@@ -20,6 +20,10 @@ export type BodyRecommendRecommendPost = {
      * Style Terms
      */
     style_terms?: string;
+    /**
+     * Test Fixture
+     */
+    test_fixture?: string;
 };
 
 /**

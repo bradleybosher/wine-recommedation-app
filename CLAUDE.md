@@ -15,7 +15,7 @@ Profile source (one of):
 → wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
 → Claude (recommend) → top-3 (per-wine confidence capped at "medium" for seed-derived)
 ```
-**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite) — all in `backend/`
+**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal
@@ -44,6 +44,9 @@ For every file modified, update the corresponding docs:
 
 ## Principles
 - Fail loudly; schema-driven (Pydantic is the contract); no auth; SQLite + JSON for local persistence; portfolio-legible
+
+## Test Mode
+- Set `TEST_MODE=true` in `backend/.env` to enable. While active, `/recommend` accepts an optional `test_fixture` form field; supplying one of `happy | sparse | long_reasoning | low_confidence | two_wines` short-circuits the route to a canned response in `backend/test_fixtures.py` — no Anthropic calls are made. Unknown name → 400. Default is `TEST_MODE=false`; the field is ignored unless the flag is on.
 
 ---
 

@@ -108,12 +108,15 @@ def profile_summary() → ProfileSummaryResponse
 
 ```python
 @router.post("/recommend")
-async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str = "")
+async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str = "",
+                    test_fixture: str = "")
   → RecommendationResponse
-  Rate-limit (429) → 413 size check → response-cache lookup → parse-cache lookup → vision
-  extraction (parser.OCRError → 422) → strip invisible Unicode → filter wine list → enriched
-  profile (non-fatal) → cellar context → meal hints → system prompt → get_recommendation
-  (502 on failure) → score + log event (non-blocking) → cache + return.
+  Rate-limit (429) → if TEST_MODE and test_fixture: drain upload, return
+  test_fixtures.FIXTURES[test_fixture] (400 if unknown) → 413 size check → response-cache
+  lookup → parse-cache lookup → vision extraction (parser.OCRError → 422) → strip invisible
+  Unicode → filter wine list → enriched profile (non-fatal) → cellar context → meal hints →
+  system prompt → get_recommendation (502 on failure) → score + log event (non-blocking) →
+  cache + return.
   Caps scorer confidence at "medium" when profile_source == "seed_bottles".
 ```
 

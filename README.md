@@ -1,6 +1,6 @@
 # Wine List Recommender
 
-A portfolio-grade web application for pre-dinner wine list analysis. Users upload a restaurant wine list (PDF primary, photo/OCR fallback), configure a taste profile, and receive a ranked top-3 recommendation with specific reasoning for each wine.
+A portfolio-grade web application for pre-dinner wine list analysis. Users upload a restaurant wine list (PDF primary, photo/vision fallback), configure a taste profile, and receive a ranked top-3 recommendation with specific reasoning for each wine.
 
 **Designed for:** Pre-booking research. Not an at-the-table lookup tool.
 
@@ -8,25 +8,18 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 
 ## Features
 
-- **Smart Wine Parsing:** Extract structured wine data from restaurant PDFs via PyMuPDF
+- **Smart Wine Parsing:** Extract structured wine data from restaurant PDFs via PyMuPDF; scanned PDFs and photos route to Claude Haiku vision extraction automatically
 - **Two Onboarding Paths:**
   - CellarTracker TSV import — highest-fidelity, grounded in your actual ratings.
   - **Seed-bottle onboarding** — name 3–7 wines you have loved (and a few you disliked); Claude infers your palate in 60 seconds. Profiles are tagged `medium`/`high` confidence and downstream recommendations are flagged as directional.
 - **Taste Profile:** One-click CellarTracker import (TSV export) to understand user preferences
-<<<<<<< HEAD
-<<<<<<< HEAD
 - **Profile Tab:** View your palate portrait, cellar stats, and heuristic taste-marker bars (acidity, tannin, body, oak) in a dedicated profile view
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-- **Profile Tab:** View your palate portrait, cellar stats, and heuristic taste-marker bars (acidity, tannin, body, oak) in a dedicated profile view
->>>>>>> b169158 (Added my profile tab)
-- **LLM-Powered Recommendations:** Structured wine recommendations via local Ollama inference
+- **LLM-Powered Recommendations:** Structured wine recommendations via Claude (Anthropic API, tool use)
 - **Structured Output:** JSON-validated top-3 recommendations with reasoning, confidence scores, and quality assessment
 - **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
 - **One-Click Refine:** After results render, tap a chip ("Under $80", "More adventurous", "Food match first", "Safer crowd-pleaser") to re-rank the same wine list against a different lens — no re-upload
-- **Offline-First:** Runs entirely locally (Ollama-based); no external API keys or account required
-- **Responsive UI:** React 19 + Tailwind CSS; works on desktop and tablet
+- **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis
+- **Responsive UI:** React 19 + Tailwind CSS v4; glassmorphism design system; works on desktop and tablet
 
 ---
 
@@ -36,13 +29,14 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **FastAPI** — REST API with structured logging and exception handling
 - **Pydantic v2** — Data validation with camelCase aliases for frontend compatibility
 - **PyMuPDF (`fitz`)** — PDF text extraction
-- **Ollama** — Local LLM inference (no API keys, runs on-device)
-- **SQLite** — Response caching for identical requests
+- **Anthropic API (Claude)** — LLM inference for profile enrichment, seed-bottle onboarding, image/vision extraction, and recommendations; no local model required
+- **pytesseract / Pillow** — OCR fallback for images when Tesseract is installed (optional)
+- **SQLite** — Response caching and parse caching for identical requests
 
 ### Frontend
 - **React 19** + **TypeScript** — Type-safe UI components
 - **Vite** — Fast development and production builds
-- **Tailwind CSS** — Utility-first styling
+- **Tailwind CSS v4** — Utility-first styling with glassmorphism design tokens
 - **@hey-api/openapi-ts** — Auto-generated SDK from backend OpenAPI spec
 
 ### Data Contract
@@ -56,22 +50,9 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 ### Prerequisites
 - Python 3.9+
 - Node.js 18+
-- Ollama (download from [ollama.ai](https://ollama.ai))
+- An [Anthropic API key](https://console.anthropic.com/)
 
-### 1. Install and Run Ollama
-
-```bash
-# Download Ollama from https://ollama.ai
-# Start the Ollama service (runs on http://127.0.0.1:11434 by default)
-ollama serve
-```
-
-In another terminal, pull a model:
-```bash
-ollama pull llama3.2:3b
-```
-
-### 2. Backend Setup
+### 1. Backend Setup
 
 ```bash
 cd wine-recommendation-app/backend
@@ -88,8 +69,9 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy and edit .env if needed
+# Copy and edit .env
 cp .env.example .env
+# Set ANTHROPIC_API_KEY in .env
 
 # Run the API
 python -m uvicorn main:app --reload
@@ -97,7 +79,7 @@ python -m uvicorn main:app --reload
 
 The API will be available at `http://127.0.0.1:8000`. Check the OpenAPI docs at `/docs`.
 
-### 3. Frontend Setup
+### 2. Frontend Setup
 
 ```bash
 cd wine-recommendation-app/frontend
@@ -148,37 +130,58 @@ On first launch, pick how you want to build a taste profile:
 ```
 User uploads wine list (PDF/photo)
     ↓
-Parser extracts text (parser.py) — PyMuPDF for PDF, pytesseract OCR for images
+Parser dispatches by content type (parser.py)
+  — PDF: PyMuPDF text layer; if sparse/food-menu detected → Claude Haiku vision extraction
+  — Image: Claude Haiku vision extraction
     ↓
 Load cellar inventory + taste profile from prior uploads
     ↓
-Enrich taste profile via Ollama (profile.py) — converts raw frequency data to natural-language palate description
+Enrich taste profile via Anthropic Claude (profile.py)
+  — tool-use call; converts raw frequency data to natural-language palate description
+  — skipped when profile_source == "seed_bottles" (already enriched at onboarding)
     ↓
-Build system prompt with:
-  - Enriched taste profile (from CellarTracker history)
-  - Cellar character summary (top varietals/regions)
-  - Relevant owned bottles (for context)
+Parse meal description (meal_parser.py) → pairing hints string
     ↓
-Send to Ollama (local LLM) + wine list text + meal description
+Build system prompt (prompt.py):
+  — Enriched taste profile
+  — Cellar character summary (top varietals/regions)
+  — Relevant owned bottles
+  — Meal pairing hints
     ↓
-Validate JSON schema (WineRecommendation[])
+Claude (Anthropic API, tool use) → WineRecommendation[] (validated via Pydantic)
     ↓
-Cache response for identical inputs → return structured recommendations
+Score recommendation silently (scorer.py) — 4 dimensions, 0–1 float
+Log event to logs/recommendations.jsonl (logging_utils.py)
+    ↓
+Cache response in SQLite → return to frontend
 ```
 
 ### Key Modules
 
 | File | Purpose |
 |---|---|
-| `main.py` | FastAPI app, routes, request logging, middleware |
-| `parser.py` | PDF extraction (PyMuPDF) |
-| `recommender.py` | LLM call + JSON parsing with error handling |
+| `main.py` | Composition root: env bootstrap, logging, middleware, router includes |
+| `bootstrap.py` | Loads .env; exposes `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `MAX_UPLOAD_BYTES` |
+| `logging_setup.py` | Configures the `sommelier` logger tree (rotating file + stderr) |
+| `middleware.py` | Request-logging middleware + exception handlers (request ID, elapsed_ms) |
+| `rate_limit.py` | IP-based 10-req/60s limiter for `/recommend` |
+| `cellar_terms.py` | Frequency-ranked cellar terms + character phrase helpers |
+| `routes/inventory.py` | `/upload-inventory`, `/inventory` |
+| `routes/profile.py` | `/upload-profile`, `/seed-profile`, `/profile/revert`, `/profile-summary` |
+| `routes/recommend.py` | `/recommend` pipeline |
+| `routes/debug.py` | Diagnostics endpoints (health, status, logs, cache) |
+| `parser.py` | PDF/text/image dispatch; PyMuPDF + Claude Haiku vision |
+| `models.py` | Pydantic schemas (camelCase JSON mapping) |
+| `recommender.py` | Anthropic Claude tool-use call, retry logic, Pydantic validation |
 | `prompt.py` | System prompt construction + schema definition |
-| `profile.py` | CellarTracker parsing, taste profile building; short-circuits to seed-derived `_inferred` profile when present |
-| `seed_profile.py` | Seed-bottle onboarding: Anthropic-driven inference of a taste profile from 3–7 named wines |
-| `inventory.py` | Cellar inventory loading, style-based filtering |
-| `scorer.py` | Recommendation scoring; caps per-wine confidence at "medium" for seed-derived profiles |
-| `cache.py` | SQLite response caching |
+| `profile.py` | CellarTracker parsing, taste profile building, Anthropic enrichment |
+| `seed_profile.py` | Seed-bottle onboarding: Claude tool-use inference from 3–7 named wines |
+| `meal_parser.py` | Meal description → `MealProfile` dataclass → pairing hints string |
+| `inventory.py` | Cellar loading/saving, relevance filtering, wine-list pre-filtering |
+| `scorer.py` | 4-dimension recommendation quality scorer; `ScoringResult` dataclass |
+| `logging_utils.py` | JSONL event logger to `logs/recommendations.jsonl` |
+| `retry_utils.py` | Generic retry helper with exponential backoff |
+| `cache.py` | SQLite response + parse caching |
 
 ---
 
@@ -188,7 +191,7 @@ Cache response for identical inputs → return structured recommendations
 - **Fail Loudly:** Parse errors surface to the user rather than passing garbage to the LLM
 - **Schema-Driven:** Pydantic models define the contract; endpoints validate strictly
 - **Portfolio-Legible:** Code is readable to a technical hiring audience; no clever abstractions that obscure intent
-- **Local-First:** Ollama runs locally; no external API keys or latency dependencies
+- **API-First:** Anthropic Claude handles enrichment, seed-bottle inference, vision extraction, and recommendations — no local model required
 
 ---
 
@@ -197,8 +200,8 @@ Cache response for identical inputs → return structured recommendations
 Create a `.env` file in the `backend/` directory (or copy from `.env.example`):
 
 ```
-OLLAMA_URL=http://127.0.0.1:11434        # Ollama API endpoint
-OLLAMA_MODEL=llama3.2:3b                 # Model to use
+ANTHROPIC_API_KEY=sk-ant-...              # Required — Anthropic API key
+ANTHROPIC_MODEL=claude-sonnet-4-6        # Model to use (default: claude-sonnet-4-6)
 ```
 
 ---
@@ -211,6 +214,8 @@ OLLAMA_MODEL=llama3.2:3b                 # Model to use
 cd backend
 python -m pytest tests/
 ```
+
+The test suite covers scorer edge cases, meal parser synonym normalisation, text extraction, and OpenAPI schema sync (27 tests). LLM-dependent routes are not unit-tested.
 
 ### Regenerating Frontend Types
 
@@ -225,7 +230,7 @@ This reads the backend OpenAPI spec and regenerates `src/client/types.gen.ts`.
 
 ### Debugging
 
-**Backend:** Logs are written to `backend/logs/api.log` and stdout. Request IDs are included for tracing.
+**Backend:** Logs are written to `backend/logs/api.log` and stdout. Request IDs are included for tracing. Recommendation events (meal, score breakdown, wine names) are appended to `backend/logs/recommendations.jsonl`.
 
 **Frontend:** Enable the debug panel by setting `VITE_SHOW_DEBUG=true` in your `.env` (frontend root):
 ```
@@ -235,16 +240,17 @@ VITE_SHOW_DEBUG=true
 The debug panel shows:
 - Current inventory (bottles, freshness)
 - Parsed taste profile
-- System prompt used for the last recommendation
+- Cache stats and diagnostic endpoints
 
 ---
 
 ## Known Constraints
 
-- **OCR Quality:** Phone photos vary in legibility; PDFs are preferred
+- **OCR Quality:** Phone photos vary in legibility; PDFs are preferred. Claude Haiku vision is the primary image extraction path; pytesseract is an optional fallback.
 - **Wine List Formats:** Parser handles common formats but may fail on unusual layouts
-- **LLM Quality:** Recommendations are only as good as the local Ollama model (llama3.2:3b is reasonable but not state-of-art)
-- **One Call Per Recommendation:** No multiple attempts; costs matter even locally
+- **LLM Quality:** Recommendations depend on the configured Anthropic model (`claude-sonnet-4-6` default)
+- **Rate Limiting:** `/recommend` is limited to 10 requests per IP per 60 seconds
+- **Accent Folding:** Only handles Latin wine regions; Cyrillic/CJK region names may not match correctly
 
 ---
 
@@ -268,8 +274,8 @@ Portfolio project. Use freely for educational and hiring demonstration purposes.
 This app demonstrates:
 - Full-stack API design with Pydantic + FastAPI
 - Type-safe frontend code generation from OpenAPI specs
-- LLM integration with structured output validation
-- Practical error handling and caching strategies
+- LLM integration with structured output via Anthropic tool use
+- Practical error handling, scoring, and caching strategies
 - Clean architecture and portfolio-readable code
 
 Perfect for discussing software engineering practices in interviews.

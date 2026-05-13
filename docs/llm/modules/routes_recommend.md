@@ -7,12 +7,13 @@ The `POST /recommend` endpoint — the app's primary workflow. Wine list upload 
 ## Endpoint
 
 **`POST /recommend`** → `RecommendationResponse`
-Form fields: `wine_list: UploadFile`, `meal: str`, `style_terms: str = ""`.
+Form fields: `wine_list: UploadFile`, `meal: str`, `style_terms: str = ""`, `test_fixture: str = ""`.
 
 Pipeline:
 
 1. `rate_limit.check_rate_limit(client_ip)` — 429 if exceeded.
-2. Load inventory + compute profile hash (`md5` of sorted JSON).
+2. **Test-mode short-circuit:** if `bootstrap.TEST_MODE` is true and `test_fixture` is non-empty, drain the upload (for multipart validation), look up `test_fixtures.FIXTURES[test_fixture]`, and return it directly. Unknown fixture name → 400 with the list of valid names. When `TEST_MODE` is false the field is ignored — no production risk.
+3. Load inventory + compute profile hash (`md5` of sorted JSON).
 3. Read `wine_list` bytes; 413 if over `MAX_UPLOAD_BYTES`.
 4. Build cache key from bytes + meal + inventory hash + profile hash; return cached response if present and valid.
 5. Parse wine list — first try `cache.get_parse_cached(parse_key)`, otherwise call `parser.parse_wine_list(...)`. On `parser.OCRError` raise 422.
@@ -28,7 +29,8 @@ Pipeline:
 
 ## Dependencies
 
-- `bootstrap.ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `MAX_UPLOAD_BYTES`
+- `bootstrap.ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `MAX_UPLOAD_BYTES`, `TEST_MODE`
+- `test_fixtures.FIXTURES` — canned `RecommendationResponse` map used in test mode
 - `cache.{get_cached, get_parse_cached, inventory_hash, make_key, make_parse_key, set_cached, set_parse_cached}`
 - `cellar_terms.cellar_character_from_terms`, `inventory_terms_by_frequency`
 - `inventory.{filter_wine_list, get_relevant_bottles, load_inventory}`

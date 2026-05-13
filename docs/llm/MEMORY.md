@@ -32,6 +32,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [cache.py](modules/cache.md) — SQLite response caching
 - [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
 - [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
+- [test_fixtures.py](modules/test_fixtures.md) — Canned `RecommendationResponse` fixtures used when `TEST_MODE=true` short-circuits `/recommend`
 - scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
 - logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md
 

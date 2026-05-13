@@ -18,3 +18,5 @@ if not ANTHROPIC_API_KEY:
     )
 
 MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024  # 20 MB
+
+TEST_MODE: bool = os.getenv("TEST_MODE", "false").lower() == "true"

@@ -7,7 +7,7 @@ import re
 import anthropic
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
-from bootstrap import ANTHROPIC_API_KEY, ANTHROPIC_MODEL, MAX_UPLOAD_BYTES
+from bootstrap import ANTHROPIC_API_KEY, ANTHROPIC_MODEL, MAX_UPLOAD_BYTES, TEST_MODE
 from cache import (
     get_cached,
     get_parse_cached,
@@ -33,6 +33,7 @@ from prompt import build_system_prompt
 from rate_limit import check_rate_limit
 from recommender import get_recommendation
 from scorer import score_recommendation
+from test_fixtures import FIXTURES
 
 router = APIRouter()
 logger = logging.getLogger("sommelier.api")
@@ -46,10 +47,23 @@ async def recommend(
     wine_list: UploadFile = File(...),
     meal: str = Form(...),
     style_terms: str = Form(default=""),
+    test_fixture: str = Form(default=""),
 ) -> RecommendationResponse:
     """Recommend wines based on uploaded list and meal context."""
     client_ip = request.client.host if request.client else "unknown"
     check_rate_limit(client_ip)
+
+    if TEST_MODE and test_fixture:
+        # Validate multipart upload was well-formed, then short-circuit to fixture.
+        await wine_list.read()
+        fixture = FIXTURES.get(test_fixture)
+        if fixture is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown test fixture: {test_fixture}. Available: {sorted(FIXTURES)}",
+            )
+        logger.info("recommend: TEST_MODE active, returning fixture=%s", test_fixture)
+        return fixture
 
     inv = load_inventory()
     bottles = inv["bottles"] if inv else []

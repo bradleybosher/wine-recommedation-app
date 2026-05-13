@@ -9,6 +9,7 @@ Loads `.env` and exposes process-wide configuration constants. **Must be importe
 - `ANTHROPIC_API_KEY: str` — read from env. Raises `ValueError` at import time if unset.
 - `ANTHROPIC_MODEL: str` — defaults to `"claude-sonnet-4-6"`.
 - `MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024` — 20 MB upload ceiling enforced by `/upload-inventory`, `/upload-profile`, `/recommend`.
+- `TEST_MODE: bool` — read from env (`TEST_MODE=true`/`false`, default `false`). When true, `/recommend` honours an optional `test_fixture` form field that short-circuits the route to a canned `RecommendationResponse` from `test_fixtures.FIXTURES`, skipping parsing, profile enrichment, and the main Anthropic call. When false, the field is ignored.
 
 ## Patterns & Gotchas
 
