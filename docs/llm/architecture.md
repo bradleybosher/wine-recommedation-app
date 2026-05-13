@@ -40,9 +40,11 @@ Frontend (React)
 ├── MealDescriptionInput.tsx → Textarea for meal details
 ├── apiService.ts           → Deprecated (use SDK)
 ├── constants.ts            → UI strings, config
-├── components/ui/
-│   ├── VibrantBackground.tsx → Animated mesh gradient wrapper (wine-palette blobs)
-│   └── GlassCard.tsx         → Frosted glass card primitive (backdrop-blur + glass tokens)
+├── components/
+│   ├── ErrorBoundary.tsx     → React class component (catches and displays component crashes)
+│   └── ui/
+│       ├── VibrantBackground.tsx → Animated mesh gradient wrapper (wine-palette blobs)
+│       └── GlassCard.tsx         → Frosted glass card primitive (backdrop-blur + glass tokens)
 └── client/sdk.gen.ts       → Authoritative SDK (generated from OpenAPI spec)
 ```
 

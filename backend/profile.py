@@ -21,6 +21,9 @@ from models import TasteProfile
 _SOM_DIR = Path(__file__).resolve().parent
 PROFILE_DATA_PATH = _SOM_DIR / "profile_data.json"
 
+# Module-level cache: (mtime, data) tuple to avoid re-reading profile_data.json on every request
+_profile_cache: tuple[float, dict] | None = None
+
 
 def _normalize_row(row: dict) -> dict[str, str]:
     return {(k or "").strip(): (v if v is not None else "").strip() for k, v in row.items()}
@@ -66,6 +69,19 @@ def ingest_export(raw: bytes) -> tuple[str, list[dict[str, str]]]:
 
     reader = csv.DictReader(io.StringIO(text), delimiter="\t")
     fieldnames = reader.fieldnames
+
+    _REQUIRED_CT_COLUMNS = frozenset({
+        "wine", "producer", "appellation", "varietal", "vintage",
+        "quantity", "note", "consumed", "iwine",
+    })
+    if fieldnames:
+        header_set = frozenset(h.strip().lower() for h in fieldnames)
+        if not header_set.intersection(_REQUIRED_CT_COLUMNS):
+            raise ValueError(
+                f"Unrecognised file format. Expected a CellarTracker TSV export. "
+                f"Found columns: {', '.join(list(fieldnames)[:10])}"
+            )
+
     export_type = _detect_export_type(fieldnames)
 
     rows: list[dict[str, str]] = []
@@ -75,24 +91,54 @@ def ingest_export(raw: bytes) -> tuple[str, list[dict[str, str]]]:
     return export_type, rows
 
 
+def bust_profile_cache() -> None:
+    """Invalidate the module-level profile data cache.
+
+    Call this after writing to profile_data.json to ensure the next load_profile_data() call
+    reads the updated file instead of returning stale cached data.
+    """
+    global _profile_cache
+    _profile_cache = None
+
+
 def save_profile_export(raw: bytes) -> str:
     """Ingest export, merge into profile_data.json (replace rows for this type). Returns export type."""
     export_type, rows = ingest_export(raw)
     data = load_profile_data()
     data[export_type] = rows
     PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache()  # Invalidate cache after write
     return export_type
 
 
 def load_profile_data() -> dict:
-    """Load full profile_data.json or {} if missing/unreadable."""
+    """Load full profile_data.json or {} if missing/unreadable.
+
+    Uses module-level cache (_profile_cache) to avoid re-reading the file on every request.
+    Cache is validated by mtime; if the file hasn't changed, the cached dict is returned.
+    """
+    global _profile_cache
+
+    # Determine current mtime
+    mtime = PROFILE_DATA_PATH.stat().st_mtime if PROFILE_DATA_PATH.exists() else 0.0
+
+    # Return cached data if mtime hasn't changed
+    if _profile_cache is not None and _profile_cache[0] == mtime:
+        return _profile_cache[1]
+
+    # Load from file
     if not PROFILE_DATA_PATH.is_file():
-        return {}
-    try:
-        raw = json.loads(PROFILE_DATA_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return raw if isinstance(raw, dict) else {}
+        data = {}
+    else:
+        try:
+            raw = json.loads(PROFILE_DATA_PATH.read_text(encoding="utf-8"))
+            data = raw if isinstance(raw, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            data = {}
+
+    # Cache and return
+    _profile_cache = (mtime, data)
+    return data
 
 
 # Common English + wine-generic terms to drop from tasting-note word counts
@@ -401,7 +447,7 @@ def _format_taste_profile_paragraph(p: dict) -> str:
     if avg is not None:
         low = max(0, int(round(avg)) - 10)
         high = int(round(avg)) + 10
-        clauses.append(f"typical spend £{low}–{high} per bottle")
+        clauses.append(f"typical spend ${low}–{high} per bottle")
 
     if not clauses:
         return "Based on cellar and tasting history: limited structured data; rely on general guidance."
@@ -422,8 +468,8 @@ def extract_profile_preference_terms(profile_data: dict) -> dict:
     return {"preferred": preferred, "avoided": []}
 
 
-def build_enhanced_profile_text() -> str:
-    """Build taste profile text from loaded profile data or return owner default."""
+def build_enriched_profile_text_basic() -> str:
+    """Build taste profile text from loaded profile data or return owner default (non-enriched version)."""
     if not PROFILE_DATA_PATH.is_file():
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
@@ -553,7 +599,7 @@ enrich_profile_with_ollama = enrich_profile_with_anthropic
 
 
 def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) -> str:
-    """Like build_enhanced_profile_text() but enriches derived terms via Anthropic Claude."""
+    """Like build_enriched_profile_text_basic() but enriches derived terms via Anthropic Claude."""
     logger = logging.getLogger(__name__)
 
     if not PROFILE_DATA_PATH.is_file():

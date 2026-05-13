@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 import os
 from pathlib import Path
-from profile import build_enhanced_profile_text
+from profile import build_enriched_profile_text_basic
 
 _log_dir = Path(__file__).resolve().parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
@@ -54,8 +54,8 @@ or if a bottle is worth ordering specifically because they don't have it.
         logger.info("build_system_prompt: using taste_profile_override (len=%d)", len(taste_profile))
         logger.debug("build_system_prompt: taste_profile_override (first 300 chars): %s", taste_profile[:300])
     else:
-        taste_profile = build_enhanced_profile_text()
-        logger.info("build_system_prompt: using standard build_enhanced_profile_text (len=%d)", len(taste_profile))
+        taste_profile = build_enriched_profile_text_basic()
+        logger.info("build_system_prompt: using standard build_enriched_profile_text_basic (len=%d)", len(taste_profile))
 
     if profile_source == "seed_bottles":
         taste_profile = (

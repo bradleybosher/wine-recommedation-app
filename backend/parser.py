@@ -4,16 +4,25 @@ import base64
 import io
 import logging
 import os
+import re
 from typing import Optional
 
+import anthropic
 import fitz  # PyMuPDF
-from anthropic import Anthropic
 from PIL import Image
 from pydantic import BaseModel
 
 from inventory import decode_cellartracker_upload
+from retry_utils import call_with_retry
 
 logger = logging.getLogger("sommelier.parser")
+
+# Module-level constants for Anthropic API
+_ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+if not _ANTHROPIC_API_KEY:
+    raise RuntimeError("ANTHROPIC_API_KEY environment variable is not set — parser cannot call vision API.")
+
+_VISION_MODEL = os.getenv("ANTHROPIC_VISION_MODEL", "claude-haiku-4-5-20251001")
 
 
 class WineListEntry(BaseModel):
@@ -139,22 +148,24 @@ def _format_extraction(extraction: WineListExtraction) -> str:
 
 def _call_haiku_vision(image_bytes: bytes) -> WineListExtraction:
     """Send prepared JPEG bytes to Haiku and return structured extraction."""
-    client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     image_data = base64.standard_b64encode(image_bytes).decode()
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=8000,
-        tools=[_RECORD_WINE_LIST_TOOL],
-        tool_choice={"type": "tool", "name": "record_wine_list"},
-        system=[{"type": "text", "text": OCR_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
-        messages=[{
-            "role": "user",
-            "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_data}},
-                {"type": "text", "text": "Extract all wines from this wine list."},
-            ],
-        }],
+    response = call_with_retry(
+        lambda: anthropic.Anthropic(api_key=_ANTHROPIC_API_KEY).messages.create(
+            model=_VISION_MODEL,
+            max_tokens=8000,
+            tools=[_RECORD_WINE_LIST_TOOL],
+            tool_choice={"type": "tool", "name": "record_wine_list"},
+            system=[{"type": "text", "text": OCR_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_data}},
+                    {"type": "text", "text": "Extract all wines from this wine list."},
+                ],
+            }],
+        ),
+        retryable_on=(anthropic.APIConnectionError, anthropic.RateLimitError),
     )
 
     tool_use_block = next(b for b in response.content if b.type == "tool_use")
@@ -215,14 +226,10 @@ def should_use_vision_extraction(pdf_bytes: bytes) -> bool:
         logger.debug("PDF routing → vision: %d food keywords found", food_hits)
         return True
 
-    # Signal 2: column-collapsed text (unusually long lines = PyMuPDF merged columns)
-    lines = [l for l in text.splitlines() if l.strip()]
-    if not lines:
-        logger.debug("PDF routing → vision: empty text extraction")
-        return True
-    avg_line_len = sum(len(l) for l in lines) / len(lines)
-    if avg_line_len > 120:
-        logger.debug("PDF routing → vision: avg line length %.0f > 120", avg_line_len)
+    # Signal 2: scanned PDF has very few extractable text tokens
+    meaningful_tokens = re.findall(r'\b[a-zA-Z]{3,}\b', text)
+    if len(meaningful_tokens) < 50:
+        logger.debug("PDF routing → vision: only %d meaningful tokens extracted", len(meaningful_tokens))
         return True
 
     # Signal 3: scanned PDF with no real text layer

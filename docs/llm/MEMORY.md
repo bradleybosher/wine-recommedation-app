@@ -57,7 +57,6 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ## Document Statistics
 
-<<<<<<< HEAD
 - **Total files**: 15 (4 core + 9 modules + 1 index + 1 backlog) — scorer.py and logging_utils.py documented inline in interfaces.md
 - **Estimated total tokens**: ~7,500 (manageable in most LLM contexts)
 - **Typical focused task**: 1,500–2,000 tokens (architecture + glossary + 2–3 modules)
@@ -83,11 +82,8 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 | Add new endpoint | conventions + modules/main + interfaces (models) | 1,500 |
 | Improve taste profile inference | glossary + modules/profile + modules/inventory | 1,000 |
 | Debug recommendation output | architecture + modules/recommender + modules/prompt + glossary | 1,600 |
-<<<<<<< HEAD
 | Analyse recommendation quality | architecture + interfaces (scorer/logging_utils) + modules/main | 1,200 |
 | Work from improvement backlog | improvement-backlog.md + relevant modules | Variable |
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 | Add OCR support | modules/parser + conventions | 600 |
 | Optimize cache | modules/cache + modules/main | 800 |
 | Review PR | conventions + relevant modules | Variable |
@@ -95,9 +91,9 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 ## Known Limitations & TODOs
 
 - **OCR**: Implemented via pytesseract + PIL (greyscale + sharpen pre-processing); requires Tesseract system binary; gracefully degrades if missing
-- **Image vision**: Base64 image IS passed to Ollama for vision-capable models; not formally tested with a vision model
+- **Image vision**: Base64 image IS passed to Anthropic Haiku for vision extraction; tested via integration path (no isolated unit tests for Haiku calls)
 - **Cache TTL**: No auto-expiry via API; entries purged at startup + lazily on read (7-day TTL)
-- **Testing**: No pytest suite (manual testing only, v1)
+- **Testing**: pytest suite with 27 tests covering scorer edge cases, meal parser synonym normalisation, text extraction, and OpenAPI schema sync (v2); no tests for PDF/image paths or LLM-dependent routes (routes that call Anthropic API)
 - **Accent folding**: Only handles Latin wine regions; fails on Cyrillic/CJK
 
 See [conventions.md](conventions.md#ambiguities--gotchas) for more.

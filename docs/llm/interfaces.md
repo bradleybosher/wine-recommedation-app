@@ -24,27 +24,25 @@ def get_inventory() → InventoryResponse
 @app.get("/profile-summary")
 def profile_summary() → ProfileSummaryResponse
   Build taste profile from saved profile data. Returns top varietals, regions, etc.
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
+  Also returns: style_summary (Anthropic palate portrait, nullable), taste_markers (heuristic 1–5 scores),
   cellar_stats (total_bottles, unique_wines, vintage range from inventory).
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-  Also returns: style_summary (Ollama palate portrait, nullable), taste_markers (heuristic 1–5 scores),
-  cellar_stats (total_bottles, unique_wines, vintage range from inventory).
->>>>>>> b169158 (Added my profile tab)
 
 @app.post("/seed-profile")
 async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
   Alternative to /upload-profile. Infer a taste profile from 3–7 loved (and 0–3 disliked)
-  wine names via a single Anthropic tool-use call. Wipes profile_data.json and persists the
-  inferred structured profile under the "_inferred" key. Returns taste_profile with
-  profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
+  wine names via a single Anthropic tool-use call. Backs up the existing profile_data.json,
+  then wipes it and persists the inferred structured profile under the "_inferred" key.
+  Returns taste_profile with profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
+
+@app.post("/profile/revert")
+async def revert_profile() → dict
+  Restore profile_data.json from the last backup created by /seed-profile. Returns 404 if
+  no backup exists. Busts response cache on success. Returns {"message": "Profile reverted..."}.
 
 @app.post("/recommend")
-async def recommend(wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
-  Main endpoint. Parse wine list, build prompt with profile/inventory context, call LLM.
+async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
+  Main endpoint. Check rate limit from request.client.host (429 if exceeded). Parse wine list,
+  check size (413 if > 20 MB), build prompt with profile/inventory context, call LLM.
   Cache by SHA256(wine_list_bytes, meal, inventory_hash, profile_hash). Threads
   taste_profile.profile_source into build_system_prompt and caps scorer confidence at
   "medium" when the profile is seed-derived.
@@ -60,7 +58,8 @@ def infer_profile_from_seeds(req: SeedProfileRequest, anthropic_api_key: str, an
   profile_source="seed_bottles", seed_bottle_count).
 
 def persist_seed_profile(inferred: dict) → None
-  Overwrite profile_data.json with {"_inferred": inferred}, clearing any legacy CT keys.
+  Backs up the existing profile_data.json to profile_data.backup.json (if it exists).
+  Then overwrites profile_data.json with {"_inferred": inferred}, clearing any legacy CT keys.
 
 def load_inferred_profile() → dict | None
   Return the inferred profile if present.
@@ -120,10 +119,6 @@ class UploadProfileResponse(BaseModel):
   message: str
   taste_profile: Optional[TasteProfile] = None  # Derived immediately on upload
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b169158 (Added my profile tab)
 class TasteMarkers(BaseModel):
   acidity, tannin, body, oak: int  # 1–5 scale
 
@@ -131,28 +126,14 @@ class CellarStats(BaseModel):
   total_bottles, unique_wines: int
   vintage_oldest, vintage_newest: Optional[int]
 
-<<<<<<< HEAD
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> b169158 (Added my profile tab)
 class ProfileSummaryResponse(BaseModel):
   top_varietals, top_regions, top_producers: List[str]
   highly_rated: List[Dict[str, str]]
   preferred_descriptors, avoided_styles: List[str]
   avg_spend: Optional[int]
-<<<<<<< HEAD
-<<<<<<< HEAD
-  style_summary: Optional[str]      # Ollama palate portrait sentence
+  style_summary: Optional[str]      # Anthropic palate portrait sentence
   taste_markers: Optional[TasteMarkers]
   cellar_stats: Optional[CellarStats]
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
-  style_summary: Optional[str]      # Ollama palate portrait sentence
-  taste_markers: Optional[TasteMarkers]
-  cellar_stats: Optional[CellarStats]
->>>>>>> b169158 (Added my profile tab)
 ```
 
 ### recommender.py
@@ -184,7 +165,7 @@ def build_system_prompt(
   meal_hints: str = ""
 ) → str
   Construct system prompt: sommelier persona, taste profile, relevant bottles, schema, meal hints.
-  If taste_profile_override provided, skips internal build_enhanced_profile_text() call.
+  If taste_profile_override provided, skips internal build_enriched_profile_text_basic() call.
   Writes full prompt to prompt.log via dedicated _prompt_logger.
   Returns full prompt string with JSON schema embedded.
 ```
@@ -193,13 +174,21 @@ def build_system_prompt(
 
 ```python
 def ingest_export(raw: bytes) → Tuple[str, List[Dict[str, str]]]
-  Decode bytes, parse TSV, detect export type. Return (type, rows).
+  Decode bytes, parse TSV, validate minimal CellarTracker column set, detect export type.
+  Return (type, rows). Raises ValueError if file format is unrecognized (missing all expected CT columns).
+
+def bust_profile_cache() → None
+  Invalidate the module-level profile cache (_profile_cache = None). Called after any write to
+  profile_data.json (save_profile_export, persist_seed_profile, /profile/revert endpoint).
+  Ensures the next load_profile_data() call reads the updated file instead of returning stale data.
 
 def save_profile_export(raw: bytes) → str
-  Ingest, merge into profile_data.json. Return export type.
+  Ingest, merge into profile_data.json. Busts profile cache after write. Return export type.
 
 def load_profile_data() → Dict
-  Load profile_data.json or {}. Fail gracefully on missing/corrupt file.
+  Load profile_data.json or {} with mtime-based module-level caching.
+  On cache hit (mtime unchanged), returns cached dict. On cache miss or file change, reads from disk.
+  Gracefully handles missing/corrupt files. Cache busted by bust_profile_cache().
 
 def build_taste_profile(profile_data: dict) → Dict
   Derive taste profile: top varietals, regions, producers, preferred descriptors.
@@ -207,14 +196,15 @@ def build_taste_profile(profile_data: dict) → Dict
   Return dict with keys: top_varietals, top_regions, top_producers, highly_rated,
   preferred_descriptors, avoided_styles, avg_spend.
 
-def build_enhanced_profile_text() → str
-  Format taste profile as prose paragraph for system prompt.
+def build_enriched_profile_text_basic() → str
+  Format taste profile as prose paragraph for system prompt (non-enriched version).
   Fallback to OWNER_PROFILE constant if no profile data.
+  Called by prompt.py as fallback when enrichment is not available.
 
 def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) → str
-  Like build_enhanced_profile_text() but calls enrich_profile_with_anthropic() first.
+  Like build_enriched_profile_text_basic() but calls enrich_profile_with_anthropic() first.
   Prepends style_summary sentence if enrichment succeeded.
-  This is the function called from main.py (not build_enhanced_profile_text).
+  This is the function called from main.py (not build_enriched_profile_text_basic).
 
 def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_model: str) → dict
   Call Anthropic Claude via tool use (enrich_taste_profile tool); get back multi-word style
@@ -230,30 +220,17 @@ def _infer_avoided_styles(profile_data: dict) → List[str]
   Scan tasting notes (type "notes", "consumed") for wines with low scores.
   Auto-detect score scale (max > 10 → 100-pt scale, threshold 60; else 5-pt scale, threshold 3.0).
   Only count tokens in hardcoded negative_indicator_words set. Return top 10 with freq ≥ 2.
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> b169158 (Added my profile tab)
 
 def derive_taste_markers(descriptors: List[str]) → dict
   Heuristic keyword scan of preferred descriptors. Returns {acidity, tannin, body, oak} as int 1–5.
   No LLM call — deterministic. Default score 3; ±1 per matching high/low keyword; clamped [1,5].
-<<<<<<< HEAD
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
->>>>>>> b169158 (Added my profile tab)
 ```
 
 ### inventory.py
 
 ```python
 def decode_cellartracker_upload(raw: bytes) → str
-<<<<<<< HEAD
   Try UTF-8-sig, UTF-8, cp1252, latin-1. Return decoded string or lossy fallback.
-=======
-  Try UTF-8, UTF-8-sig, cp1252, latin-1. Return decoded string or lossy fallback.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 def parse_ct_csv(csv_text: str) → List[Dict]
   Parse TSV, filter rows where Quantity > 0. Return list of dicts.
@@ -264,7 +241,6 @@ def save_inventory(csv_text: str) → List[Dict]
 def load_inventory() → Optional[Dict]
   Load inventory.json. Return dict with bottles, age_hours, stale. None if missing.
 
-<<<<<<< HEAD
 def extract_terms_from_wine_list_text(text: str) → List[str]
   Scan raw restaurant wine list text for known style/varietal/region keywords.
   Returns matched keywords deduplicated and sorted longest-first (multi-word before component words).
@@ -289,12 +265,6 @@ def get_relevant_bottles(
   float("-inf") for avoided style match (hard exclusion).
   override_terms: when provided, expanded via _STYLE_MAP and used instead of restaurant_terms.
   Returns top limit non-excluded bottles sorted by score descending.
-=======
-def get_relevant_bottles(bottles: list[dict], style_terms: list[str]) → List[Dict]
-  Filter bottles by style_terms (e.g., "burgundy" → ["pinot noir", ...]).
-  Case-insensitive, accent-folded match on Varietal/Appellation/Wine/Producer.
-  Return matching bottles or all if no keywords.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ```
 
 ### cache.py
@@ -328,7 +298,28 @@ def bust_cache() → None
   DELETE all entries from response_cache and parse_cache.
 ```
 
+### retry_utils.py
+
+```python
+def call_with_retry(
+  fn: Callable,
+  *,
+  max_attempts: int = 3,
+  retryable_on: tuple = (Exception,)
+) → Any
+  Call fn() and retry up to max_attempts times on retryable exceptions.
+  Args: fn (zero-argument callable), max_attempts (default 3), retryable_on (tuple of exception types).
+  Exponential backoff: delay = 1.5 ** attempt seconds between retries.
+  Returns: Return value of fn() on success.
+  Raises: The last exception from fn() if all attempts fail; any exception NOT in retryable_on
+  is re-raised immediately (fail-fast). Logs each retry attempt and final failure at WARNING/ERROR levels.
+```
+
 ### parser.py
+
+Module-level environment variables (loaded at import time):
+- `ANTHROPIC_API_KEY` (required) → `_ANTHROPIC_API_KEY`, raises RuntimeError if missing
+- `ANTHROPIC_VISION_MODEL` (optional, defaults to "claude-haiku-4-5-20251001") → `_VISION_MODEL`
 
 ```python
 def parse_wine_list(file_bytes: bytes, content_type: Optional[str], filename: Optional[str]) → str
@@ -343,7 +334,7 @@ def extract_text_from_pdf(pdf_bytes: bytes) → str
   Use PyMuPDF (fitz). Returns "" (empty) when no text layer found (scanned PDF).
 
 def should_use_vision_extraction(pdf_bytes: bytes) → bool
-  Run cheap text extract, check for food keywords / column collapse / empty result.
+  Run cheap text extract, check for food keywords / token count / empty result.
   Returns True if PDF should be routed to Haiku vision.
 
 def prepare_image(image_bytes: bytes, max_dim: int = 2000) → bytes
@@ -361,6 +352,8 @@ class WineListExtraction(BaseModel)
 ```python
 def parse_meal_description(meal: str) → MealProfile
   Keyword-scan meal string for protein, cooking method, sauce flavor, heat level.
+  Normalizes synonyms (e.g., "pan-seared" → "seared", "beef tenderloin" → "beef") BEFORE
+  keyword matching, enabling paraphrased descriptions to map correctly.
   Returns MealProfile dataclass. First match wins per category.
 
 def meal_to_wine_hints(profile: MealProfile) → str
@@ -372,7 +365,6 @@ def infer_wine_style_from_meal(profile: MealProfile) → List[str]
   Not currently connected to the recommend flow.
 ```
 
-<<<<<<< HEAD
 ### scorer.py
 
 ```python
@@ -380,17 +372,21 @@ def infer_wine_style_from_meal(profile: MealProfile) → List[str]
 class ScoringResult:
   total: float               # composite score 0.0–1.0
   breakdown: Dict[str, float]  # keys: confidence, completeness, grounding, budget_fit
+  warnings: list[str]        # optional data-gap warnings (e.g., empty wine_list_text)
 
 def score_recommendation(
   response: RecommendationResponse,
   wine_list_text: str,
-  profile: Optional[TasteProfile] = None
+  profile: Optional[TasteProfile] = None,
+  cap_confidence: bool = False
 ) → ScoringResult
   Four-dimension quality score. Weights: confidence 0.30, completeness 0.20,
   grounding 0.30, budget_fit 0.20.
   Grounding: case-insensitive substring match; fallback to ≥75% word-token overlap.
+  Returns 0.0 if no recommendations (poor grounding); 0.5 if wine_list_text empty (cannot assess).
   Budget fit: [budget_min×0.8, budget_max×1.2]; neutral 0.5 if no budget/prices.
-  Never raises; returns neutral ScoringResult(0.5, ...) on internal error.
+  Populates warnings list with data-gap notes when neutral fallbacks are used.
+  Never raises; returns neutral ScoringResult(0.5, ..., warnings=[]) on internal error.
 ```
 
 ### logging_utils.py
@@ -410,8 +406,6 @@ def log_recommendation_event(
   Never raises to caller; internal errors swallowed via logger.exception.
 ```
 
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ### routes/debug.py
 
 ```python

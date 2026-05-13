@@ -153,12 +153,20 @@ def persist_seed_profile(inferred: dict) -> None:
     """Replace profile_data.json with a fresh dict containing only the inferred profile.
 
     Wipes any legacy CT keys (list/notes/consumed/purchases) so the seed-bottle
-    pathway never silently mixes sources.
+    pathway never silently mixes sources. Backs up the existing profile before overwriting.
+    Busts the profile cache after write to ensure subsequent loads read the new data.
     """
-    from profile import PROFILE_DATA_PATH  # local import to avoid module-import cycle
+    from profile import PROFILE_DATA_PATH, bust_profile_cache  # local import to avoid module-import cycle
+
+    # Back up existing profile before overwriting
+    if PROFILE_DATA_PATH.is_file():
+        backup_path = PROFILE_DATA_PATH.with_suffix(".backup.json")
+        backup_path.write_text(PROFILE_DATA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+        logger.info("persist_seed_profile: backed up existing profile to %s", backup_path)
 
     payload = {INFERRED_KEY: inferred}
     PROFILE_DATA_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    bust_profile_cache()
     logger.info("persist_seed_profile: wrote inferred profile to %s", PROFILE_DATA_PATH)
 
 

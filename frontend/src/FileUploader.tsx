@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FILE_SIZE_LIMITS, ALLOWED_MIME_TYPES } from './constants';
 import { Upload, FileText } from 'lucide-react';
 
@@ -13,6 +13,14 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // When parent resets file to null (e.g. "New Search"), clear the DOM input so
+  // re-selecting the same file fires onChange correctly.
+  useEffect(() => {
+    if (!file && fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [file]);
 
   const isImageFile = (file: File | null): boolean => {
     return !!file && file.type.startsWith('image/');

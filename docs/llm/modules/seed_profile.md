@@ -25,7 +25,9 @@ capture stated preference, not revealed preference, and degrade the
 - `persist_seed_profile(inferred: dict) -> None`
   Overwrite `profile_data.json` with `{"_inferred": inferred}`. Wipes any
   legacy CellarTracker keys (`list`/`notes`/`consumed`/`purchases`) so the
-  seed-bottle pathway never silently mixes sources.
+  seed-bottle pathway never silently mixes sources. Before overwriting, backs up
+  the existing profile to `profile_data.backup.json` (if it exists) for rollback
+  via the `/profile/revert` endpoint.
 
 - `load_inferred_profile() -> dict | None`
   Helper to read back the persisted inferred profile.

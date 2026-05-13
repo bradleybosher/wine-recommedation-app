@@ -20,7 +20,11 @@ Parse a raw meal description string into a structured `MealProfile` dataclass, t
 ## Key Functions
 
 **parse_meal_description(meal: str) → MealProfile**:
-- Lowercases input; scans for known proteins, cooking methods, sauce flavors, heat keywords
+- Lowercases input
+- **Normalizes synonyms** before keyword matching (e.g., "pan-seared" → "seared", "beef tenderloin" → "beef")
+  - Protein synonyms: 26 mappings (e.g., ribeye/sirloin/filet → beef, tuna/sea bass/halibut → fish)
+  - Cooking synonyms: 18 mappings (e.g., pan-fried variations, slow cooking variants → canonical forms)
+- Scans for known proteins, cooking methods, sauce flavors, heat keywords
 - First match wins per category (no stacking)
 - Returns MealProfile with defaults: heat_level="mild", richness="medium"
 
@@ -62,6 +66,6 @@ system = build_system_prompt(relevant, cellar_summary=cellar_summary,
 ## Known Issues / TODOs
 
 - `infer_wine_style_from_meal()` is not connected to the recommendation flow (dead code for now).
-- No fuzzy matching — "sear" won't match "seared"; "mushrooms" won't match "mushroom".
+- Synonym normalization handles common variants (e.g., "pan-seared" → "seared"), but some paraphrases still won't match (e.g., "sear" won't match "seared" because neither is a synonym key).
 - Only one protein, one sauce, one cooking method matched per meal. Complex dishes underrepresented.
 - `tannin_match` from SAUCE_FLAVORS is computed but never consumed.

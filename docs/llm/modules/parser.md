@@ -30,10 +30,18 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 - Text: `decode_cellartracker_upload()`
 - Fallback: unknown type → attempt text decode, return error if fails
 
+**_call_haiku_vision(image_bytes)** → WineListExtraction:
+- Call Claude Haiku vision API using `_VISION_MODEL` and `_ANTHROPIC_API_KEY` module constants
+- Use `record_wine_list` tool with forced tool use
+- Wrapped with `call_with_retry()` from `retry_utils.py` to handle transient network errors
+- Retries up to 3× on `anthropic.APIConnectionError` and `anthropic.RateLimitError` with exponential backoff
+- Return structured `WineListExtraction` object
+- Raises exception on permanent API failure or all retries exhausted
+
 **extract_text_from_image(image_bytes)** → str:
 - Resize to ≤2000px JPEG via `prepare_image()`
-- Call Claude Haiku with `record_wine_list` tool (forced tool use)
-- Validate response into `WineListExtraction`, format via `_format_extraction()`
+- Call `_call_haiku_vision()` to get structured extraction
+- Format result via `_format_extraction()`
 - Raises `OCRError` only on API/network failure
 
 **extract_text_from_pdf(pdf_bytes)** → str:
@@ -43,7 +51,7 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 **should_use_vision_extraction(pdf_bytes)** → bool:
 - Calls `extract_text_from_pdf()` then evaluates 3 signals:
   1. ≥3 food keywords found → combined menu, needs filtering
-  2. avg line length > 120 → column-collapsed text
+  2. Fewer than 50 meaningful text tokens (words ≥3 chars) → scanned/poor OCR PDF
   3. total text < 100 chars → scanned/image PDF
 - Returns True if Haiku vision should be used instead of raw text
 
@@ -68,6 +76,8 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 
 ## Constants
 
+- `_ANTHROPIC_API_KEY`: Module-level API key loaded from `ANTHROPIC_API_KEY` environment variable. Raises `RuntimeError` at module load if not set.
+- `_VISION_MODEL`: Vision model name loaded from `ANTHROPIC_VISION_MODEL` environment variable, defaults to `"claude-haiku-4-5-20251001"`.
 - `OCR_SYSTEM_PROMPT`: Instructs Haiku to extract only wines, ignore food/cocktails/spirits; rules for null fields, NV vintages, multi-size entries. Passed with `cache_control: ephemeral` for prompt caching.
 - `_RECORD_WINE_LIST_TOOL`: JSON schema for the `record_wine_list` tool passed to Haiku
 - `_FOOD_KEYWORDS`: Set of ~30 terms used to detect combined menus in PDFs (document-level routing)
@@ -77,9 +87,11 @@ Dispatch wine list parsing based on file type. Extract wine lists from PDFs (tex
 
 - **Type detection**: MIME type first, then filename extension.
 - **Vision filtering**: Haiku's system prompt explicitly excludes food, cocktails, spirits — structured extraction is also a filter pass.
-- **PDF routing**: `should_use_vision_extraction()` runs a cheap text extract first to decide whether vision is needed. The extra PyMuPDF call is negligible vs. avoiding an unnecessary Haiku API call.
+- **PDF routing**: `should_use_vision_extraction()` runs a cheap text extract first to decide whether vision is needed. The extra PyMuPDF call is negligible vs. avoiding an unnecessary Haiku API call. Signal 2 detects scanned PDFs by counting meaningful tokens (words ≥3 chars) via regex; triggers at <50 tokens, more reliable than line-length heuristics.
 - **Per-page triage**: Even when the vision route is triggered, pages with sufficient extractable text skip Haiku. Threshold: ≥150 chars + any `_WINE_TRIAGE_KEYWORDS` term. Structured entries and raw-text pages are concatenated at the end.
+- **Retry on transient errors**: `_call_haiku_vision()` uses `call_with_retry()` to retry `anthropic.APIConnectionError` and `anthropic.RateLimitError` up to 3× with exponential backoff (1.5 ** attempt seconds). This prevents transient network failures from failing the entire `/recommend` request. Permanent errors (invalid image, auth failures) are not retried.
 - **Prompt caching**: `_call_haiku_vision()` passes `system` as a list-of-objects with `cache_control: {"type": "ephemeral"}`. After the first call, Anthropic caches `OCR_SYSTEM_PROMPT` for 5 minutes — subsequent pages in the same PDF batch hit the cache at ~10% token cost.
+- **Module-level constants**: `_ANTHROPIC_API_KEY` and `_VISION_MODEL` are loaded from environment at module import time; `_ANTHROPIC_API_KEY` raises `RuntimeError` if missing (fail-fast behavior).
 - **OCRError**: Only raised on Haiku API/network failure. No longer raised for low word count (Haiku is reliable enough that an empty extraction is a valid result for a blank image).
 - **Confidence notes**: Logged at INFO level. Useful for debugging ambiguous menus.
 

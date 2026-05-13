@@ -2,7 +2,7 @@ import sqlite3, hashlib, json, time
 from pathlib import Path
 from typing import Optional
 
-CACHE_TTL_HOURS: int = 168  # 7 days
+CACHE_TTL_HOURS: int = 24  # 24 hours
 
 _SOM_DIR = Path(__file__).resolve().parent
 DB_PATH = str(_SOM_DIR / "cellar.db")

@@ -21,10 +21,24 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - Structured taste profile: dict with top_varietals, top_regions, preferred_descriptors, avoided_styles, avg_spend
 - Prose summary: formatted paragraph for system prompt
 
+## Module-Level Cache
+
+**_profile_cache**: `tuple[float, dict] | None`
+  - Stores (mtime, data) to avoid re-reading profile_data.json on every request
+  - `mtime` is the file modification time; compared on each load to detect file changes
+  - Initialized to `None`; populated on first `load_profile_data()` call
+  - Invalidated by `bust_profile_cache()` after any write
+
+**bust_profile_cache()** → None:
+  - Resets `_profile_cache = None` to force next `load_profile_data()` to read from disk
+  - Called by: `save_profile_export()`, `persist_seed_profile()`, and `/profile/revert` endpoint in main.py
+  - Ensures cached data doesn't become stale after file writes
+
 ## Key Functions
 
 **ingest_export(raw)** → (type, rows):
   - Decode bytes (try UTF-8, cp1252, latin-1)
+  - Validate minimal CellarTracker header column set: at least one of {wine, producer, appellation, varietal, vintage, quantity, note, consumed, iwine} must be present. Raises ValueError if unrecognised file format.
   - Detect export type from CSV headers (consumed, notes, list, purchases, unknown)
   - Parse TSV rows, normalize whitespace
   - Return export type + list of dicts
@@ -32,6 +46,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 **save_profile_export(raw)** → type:
   - Ingest, merge into profile_data.json (keyed by type)
   - Write to file
+  - **Busts profile cache** via `bust_profile_cache()` to invalidate cached data
   - Return type detected
 
 **build_taste_profile(profile_data)** → dict:
@@ -59,11 +74,13 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Filter by freq ≥ 2
   - Return top 10
 
-**build_enhanced_profile_text()** → str:
+**build_enriched_profile_text_basic()** → str:
   - Load profile_data.json
   - Call build_taste_profile()
   - Format as prose paragraph (1–2 sentences per clause: varietals, regions, producers, descriptors, highly_rated, avg_spend)
+  - Currency symbol uses USD ($), e.g. "typical spend $50–$70 per bottle"
   - Fallback to `OWNER_PROFILE` constant from prompt.py if no profile data
+  - Non-enriched version; called by prompt.py as fallback when enrichment is not available
 
 **build_taste_profile_pydantic(profile_data)** → TasteProfile:
   - Calls `build_taste_profile()` then maps result to a `TasteProfile` Pydantic model
@@ -84,7 +101,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Orchestrates the full enrichment pipeline: load → build_taste_profile → enrich_profile_with_anthropic → format paragraph
   - Calls `enrich_profile_with_anthropic()` and prepends `style_summary` (if non-empty) to the paragraph
   - Fallback to `OWNER_PROFILE` if no data or enrichment empty
-  - **This is the function called from main.py** — not `build_enhanced_profile_text()`
+  - **This is the function called from main.py** — not `build_enriched_profile_text_basic()`
 
 ## Patterns & Gotchas
 
@@ -98,7 +115,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 
 ## Patterns & Gotchas (additional)
 
-- **Dual profile text functions**: `build_enhanced_profile_text()` formats from raw data only. `build_enriched_profile_text(api_key, model)` additionally calls Claude to synthesise richer phrases. Only the latter is used in the recommend flow.
+- **Dual profile text functions**: `build_enriched_profile_text_basic()` formats from raw data only. `build_enriched_profile_text(api_key, model)` additionally calls Claude to synthesise richer phrases. Only the latter is used in the recommend flow.
 - **OWNER_PROFILE fallback**: Imported from `prompt.py` as a lazy import inside the fallback branch to avoid circular imports.
 - **Enrichment safety**: `enrich_profile_with_anthropic()` catches all exceptions and returns `raw` unchanged. No fixed timeout — Anthropic SDK handles it.
 - **style_summary vs. paragraph**: If enrichment succeeds, `build_enriched_profile_text()` returns `"{style_summary} {paragraph}"`. If enrichment failed/empty, returns just the paragraph.

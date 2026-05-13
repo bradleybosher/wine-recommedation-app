@@ -67,28 +67,12 @@ Key schema fields:
 
 ## Patterns & Gotchas
 
-<<<<<<< HEAD
-- **Timeout**: 120-second timeout per attempt (Ollama can be slow on CPU). Total max wall time ≈ 6 minutes (3 × 120s).
-- **Retry classification**: `ValueError` (bad output) → retry. `httpx.HTTPStatusError` or `Exception` (network/HTTP error) → raise 502 immediately, no retry.
-- **Markdown fences**: Always stripped despite prompt instruction ("ONLY valid JSON").
-- **Truncated JSON repair**: Counts `{`/`}` imbalance, appends missing `}`. Protects against cut-off responses.
-- **Garbage keys**: `""` key or `"<|"` prefix (special-token leakage) → raise ValueError → trigger retry.
-- **Dual response formats**: `body["message"]["content"]` (chat endpoint) OR `body["response"]` (generate endpoint). Both handled.
-<<<<<<< HEAD
-- **Schema fallback**: Ollama < 0.5.1 returns 400 for `format=<dict>` → falls back to `format="json"` automatically per attempt. Code also catches 500 in the same check.
-- **Extended alias recovery for `wine_name`**: After fixed aliases (`name`, `wineName`, `title`), code also checks `wine`, `label`, `bottle`, `category`, `varietal`, `grape` in order; last resort picks the shortest string field in the item dict.
-- **Extended alias recovery for `reasoning`**: After fixed aliases (`description`, `explanation`, `notes`), code also checks `rationale`, `match`, `why`, `comment`, `detail` in order; last resort picks the longest remaining string field, or synthesises from a numeric `score` field if present (`"Rated N/10 against the taste profile…"`).
-- **`confidence` synthesis**: If missing entirely, derived from `score` field (≥9.0 → high, ≥7.5 → medium, else low); defaults to `"low"` if no score present.
-=======
-- **Schema fallback**: Ollama < 0.5.1 returns 400 for `format=<dict>` → falls back to `format="json"` automatically per attempt.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
-=======
 - **Tool use = no JSON repair**: `tool_block.input` is a pre-parsed dict. All brace-repair, fence-stripping, and key-aliasing logic from the prior Ollama implementation has been removed.
 - **Retry classification**: `ValueError` (Pydantic validation failure) → retry up to 3×. `anthropic.APIError` or other exceptions → raise 502 immediately.
 - **Multimodal**: Images passed as `{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": <b64>}}` content block. Must be JPEG; media type hardcoded.
 - **Max tokens**: 4096 (sufficient for 3 recommendations with reasoning).
 - **No timeout config**: Anthropic SDK uses its own default timeouts and built-in retry for transient errors.
->>>>>>> 90359d9 (Ported to Anthropic)
+- **Error response messages**: HTTP 502 responses contain generic user-safe messages only (e.g., "Recommendation provider experienced an API error. Please try again." or "Recommendation provider failed. Please try again."). Exception types and detailed error messages are logged internally but never exposed to clients.
 
 ## Known Issues / TODOs
 

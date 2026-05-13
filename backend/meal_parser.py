@@ -58,6 +58,52 @@ HEAT_KEYWORDS: dict[str, str] = {
     "herbs":      "mild",
 }
 
+_PROTEIN_SYNONYMS: dict[str, str] = {
+    "beef tenderloin": "beef",
+    "ribeye": "beef",
+    "sirloin": "beef",
+    "filet": "beef",
+    "steak": "beef",
+    "tuna": "fish",
+    "sea bass": "fish",
+    "halibut": "fish",
+    "cod": "fish",
+    "sole": "fish",
+    "prawns": "shrimp",
+    "scallops": "shellfish",
+    "mussels": "shellfish",
+    "oysters": "shellfish",
+    "clams": "shellfish",
+    "rack of lamb": "lamb",
+    "chicken breast": "chicken",
+    "duck breast": "duck",
+    "duck leg": "duck",
+    "pork belly": "pork",
+    "pork chop": "pork",
+    "veal chop": "veal",
+}
+
+_COOKING_SYNONYMS: dict[str, str] = {
+    "pan-seared": "seared",
+    "pan seared": "seared",
+    "sear": "seared",
+    "slow roast": "roasted",
+    "slow-roast": "roasted",
+    "oven roasted": "roasted",
+    "wood-fired": "grilled",
+    "wood fired": "grilled",
+    "barbecued": "grilled",
+    "bbq": "grilled",
+    "chargrilled": "grilled",
+    "slow-braised": "braised",
+    "slow cooked": "braised",
+    "confit": "braised",
+    "pan-fried": "pan-fried",
+    "pan fried": "pan-fried",
+    "deep fried": "pan-fried",
+    "tempura": "pan-fried",
+}
+
 
 @dataclass
 class MealProfile:
@@ -73,6 +119,14 @@ def parse_meal_description(meal: str) -> MealProfile:
     """Parse a raw meal description into a structured MealProfile."""
     text = meal.lower()
     profile = MealProfile()
+
+    # Normalize synonyms before keyword matching
+    for synonym, canonical in _PROTEIN_SYNONYMS.items():
+        if synonym in text:
+            text = text.replace(synonym, canonical)
+    for synonym, canonical in _COOKING_SYNONYMS.items():
+        if synonym in text:
+            text = text.replace(synonym, canonical)
 
     for name, attrs in PROTEINS.items():
         if name in text:

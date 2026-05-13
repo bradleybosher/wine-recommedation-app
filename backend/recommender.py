@@ -149,7 +149,7 @@ def _attempt_recommendation(
         logger.exception("anthropic_api_error status=%s", getattr(exc, "status_code", "unknown"))
         raise HTTPException(
             status_code=502,
-            detail=f"Recommendation provider API error: {exc}",
+            detail="Recommendation provider experienced an API error. Please try again.",
         ) from exc
 
     tool_block = next(
@@ -220,11 +220,11 @@ def get_recommendation(
             logger.exception("recommend_provider_error error=%s", type(exc).__name__)
             raise HTTPException(
                 status_code=502,
-                detail=f"Recommendation provider failed: {type(exc).__name__}",
+                detail="Recommendation provider failed. Please try again.",
             ) from exc
 
     logger.error("get_recommendation: all %d attempts failed, last_error=%s", _MAX_ATTEMPTS, last_err)
     raise HTTPException(
         status_code=502,
-        detail=f"Recommendation provider failed after {_MAX_ATTEMPTS} attempts: {last_err}",
+        detail=f"Recommendation provider failed after {_MAX_ATTEMPTS} attempts. Please try again.",
     )

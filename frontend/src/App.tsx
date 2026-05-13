@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import RecommendationScreen from './RecommendationScreen';
 import UploadFlow from './UploadFlow';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { getInventoryInventoryGet } from './client';
 import type { InventoryResponse } from './client/types.gen';
 import VibrantBackground from '@/components/ui/VibrantBackground';
@@ -74,13 +75,15 @@ export default function App() {
         </div>
       )}
 
-      {inventoryState === 'empty' ? (
-        <UploadFlow onComplete={handleUploadFlowComplete} />
-      ) : (
-        <div className="p-8">
-          <RecommendationScreen onUpdateProfile={handleUpdateProfile} />
-        </div>
-      )}
+      <ErrorBoundary>
+        {inventoryState === 'empty' ? (
+          <UploadFlow onComplete={handleUploadFlowComplete} />
+        ) : (
+          <div className="p-8">
+            <RecommendationScreen onUpdateProfile={handleUpdateProfile} />
+          </div>
+        )}
+      </ErrorBoundary>
 
       {showDebugPanel && (
         <React.Suspense fallback={null}>

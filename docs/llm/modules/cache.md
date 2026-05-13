@@ -6,7 +6,7 @@ SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running 
 
 ## Constants
 
-**CACHE_TTL_HOURS: int = 168** — 7-day TTL, matching inventory stale threshold.
+**CACHE_TTL_HOURS: int = 24** — 24-hour TTL, ensures fresh recommendations within 24 hours.
 
 ## Dependencies
 
@@ -77,7 +77,7 @@ SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running 
 
 - **Two-tier caching**: Parse cache (keyed by PDF bytes alone) sits upstream of the response cache (keyed by PDF + meal + inventory + profile). Parse cache prevents re-running Haiku even when meal or profile changes.
 - **Cache key design**: Response cache includes image bytes (not just hash) to handle image changes. Inventory + profile hashes prevent stale caches when user updates cellar/taste.
-- **TTL**: `CACHE_TTL_HOURS = 168` (7 days), applied equally to both tables. `get_cached`/`get_parse_cached` lazily evict on read; `purge_expired` bulk-clears both tables at startup. `bust_cache` wipes both tables (called on inventory/profile upload).
+- **TTL**: `CACHE_TTL_HOURS = 24` (24 hours), applied equally to both tables. `get_cached`/`get_parse_cached` lazily evict on read; `purge_expired` bulk-clears both tables at startup. `bust_cache` wipes both tables (called on inventory/profile upload).
 - **Concurrency**: SQLite single-writer. If multiple requests hit at once, one may lock temporarily. Acceptable for portfolio app.
 - **Cache hit**: Client receives cached JSON immediately (no LLM call).
 - **INSERT OR REPLACE**: Updates if key exists, avoiding duplicates.

@@ -1,20 +1,27 @@
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env before any module that reads env vars at import time
+_som_dir_early = Path(__file__).parent
+load_dotenv(_som_dir_early / ".env")
+load_dotenv()
+
+import anthropic
 import base64
 import hashlib
 import json
 import logging
 import logging.handlers
-import os
 import re
 import time
 import uuid
-from collections import Counter
-from pathlib import Path
+from collections import Counter, defaultdict
 from typing import Optional, Dict, Any
 
 from fastapi import FastAPI, UploadFile, Form, File, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
 from inventory import (
     decode_cellartracker_upload,
@@ -25,7 +32,7 @@ from inventory import (
 )
 from cache import init_db, make_key, inventory_hash, get_cached, set_cached, bust_cache, purge_expired, make_parse_key, get_parse_cached, set_parse_cached
 from prompt import build_system_prompt
-from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_anthropic, derive_taste_markers
+from profile import save_profile_export, load_profile_data, build_taste_profile, build_taste_profile_pydantic, ingest_export, build_enriched_profile_text, extract_profile_preference_terms, enrich_profile_with_anthropic, derive_taste_markers, bust_profile_cache
 from models import (
     InventoryResponse,
     UploadInventoryResponse,
@@ -68,8 +75,6 @@ if not _root_logger.handlers:
 
 logger = logging.getLogger("sommelier.api")
 
-load_dotenv(_som_dir / ".env")
-load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 if not ANTHROPIC_API_KEY:
@@ -91,6 +96,25 @@ _STOPWORDS = {
     "a", "to", "in", "for", "with", "sur", "superiore", "classico", "unknown",
     "rosso", "bianco", "blanc", "noir", "wine", "wines",
 }
+
+# Upload size limits
+_MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+
+# Rate limiting
+_RATE_LIMIT_MAX = 10  # requests per window
+_RATE_LIMIT_WINDOW = 60  # seconds
+_rate_counts: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(ip: str) -> None:
+    """Check if client IP has exceeded rate limit. Raises HTTPException(429) if exceeded."""
+    now = time.time()
+    window_start = now - _RATE_LIMIT_WINDOW
+    timestamps = [t for t in _rate_counts[ip] if t > window_start]
+    if len(timestamps) >= _RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait before trying again.")
+    timestamps.append(now)
+    _rate_counts[ip] = timestamps
 
 
 def _value_or_empty(v: object) -> str:
@@ -197,7 +221,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 @app.post("/upload-inventory")
 async def upload_inventory(file: UploadFile = File(...)) -> UploadInventoryResponse:
-    text = decode_cellartracker_upload(await file.read())
+    raw = await file.read()
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is 20 MB.")
+    text = decode_cellartracker_upload(raw)
     bottles = save_inventory(text)
     bust_cache()
     return UploadInventoryResponse(
@@ -208,6 +235,8 @@ async def upload_inventory(file: UploadFile = File(...)) -> UploadInventoryRespo
 @app.post("/upload-profile")
 async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
     raw = await file.read()
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is 20 MB.")
 
     try:
         export_type, rows = ingest_export(raw)
@@ -266,6 +295,24 @@ def anthropic_module_error_types() -> tuple[type, ...]:
     return (_a.APIError, RuntimeError, ValueError)
 
 
+@app.post("/profile/revert")
+async def revert_profile() -> dict:
+    """Restore profile_data.json from the last backup created by /seed-profile.
+
+    Returns 404 if no backup exists.
+    """
+    from profile import PROFILE_DATA_PATH
+    backup_path = PROFILE_DATA_PATH.with_suffix(".backup.json")
+    if not backup_path.is_file():
+        raise HTTPException(status_code=404, detail="No profile backup found. Nothing to revert.")
+    backup_text = backup_path.read_text(encoding="utf-8")
+    PROFILE_DATA_PATH.write_text(backup_text, encoding="utf-8")
+    bust_profile_cache()
+    bust_cache()
+    logger.info("profile_revert: restored from %s", backup_path)
+    return {"message": "Profile reverted to backup successfully. Response cache cleared."}
+
+
 @app.get("/inventory")
 def get_inventory() -> InventoryResponse:
     inv = load_inventory()
@@ -313,8 +360,12 @@ def profile_summary() -> ProfileSummaryResponse:
             enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
             raw_summary = enriched.get("style_summary", "")
             style_summary = raw_summary.strip() or None
-        except Exception:
-            pass
+        except anthropic.APIError as exc:
+            logger.warning("profile_summary_enrichment_api_error: %s %s", type(exc).__name__, exc)
+        except (ValueError, RuntimeError) as exc:
+            logger.warning("profile_summary_enrichment_failed: %s %s", type(exc).__name__, exc)
+        except Exception as exc:
+            logger.exception("profile_summary_enrichment_unexpected: %s", type(exc).__name__)
 
     # ProfileSummaryResponse expects only its declared fields — strip enrichment-only keys
     # from profile_data before splatting so Pydantic doesn't reject extras.
@@ -338,16 +389,22 @@ def profile_summary() -> ProfileSummaryResponse:
 
 @app.post("/recommend")
 async def recommend(
+    request: Request,
     wine_list: UploadFile = File(...),
     meal: str = Form(...),
     style_terms: str = Form(default="")
 ) -> RecommendationResponse:
     """Recommend wines based on uploaded list and meal context."""
+    client_ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(client_ip)
+
     inv = load_inventory()
     bottles = inv["bottles"] if inv else []
     profile_hash = hashlib.md5(json.dumps(load_profile_data(), sort_keys=True).encode()).hexdigest()
 
     raw_bytes = await wine_list.read()
+    if len(raw_bytes) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum size is 20 MB.")
     inv_hash = inventory_hash(bottles)
     cache_key = make_key(raw_bytes, meal, inv_hash, profile_hash)
 
@@ -399,8 +456,14 @@ async def recommend(
         else:
             logger.info("recommend: enriched profile built successfully (len=%d)", len(enriched_profile))
             logger.debug("recommend: enriched profile (first 400 chars)=%s", enriched_profile[:400])
+    except anthropic.APIError as e:
+        logger.warning("profile_enrichment_api_error: %s %s", type(e).__name__, e)
+        enriched_profile = None
+    except (ValueError, RuntimeError) as e:
+        logger.warning("profile_enrichment_failed: %s %s", type(e).__name__, e)
+        enriched_profile = None
     except Exception as e:
-        logger.warning("profile_enrichment_failed: %s", e, exc_info=True)
+        logger.exception("profile_enrichment_unexpected: %s", type(e).__name__)
         enriched_profile = None
 
     if enriched_profile is None:
@@ -447,5 +510,5 @@ async def recommend(
         logger.exception("recommend_provider_error error=%s", type(exc).__name__)
         raise HTTPException(
             status_code=502,
-            detail=f"Recommendation provider failed: {type(exc).__name__}",
+            detail="Recommendation provider failed. Please try again.",
         ) from exc

@@ -6,20 +6,15 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
 
 ## Dependencies
 
-<<<<<<< HEAD
-- `profile.build_enhanced_profile_text()` (standard taste profile prose, no Ollama call)
+- `profile.build_enriched_profile_text_basic()` (standard taste profile prose, non-enriched version)
 - No other imports; bottle dicts are plain `dict`, not `models.Bottle`
-=======
-- `profile.build_enhanced_profile_text()` (taste profile prose)
-- `models.Bottle` (for bottle fields)
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Inputs/Outputs
 
 **Inputs**:
 - `relevant_bottles`: List of dicts matching style_terms (or top from inventory)
 - `cellar_summary`: Prose summary of what user's cellar skews toward (e.g., "skews heavily toward Burgundy and Champagne")
-- `taste_profile_override`: Optional pre-built profile string (from `build_enriched_profile_text()`). If provided, skips the internal `build_enhanced_profile_text()` call.
+- `taste_profile_override`: Optional pre-built profile string (from `build_enriched_profile_text()`). If provided, skips the internal `build_enriched_profile_text_basic()` call.
 - `meal_hints`: Optional newline-separated pairing hints string (from `meal_to_wine_hints()`). Injected as `### TONIGHT'S MEAL` section.
 - `profile_source`: One of `"cellartracker"` (default), `"seed_bottles"`, `"manual"`. When `"seed_bottles"`, a one-line caveat is prepended to the taste-profile block instructing the model to treat signals as directional, not authoritative.
 
@@ -30,7 +25,7 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
 **format_bottle(b)**: Return "{Vintage} {Producer} {Wine} (drink {Begin}–{End})". Skip empty fields.
 
 **build_system_prompt(relevant_bottles, cellar_summary="", taste_profile_override=None, meal_hints="")**: 
-  1. Use `taste_profile_override` if provided; otherwise call `build_enhanced_profile_text()`
+  1. Use `taste_profile_override` if provided; otherwise call `build_enriched_profile_text_basic()`
   2. Format relevant bottles into bulleted list (max 20)
   3. Embed sommelier persona: 70% profile weight, 30% meal weight (explicit in prompt)
   4. Add HARD CONSTRAINT: recommendations must come from the restaurant list only
@@ -39,18 +34,14 @@ Construct the system prompt for Ollama. Embed taste profile, relevant cellar bot
   7. Append reasoning structure notes (4-step format) and confidence format note
   8. Return full prompt; also writes to `prompt.log` via dedicated `_prompt_logger`
 
-<<<<<<< HEAD
 ## Profile Function Disambiguation
 
 Two separate functions live in `profile.py`; `prompt.py` uses the first:
 
-- **`build_enhanced_profile_text()`** — formats the frequency-derived taste profile as prose (no Ollama call). Called by `build_system_prompt()` when no `taste_profile_override` is provided.
-- **`build_enriched_profile_text(ollama_url, ollama_model)`** — calls Ollama first to enrich the profile with multi-word style phrases, then formats. Called from `main.py` before the main recommendation call; the result is passed in as `taste_profile_override`.
+- **`build_enriched_profile_text_basic()`** — formats the frequency-derived taste profile as prose (no LLM call). Called by `build_system_prompt()` when no `taste_profile_override` is provided.
+- **`build_enriched_profile_text(anthropic_api_key, anthropic_model)`** — calls Claude (Anthropic) first to enrich the profile with multi-word style phrases, then formats. Called from `main.py` before the main recommendation call; the result is passed in as `taste_profile_override`.
 
-`OWNER_PROFILE` (the hardcoded fallback string) lives in `profile.py`, not `prompt.py`.
-=======
 **OWNER_PROFILE**: Module-level constant string. Default taste profile text used when no CellarTracker data is loaded. Imported by `profile.py` as a fallback.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 
 ## Reasoning Field Structure (enforced in prompt)
 

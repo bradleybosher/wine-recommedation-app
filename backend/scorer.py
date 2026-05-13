@@ -22,6 +22,7 @@ class ScoringResult:
     """Immutable scoring result."""
     total: float
     breakdown: Dict[str, float] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +104,7 @@ def _score_grounding(response: RecommendationResponse, wine_list_text: str) -> f
     """Fraction of recommended wines found in the wine list text."""
     recs = response.recommendations
     if not recs:
-        return 0.5  # neutral: nothing to ground
+        return 0.0  # no recommendations → worst grounding
     if not wine_list_text:
         return 0.5  # neutral: cannot assess
 
@@ -151,28 +152,37 @@ def score_recommendation(
         response:       The RecommendationResponse from get_recommendation().
         wine_list_text: Parsed restaurant wine list text.
         profile:        User's TasteProfile (may be None if unavailable).
+        cap_confidence: If True, cap per-wine confidence at "medium" for seed-derived profiles.
 
     Returns:
-        ScoringResult with total in [0.0, 1.0] and per-dimension breakdown.
+        ScoringResult with total in [0.0, 1.0], per-dimension breakdown, and optional warnings
+        surfacing data gaps (e.g., missing wine list text) where neutral fallbacks were used.
 
     Never raises — all missing/edge-case data resolves to neutral (0.5) or
     zero scores internally.
     """
     try:
+        warnings = []
+
+        grounding = _score_grounding(response, wine_list_text)
+        if not wine_list_text:
+            warnings.append("wine_list_text empty — grounding score is neutral")
+
         breakdown = {
             "confidence":   _score_confidence(response, cap_at_medium=cap_confidence),
             "completeness": _score_completeness(response),
-            "grounding":    _score_grounding(response, wine_list_text),
+            "grounding":    grounding,
             "budget_fit":   _score_budget_fit(response, profile),
         }
         total = sum(_WEIGHTS[k] * v for k, v in breakdown.items())
         # Round to 4dp for clean log output
         total = round(total, 4)
         breakdown = {k: round(v, 4) for k, v in breakdown.items()}
-        return ScoringResult(total=total, breakdown=breakdown)
+        return ScoringResult(total=total, breakdown=breakdown, warnings=warnings)
     except Exception:
         # Fallback: return a neutral result so the caller is never affected
         return ScoringResult(
             total=0.5,
             breakdown={"confidence": 0.5, "completeness": 0.5, "grounding": 0.5, "budget_fit": 0.5},
+            warnings=[],
         )
