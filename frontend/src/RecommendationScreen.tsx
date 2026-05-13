@@ -28,6 +28,9 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
   // State for style overrides (advanced option)
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [styleOverrides, setStyleOverrides] = useState('');
+  const [testFixture, setTestFixture] = useState('');
+
+  const TEST_FIXTURES = ['happy', 'sparse', 'long_reasoning', 'low_confidence', 'two_wines'] as const;
 
   // State for API submission
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +79,8 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
       const requestBody = {
         wine_list: fileData.file,
         meal: mealDescription.trim(),
-        ...(effectiveTerms && { style_terms: effectiveTerms })
+        ...(effectiveTerms && { style_terms: effectiveTerms }),
+        ...(testFixture && { test_fixture: testFixture })
       };
 
       const response = await recommendRecommendPost({
@@ -116,6 +120,7 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
     setFileData({ file: null, previewUrl: '', base64: '' });
     setMealDescription('');
     setStyleOverrides('');
+    setTestFixture('');
     setRecommendationResponse(null);
     setError('');
     setIsLoading(false);
@@ -210,6 +215,24 @@ const RecommendationScreen: React.FC<RecommendationScreenProps> = ({ onUpdatePro
                       className="shadow-sm focus:ring-wine-rose focus:border-wine-rose block w-full sm:text-sm border-glass-border rounded-md p-3 bg-glass-surface text-white placeholder:text-white/40"
                     />
                     <p className="text-xs text-white/50 mt-1">Enter terms separated by commas.</p>
+
+                    <label htmlFor="test-fixture" className="block text-lg font-medium text-white/80 mt-6 mb-2">
+                      Test Fixture (Dev Only)
+                    </label>
+                    <select
+                      id="test-fixture"
+                      value={testFixture}
+                      onChange={(e) => setTestFixture(e.target.value)}
+                      className="shadow-sm focus:ring-wine-rose focus:border-wine-rose block w-full sm:text-sm border-glass-border rounded-md p-3 bg-glass-surface text-white"
+                    >
+                      <option value="" className="bg-wine-burgundy">Off — call Anthropic normally</option>
+                      {TEST_FIXTURES.map((name) => (
+                        <option key={name} value={name} className="bg-wine-burgundy">{name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-white/50 mt-1">
+                      Requires <code>TEST_MODE=true</code> in <code>backend/.env</code>. Returns a canned response without calling Anthropic.
+                    </p>
                   </div>
                 )}
               </div>
