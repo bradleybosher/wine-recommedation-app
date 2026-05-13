@@ -5,6 +5,7 @@ import App from './App'
 import './index.css'
 
 const DesignPreview = lazy(() => import('./pages/DesignPreview'))
+const Preferences = lazy(() => import('./pages/Preferences'))
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Failed to find the root element')
@@ -21,6 +22,15 @@ ReactDOM.createRoot(rootElement).render(
             </Suspense>
           }
         />
+        <Route
+          path="/preferences"
+          element={
+            <Suspense fallback={null}>
+              <Preferences />
+            </Suspense>
+          }
+        />
+        {/* /flight, /detail, /compare land in Phase 3 */}
         <Route path="/*" element={<App />} />
       </Routes>
     </BrowserRouter>
