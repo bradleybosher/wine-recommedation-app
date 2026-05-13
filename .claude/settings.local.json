@@ -30,7 +30,14 @@
       "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -m pytest backend/tests/ -v)",
       "Bash(./backend/.venv/Scripts/python.exe -m pytest backend/tests/ -v)",
       "Bash(.venv/Scripts/python.exe -c \"from main import app; import json; open\\('openapi.json','w'\\).write\\(json.dumps\\(app.openapi\\(\\), indent=2\\)\\)\")",
-      "Bash(./backend/.venv/Scripts/python.exe -m pytest backend/tests/test_openapi_sync.py -v)"
+      "Bash(./backend/.venv/Scripts/python.exe -m pytest backend/tests/test_openapi_sync.py -v)",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import main; print\\('OK routes:', [r.path for r in main.app.routes if hasattr\\(r,'path'\\)]\\)\")",
+      "Bash(./backend/.venv/Scripts/python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import main; print\\('OK'\\); [print\\(r.path\\) for r in main.app.routes if hasattr\\(r,'path'\\)]\")",
+      "Bash(../backend/.venv/Scripts/python.exe -m pytest tests/test_openapi_sync.py -q)",
+      "Bash(../backend/.venv/Scripts/python.exe -c ' *)",
+      "Bash(./backend/.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/ -q)"
     ]
   },
   "model": "sonnet",

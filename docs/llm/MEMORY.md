@@ -15,7 +15,15 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ### Backend Python Modules
 
-- [main.py](modules/main.md) — FastAPI app, routes, logging, utilities
+- [main.py](modules/main.md) — Composition root: env bootstrap, logging, middleware, router includes
+- [bootstrap.py](modules/bootstrap.md) — Loads .env; exposes ANTHROPIC_API_KEY/MODEL, MAX_UPLOAD_BYTES
+- [logging_setup.py](modules/logging_setup.md) — Configures the `sommelier` logger tree
+- [middleware.py](modules/middleware.md) — Request-logging middleware + exception handlers
+- [rate_limit.py](modules/rate_limit.md) — IP-based 10-req/60s limiter for /recommend
+- [cellar_terms.py](modules/cellar_terms.md) — Frequency-ranked cellar terms + character phrase
+- [routes/inventory.py](modules/routes_inventory.md) — /upload-inventory, /inventory
+- [routes/profile.py](modules/routes_profile.md) — /upload-profile, /seed-profile, /profile/revert, /profile-summary
+- [routes/recommend.py](modules/routes_recommend.md) — /recommend pipeline
 - [recommender.py](modules/recommender.md) — LLM calls, structured output schema, retry logic, JSON parsing, validation
 - [prompt.py](modules/prompt.md) — System prompt construction, schema definition, OWNER_PROFILE constant
 - [profile.py](modules/profile.md) — CellarTracker parsing, taste profile building, Ollama enrichment

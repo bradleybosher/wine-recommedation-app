@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -102,6 +102,11 @@ export const uploadInventoryUploadInventoryPost = <ThrowOnError extends boolean 
 });
 
 /**
+ * Get Inventory
+ */
+export const getInventoryInventoryGet = <ThrowOnError extends boolean = false>(options?: Options<GetInventoryInventoryGetData, ThrowOnError>) => (options?.client ?? client).get<GetInventoryInventoryGetResponses, unknown, ThrowOnError>({ url: '/inventory', ...options });
+
+/**
  * Upload Profile
  */
 export const uploadProfileUploadProfilePost = <ThrowOnError extends boolean = false>(options: Options<UploadProfileUploadProfilePostData, ThrowOnError>) => (options.client ?? client).post<UploadProfileUploadProfilePostResponses, UploadProfileUploadProfilePostErrors, ThrowOnError>({
@@ -132,9 +137,13 @@ export const seedProfileSeedProfilePost = <ThrowOnError extends boolean = false>
 });
 
 /**
- * Get Inventory
+ * Revert Profile
+ *
+ * Restore profile_data.json from the last backup created by /seed-profile.
+ *
+ * Returns 404 if no backup exists.
  */
-export const getInventoryInventoryGet = <ThrowOnError extends boolean = false>(options?: Options<GetInventoryInventoryGetData, ThrowOnError>) => (options?.client ?? client).get<GetInventoryInventoryGetResponses, unknown, ThrowOnError>({ url: '/inventory', ...options });
+export const revertProfileProfileRevertPost = <ThrowOnError extends boolean = false>(options?: Options<RevertProfileProfileRevertPostData, ThrowOnError>) => (options?.client ?? client).post<RevertProfileProfileRevertPostResponses, unknown, ThrowOnError>({ url: '/profile/revert', ...options });
 
 /**
  * Profile Summary

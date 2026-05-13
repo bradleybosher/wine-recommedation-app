@@ -15,7 +15,7 @@ Profile source (one of):
 → wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
 → Claude (recommend) → top-3 (per-wine confidence capped at "medium" for seed-derived)
 ```
-**Modules:** `main.py` (routes), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite) — all in `backend/`
+**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal
@@ -50,7 +50,6 @@ For every file modified, update the corresponding docs:
 ## Claude Code Rules
 
 ### 1. Context Sources
-- **HUMAN_NOTES.md:** Read-only. Use it to understand current thinking, active tasks, and known bugs. Never edit it.
 - Full paths from root (e.g., `frontend/src/pages/App.tsx`). No `ls -R`, `pwd`, or `tree`.
 - Only read files directly involved in the logic. Flag debt immediately.
 
@@ -63,6 +62,7 @@ For every file modified, update the corresponding docs:
 - **Sequential Only:** Never use `&&` or `;` — separate Bash tool calls only.
 - **No `cd`:** Use absolute paths from project root; backslashes in shell commands.
 - **Venv:** `.\backend\.venv\Scripts\python.exe -m [module]` for all backend tasks.
+- **Use** Gitbash and do **not** use Powershell.
 
 ### 4. Python & Backend
 - All Pydantic models: `ConfigDict(alias_generator=to_camel, populate_by_name=True)`.

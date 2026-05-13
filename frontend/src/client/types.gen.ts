@@ -760,6 +760,22 @@ export type UploadInventoryUploadInventoryPostResponses = {
 
 export type UploadInventoryUploadInventoryPostResponse = UploadInventoryUploadInventoryPostResponses[keyof UploadInventoryUploadInventoryPostResponses];
 
+export type GetInventoryInventoryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/inventory';
+};
+
+export type GetInventoryInventoryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: InventoryResponse;
+};
+
+export type GetInventoryInventoryGetResponse = GetInventoryInventoryGetResponses[keyof GetInventoryInventoryGetResponses];
+
 export type UploadProfileUploadProfilePostData = {
     body: BodyUploadProfileUploadProfilePost;
     path?: never;
@@ -810,21 +826,25 @@ export type SeedProfileSeedProfilePostResponses = {
 
 export type SeedProfileSeedProfilePostResponse = SeedProfileSeedProfilePostResponses[keyof SeedProfileSeedProfilePostResponses];
 
-export type GetInventoryInventoryGetData = {
+export type RevertProfileProfileRevertPostData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/inventory';
+    url: '/profile/revert';
 };
 
-export type GetInventoryInventoryGetResponses = {
+export type RevertProfileProfileRevertPostResponses = {
     /**
+     * Response Revert Profile Profile Revert Post
+     *
      * Successful Response
      */
-    200: InventoryResponse;
+    200: {
+        [key: string]: unknown;
+    };
 };
 
-export type GetInventoryInventoryGetResponse = GetInventoryInventoryGetResponses[keyof GetInventoryInventoryGetResponses];
+export type RevertProfileProfileRevertPostResponse = RevertProfileProfileRevertPostResponses[keyof RevertProfileProfileRevertPostResponses];
 
 export type ProfileSummaryProfileSummaryGetData = {
     body?: never;

@@ -4,48 +4,117 @@
 
 ### main.py
 
+Composition root only — no handlers. Exposes `app: FastAPI`.
+
 ```python
-@app.middleware("http")
-async def log_requests(request: Request, call_next) → response with X-Request-ID header
-  Logs all incoming requests with ID, method, path, client IP, elapsed time.
+# Startup wiring (in import order):
+import bootstrap                          # loads .env, validates ANTHROPIC_API_KEY
+configure_logging()                       # from logging_setup
+app = FastAPI()
+app.add_middleware(CORSMiddleware, ...)
+install_middleware(app)                   # from middleware
+init_db(); purge_expired()                # from cache
+app.include_router(debug_router)
+app.include_router(inventory_router)
+app.include_router(profile_router)
+app.include_router(recommend_router)
+```
 
-@app.post("/upload-inventory")
+### bootstrap.py
+
+```python
+ANTHROPIC_API_KEY: str        # raises ValueError at import if unset
+ANTHROPIC_MODEL: str          # defaults to "claude-sonnet-4-6"
+MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
+```
+
+### logging_setup.py
+
+```python
+def configure_logging() → logging.Logger
+  Attach a RotatingFileHandler (backend/logs/api.log, 1MB × 2 backups) + stderr StreamHandler
+  to the "sommelier" logger at DEBUG. Idempotent. Returns the logger.
+```
+
+### middleware.py
+
+```python
+def install(app: FastAPI) → None
+  Register the log_requests HTTP middleware (request_id, elapsed_ms, X-Request-ID header)
+  + http_exception_handler (preserves intentional status codes) + unhandled_exception_handler
+  (catch-all → 500 {"detail": "Internal server error", "error_type": ...}).
+```
+
+### rate_limit.py
+
+```python
+def check_rate_limit(ip: str) → None
+  Raise HTTPException(429) if `ip` made ≥ 10 requests in the last 60 s.
+  State: module-level _rate_counts dict; process-local.
+```
+
+### cellar_terms.py
+
+```python
+def inventory_terms_by_frequency(bottles: list[dict], limit: int = 10) → list[str]
+  Counter over Varietal + Appellation. Raw value +3, tokenised non-stopword (≥ 3 chars) +1.
+  Returns the top-`limit` terms.
+
+def cellar_character_from_terms(terms: list[str]) → str
+  Format up to the top 5 terms into a "skews heavily toward …" sentence fragment.
+  Returns "" when given no terms.
+```
+
+### routes/inventory.py
+
+```python
+@router.post("/upload-inventory")
 async def upload_inventory(file: UploadFile) → UploadInventoryResponse
-  Save CellarTracker TSV export. Returns count and cache-bust confirmation.
+  Save CellarTracker TSV export. 413 if > MAX_UPLOAD_BYTES. Busts response cache.
 
-@app.post("/upload-profile")
-async def upload_profile(file: UploadFile) → UploadProfileResponse
-  Save taste profile export (any CellarTracker export type). Returns type detected + derived TasteProfile.
-
-@app.get("/inventory")
+@router.get("/inventory")
 def get_inventory() → InventoryResponse
   Load saved inventory with age_hours and stale flag.
+```
 
-@app.get("/profile-summary")
-def profile_summary() → ProfileSummaryResponse
-  Build taste profile from saved profile data. Returns top varietals, regions, etc.
-  Also returns: style_summary (Anthropic palate portrait, nullable), taste_markers (heuristic 1–5 scores),
-  cellar_stats (total_bottles, unique_wines, vintage range from inventory).
+### routes/profile.py
 
-@app.post("/seed-profile")
+```python
+@router.post("/upload-profile")
+async def upload_profile(file: UploadFile) → UploadProfileResponse
+  Detect export type via profile.ingest_export. 400 on parse failure or empty file,
+  413 on oversize. Returns type detected + derived TasteProfile.
+
+@router.post("/seed-profile")
 async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
-  Alternative to /upload-profile. Infer a taste profile from 3–7 loved (and 0–3 disliked)
-  wine names via a single Anthropic tool-use call. Backs up the existing profile_data.json,
-  then wipes it and persists the inferred structured profile under the "_inferred" key.
-  Returns taste_profile with profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
+  Infer a profile from 3–7 loved (and 0–3 disliked) wines via one Anthropic tool-use call.
+  Catches (anthropic.APIError, RuntimeError, ValueError) → 502. Backs up profile_data.json,
+  then overwrites it. Returns taste_profile with profile_source="seed_bottles" and
+  inference_confidence in {high, medium, low}.
 
-@app.post("/profile/revert")
+@router.post("/profile/revert")
 async def revert_profile() → dict
-  Restore profile_data.json from the last backup created by /seed-profile. Returns 404 if
-  no backup exists. Busts response cache on success. Returns {"message": "Profile reverted..."}.
+  Restore profile_data.json from profile_data.backup.json. 404 if no backup.
+  Busts response + profile cache. Returns {"message": "Profile reverted..."}.
 
-@app.post("/recommend")
-async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str) → RecommendationResponse
-  Main endpoint. Check rate limit from request.client.host (429 if exceeded). Parse wine list,
-  check size (413 if > 20 MB), build prompt with profile/inventory context, call LLM.
-  Cache by SHA256(wine_list_bytes, meal, inventory_hash, profile_hash). Threads
-  taste_profile.profile_source into build_system_prompt and caps scorer confidence at
-  "medium" when the profile is seed-derived.
+@router.get("/profile-summary")
+def profile_summary() → ProfileSummaryResponse
+  Build taste profile, taste markers, and cellar stats. style_summary comes from the
+  seed-derived profile when available, otherwise from enrich_profile_with_anthropic
+  (failure-tolerant — falls back to None).
+```
+
+### routes/recommend.py
+
+```python
+@router.post("/recommend")
+async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str = "")
+  → RecommendationResponse
+  Rate-limit (429) → 413 size check → response-cache lookup → parse-cache lookup → vision
+  extraction (parser.OCRError → 422) → strip invisible Unicode → filter wine list → enriched
+  profile (non-fatal) → cellar context → meal hints → system prompt → get_recommendation
+  (502 on failure) → score + log event (non-blocking) → cache + return.
+  Caps scorer confidence at "medium" when profile_source == "seed_bottles".
 ```
 
 ### seed_profile.py
