@@ -2,10 +2,13 @@ import React, { Suspense, lazy } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import App from './App'
+import { RecommendationProvider } from './state/recommendationStore'
 import './index.css'
 
 const DesignPreview = lazy(() => import('./pages/DesignPreview'))
 const Preferences = lazy(() => import('./pages/Preferences'))
+const Flight = lazy(() => import('./pages/Flight'))
+const Detail = lazy(() => import('./pages/Detail'))
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Failed to find the root element')
@@ -13,26 +16,43 @@ if (!rootElement) throw new Error('Failed to find the root element')
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/design-preview"
-          element={
-            <Suspense fallback={null}>
-              <DesignPreview />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/preferences"
-          element={
-            <Suspense fallback={null}>
-              <Preferences />
-            </Suspense>
-          }
-        />
-        {/* /flight, /detail, /compare land in Phase 3 */}
-        <Route path="/*" element={<App />} />
-      </Routes>
+      <RecommendationProvider>
+        <Routes>
+          <Route
+            path="/design-preview"
+            element={
+              <Suspense fallback={null}>
+                <DesignPreview />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/preferences"
+            element={
+              <Suspense fallback={null}>
+                <Preferences />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/flight"
+            element={
+              <Suspense fallback={null}>
+                <Flight />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/detail/:wineId"
+            element={
+              <Suspense fallback={null}>
+                <Detail />
+              </Suspense>
+            }
+          />
+          <Route path="/*" element={<App />} />
+        </Routes>
+      </RecommendationProvider>
     </BrowserRouter>
   </React.StrictMode>
 )
