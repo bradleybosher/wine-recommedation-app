@@ -9,6 +9,7 @@ const Preferences = lazy(() => import('./pages/Preferences'))
 const Flight = lazy(() => import('./pages/Flight'))
 const Detail = lazy(() => import('./pages/Detail'))
 const Compare = lazy(() => import('./pages/Compare'))
+const Profile = lazy(() => import('./pages/Profile'))
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('Failed to find the root element')
@@ -47,6 +48,14 @@ ReactDOM.createRoot(rootElement).render(
             element={
               <Suspense fallback={null}>
                 <Compare />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <Suspense fallback={null}>
+                <Profile />
               </Suspense>
             }
           />

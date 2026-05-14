@@ -83,24 +83,34 @@ def get_inventory() → InventoryResponse
 @router.post("/upload-profile")
 async def upload_profile(file: UploadFile) → UploadProfileResponse
   Detect export type via profile.ingest_export. 400 on parse failure or empty file,
-  413 on oversize. Returns type detected + derived TasteProfile.
+  413 on oversize. Clears any prior _overrides. Returns type detected + derived TasteProfile.
 
 @router.post("/seed-profile")
 async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
   Infer a profile from 3–7 loved (and 0–3 disliked) wines via one Anthropic tool-use call.
   Catches (anthropic.APIError, RuntimeError, ValueError) → 502. Backs up profile_data.json,
-  then overwrites it. Returns taste_profile with profile_source="seed_bottles" and
-  inference_confidence in {high, medium, low}.
+  then overwrites it. Clears any prior _overrides. Returns taste_profile with
+  profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
 
 @router.post("/profile/revert")
 async def revert_profile() → dict
   Restore profile_data.json from profile_data.backup.json. 404 if no backup.
   Busts response + profile cache. Returns {"message": "Profile reverted..."}.
 
+@router.patch("/profile")
+def patch_profile(req: ProfilePatchRequest) → ProfileSummaryResponse
+  Merge non-None fields from req into profile_data["_overrides"], then return a fresh
+  ProfileSummaryResponse. 400 if no fields supplied. Editable fields: top_varietals,
+  top_regions, preferred_descriptors, avoided_styles, avg_spend, style_summary,
+  taste_markers. Overrides are layered on top of the derived/inferred profile by
+  build_taste_profile() and are cleared whenever /upload-profile or /seed-profile runs.
+
 @router.get("/profile-summary")
 def profile_summary() → ProfileSummaryResponse
-  Build taste profile, taste markers, and cellar stats. style_summary comes from the
-  seed-derived profile when available, otherwise from enrich_profile_with_anthropic
+  Build taste profile, taste markers, and cellar stats. An explicit taste_markers dict
+  on the merged profile (seed inference or user override) wins; otherwise markers are
+  derived from descriptors. style_summary comes from a user override if present, from
+  the seed-derived profile when available, otherwise from enrich_profile_with_anthropic
   (failure-tolerant — falls back to None).
 ```
 

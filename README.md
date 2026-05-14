@@ -14,6 +14,7 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
   - **Seed-bottle onboarding** — name 3–7 wines you have loved (and a few you disliked); Claude infers your palate in 60 seconds. Profiles are tagged `medium`/`high` confidence and downstream recommendations are flagged as directional.
 - **Taste Profile:** One-click CellarTracker import (TSV export) to understand user preferences
 - **Profile Tab:** View your palate portrait, cellar stats, and heuristic taste-marker bars (acidity, tannin, body, oak) in a dedicated profile view
+- **Edit Your Palate:** From the landing page, open *Your palate* to inline-edit your style summary, taste markers, top varietals/regions, preferred descriptors, avoided styles, and average spend; or "Start over" by re-uploading CellarTracker, re-seeding from a few wines, or reverting to the last backup
 - **LLM-Powered Recommendations:** Structured wine recommendations via Claude (Anthropic API, tool use)
 - **Structured Output:** JSON-validated recommendations (default top-3, configurable) with per-wine reasoning, confidence scores, enrichment fields (grape, region, aroma wheel, structure bars, food pairings), and list quality assessment
 - **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
@@ -278,5 +279,3 @@ This app demonstrates:
 - LLM integration with structured output via Anthropic tool use
 - Practical error handling, scoring, and caching strategies
 - Clean architecture and portfolio-readable code
-
-Perfect for discussing software engineering practices in interviews.

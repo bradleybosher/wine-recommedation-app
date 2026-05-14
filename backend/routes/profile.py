@@ -1,5 +1,6 @@
 """Profile routes: upload CellarTracker export, infer from seed bottles,
-revert from backup, and summarise current taste profile."""
+revert from backup, patch user edits, and summarise current taste profile."""
+import json
 import logging
 from typing import Optional
 
@@ -11,6 +12,7 @@ from cache import bust_cache
 from inventory import load_inventory
 from models import (
     CellarStats,
+    ProfilePatchRequest,
     ProfileSummaryResponse,
     SeedProfileRequest,
     TasteMarkers,
@@ -35,6 +37,20 @@ logger = logging.getLogger("sommelier.api")
 _SEED_INFERENCE_ERRORS = (anthropic.APIError, RuntimeError, ValueError)
 
 
+def _clear_profile_overrides() -> None:
+    """Remove any user-edit overrides from profile_data.json.
+
+    Called after /upload-profile or /seed-profile fully replaces the underlying
+    profile state — manual edits to the previous profile no longer apply.
+    """
+    data = load_profile_data()
+    if "_overrides" not in data:
+        return
+    data.pop("_overrides", None)
+    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache()
+
+
 @router.post("/upload-profile")
 async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
     raw = await file.read()
@@ -52,6 +68,7 @@ async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
         raise HTTPException(status_code=400, detail="File appears empty or contains no wine data")
 
     save_profile_export(raw)
+    _clear_profile_overrides()
     bust_cache()
 
     profile_data = load_profile_data()
@@ -81,6 +98,7 @@ async def seed_profile(req: SeedProfileRequest) -> UploadProfileResponse:
         )
 
     persist_seed_profile(inferred)
+    _clear_profile_overrides()
     bust_cache()
 
     profile_data = load_profile_data()
@@ -119,8 +137,11 @@ def profile_summary() -> ProfileSummaryResponse:
 
     is_seed_derived = profile_data.get("profile_source") == "seed_bottles"
 
-    if is_seed_derived and isinstance(profile_data.get("taste_markers"), dict):
-        taste_markers = TasteMarkers(**profile_data["taste_markers"])
+    # An explicit taste_markers dict (seed inference OR user override on a CT profile)
+    # wins verbatim. Otherwise fall back to heuristic derivation from descriptors.
+    markers_value = profile_data.get("taste_markers")
+    if isinstance(markers_value, dict):
+        taste_markers = TasteMarkers(**markers_value)
     else:
         markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
         taste_markers = TasteMarkers(**markers_dict)
@@ -139,9 +160,9 @@ def profile_summary() -> ProfileSummaryResponse:
     )
 
     style_summary: Optional[str] = None
-    if is_seed_derived:
-        raw_summary = profile_data.get("style_summary", "") or ""
-        style_summary = raw_summary.strip() or None
+    override_summary = (profile_data.get("style_summary") or "").strip() if isinstance(profile_data.get("style_summary"), str) else ""
+    if is_seed_derived or override_summary:
+        style_summary = override_summary or None
     else:
         try:
             enriched = enrich_profile_with_anthropic(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
@@ -171,3 +192,28 @@ def profile_summary() -> ProfileSummaryResponse:
         inference_confidence=profile_data.get("inference_confidence") if is_seed_derived else None,
         seed_bottle_count=profile_data.get("seed_bottle_count") if is_seed_derived else None,
     )
+
+
+@router.patch("/profile")
+def patch_profile(req: ProfilePatchRequest) -> ProfileSummaryResponse:
+    """Merge user-edit fields into ``profile_data.json["_overrides"]``.
+
+    The override block is layered on top of the derived/inferred profile by
+    ``build_taste_profile()`` and respected by ``/profile-summary`` and the
+    recommendation prompt. Re-running /upload-profile or /seed-profile clears it.
+    """
+    patch_dict = {k: v for k, v in req.model_dump(exclude_none=True).items()}
+    if not patch_dict:
+        raise HTTPException(status_code=400, detail="No fields to patch.")
+
+    data = load_profile_data()
+    overrides = dict(data.get("_overrides") or {})
+    overrides.update(patch_dict)
+    data["_overrides"] = overrides
+
+    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache()
+    bust_cache()
+    logger.info("profile_patch: updated keys=%s", list(patch_dict.keys()))
+
+    return profile_summary()

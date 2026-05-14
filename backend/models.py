@@ -193,6 +193,26 @@ class ProfileSummaryResponse(BaseModel):
     )
 
 
+class ProfilePatchRequest(BaseModel):
+    """Partial edit payload for PATCH /profile.
+
+    Non-`None` fields are merged into ``profile_data.json["_overrides"]`` and
+    layered on top of the derived profile by ``build_taste_profile()``.
+    """
+    top_varietals: Optional[List[str]] = None
+    top_regions: Optional[List[str]] = None
+    preferred_descriptors: Optional[List[str]] = None
+    avoided_styles: Optional[List[str]] = None
+    avg_spend: Optional[int] = None
+    style_summary: Optional[str] = None
+    taste_markers: Optional[TasteMarkers] = None
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
+
+
 class RecommendRequest(BaseModel):
     meal: str
     style_terms: Optional[str] = ""

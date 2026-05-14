@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import Fleuron from '@/design/atoms/Fleuron';
@@ -92,6 +92,31 @@ export default function Preferences() {
   return (
     <PaperFrame>
       <Masthead dateline={`Issue prepared for one guest · ${dateline}`} />
+
+      <div
+        style={{
+          padding: '12px 44px 0',
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <Link
+          to="/profile"
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 11,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: INK_SOFT,
+            textDecoration: 'none',
+            borderBottom: `1px solid ${INK_SOFT}`,
+            paddingBottom: 1,
+          }}
+        >
+          Your palate
+        </Link>
+      </div>
 
       <div
         style={{

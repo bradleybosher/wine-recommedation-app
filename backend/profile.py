@@ -257,19 +257,41 @@ def _infer_avoided_styles(profile_data: dict) -> list[str]:
     return avoided
 
 
+def apply_profile_overrides(base: dict, overrides: dict) -> dict:
+    """Layer a partial user-edit dict on top of a derived/inferred profile.
+
+    Shallow merge: each top-level override key replaces the corresponding base value.
+    Returns a new dict; ``base`` is not mutated.
+    """
+    if not isinstance(overrides, dict) or not overrides:
+        return dict(base)
+    merged = dict(base)
+    for k, v in overrides.items():
+        if v is None:
+            continue
+        merged[k] = v
+    return merged
+
+
 def build_taste_profile(profile_data: dict) -> dict:
     """Derive structured taste signals from merged profile export data.
 
     If a seed-bottle inferred profile is present (key ``_inferred``), return it
     directly — it is already shaped like this function's output, having been
     synthesized by seed_profile.infer_profile_from_seeds().
+
+    Any user manual edits stored under ``_overrides`` are merged on top of the
+    derived/inferred base before returning, so /profile-summary and the
+    recommendation prompt both see the edited values.
     """
     if not isinstance(profile_data, dict):
         profile_data = {}
 
+    overrides = profile_data.get("_overrides") or {}
+
     inferred = profile_data.get("_inferred")
     if isinstance(inferred, dict) and inferred:
-        return inferred
+        return apply_profile_overrides(inferred, overrides)
 
     list_consumed_notes = list(
         _iter_export_rows(profile_data, "list", "consumed", "notes")
@@ -338,7 +360,7 @@ def build_taste_profile(profile_data: dict) -> dict:
 
     avoided_styles = _infer_avoided_styles(profile_data)
 
-    return {
+    derived = {
         "top_varietals": top_varietals,
         "top_regions": top_regions,
         "top_producers": top_producers,
@@ -347,6 +369,7 @@ def build_taste_profile(profile_data: dict) -> dict:
         "avoided_styles": avoided_styles,
         "avg_spend": avg_spend,
     }
+    return apply_profile_overrides(derived, overrides)
 
 
 def build_taste_profile_pydantic(profile_data: dict) -> TasteProfile:

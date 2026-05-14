@@ -12,6 +12,9 @@ Profile source (one of):
   (a) CellarTracker TSV (inventory)       → inventory.json
       CellarTracker TSV (tasting history) → profile_data.json
   (b) 3-7 named seed bottles → /seed-profile → Claude (infer) → profile_data.json["_inferred"]
+→ optional manual edits via PATCH /profile → profile_data.json["_overrides"]
+  (layered on top of derived/inferred profile by build_taste_profile;
+   cleared whenever /upload-profile or /seed-profile replaces the underlying state)
 → wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
 → Claude (recommend) → top-N recommendations (default 3; configurable via bottle_count)
   (per-wine confidence capped at "medium" for seed-derived; color derived server-side post-validation)

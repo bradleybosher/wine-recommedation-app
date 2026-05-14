@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -149,6 +149,24 @@ export const revertProfileProfileRevertPost = <ThrowOnError extends boolean = fa
  * Profile Summary
  */
 export const profileSummaryProfileSummaryGet = <ThrowOnError extends boolean = false>(options?: Options<ProfileSummaryProfileSummaryGetData, ThrowOnError>) => (options?.client ?? client).get<ProfileSummaryProfileSummaryGetResponses, unknown, ThrowOnError>({ url: '/profile-summary', ...options });
+
+/**
+ * Patch Profile
+ *
+ * Merge user-edit fields into ``profile_data.json["_overrides"]``.
+ *
+ * The override block is layered on top of the derived/inferred profile by
+ * ``build_taste_profile()`` and respected by ``/profile-summary`` and the
+ * recommendation prompt. Re-running /upload-profile or /seed-profile clears it.
+ */
+export const patchProfileProfilePatch = <ThrowOnError extends boolean = false>(options: Options<PatchProfileProfilePatchData, ThrowOnError>) => (options.client ?? client).patch<PatchProfileProfilePatchResponses, PatchProfileProfilePatchErrors, ThrowOnError>({
+    url: '/profile',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Recommend

@@ -169,6 +169,16 @@ Fields:
 - `total_bottles`, `unique_wines`: int
 - `vintage_oldest`, `vintage_newest`: Optional[int]
 
+### ProfilePatchRequest
+
+Request body for `PATCH /profile`. Any subset of fields may be provided; non-`None` fields are merged into `profile_data.json["_overrides"]` and layered on top of the derived/inferred profile by `build_taste_profile()`. All fields default to `None`.
+
+Fields:
+- `top_varietals`, `top_regions`, `preferred_descriptors`, `avoided_styles`: Optional[List[str]]
+- `avg_spend`: Optional[int]
+- `style_summary`: Optional[str]
+- `taste_markers`: Optional[TasteMarkers]
+
 ### ProfileSummaryResponse
 
 Returned by `GET /profile-summary`. Derived taste profile plus enriched data.

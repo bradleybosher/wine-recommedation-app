@@ -313,6 +313,42 @@ export type InventoryResponse = {
 };
 
 /**
+ * ProfilePatchRequest
+ *
+ * Partial edit payload for PATCH /profile.
+ *
+ * Non-`None` fields are merged into ``profile_data.json["_overrides"]`` and
+ * layered on top of the derived profile by ``build_taste_profile()``.
+ */
+export type ProfilePatchRequest = {
+    /**
+     * Topvarietals
+     */
+    topVarietals?: Array<string> | null;
+    /**
+     * Topregions
+     */
+    topRegions?: Array<string> | null;
+    /**
+     * Preferreddescriptors
+     */
+    preferredDescriptors?: Array<string> | null;
+    /**
+     * Avoidedstyles
+     */
+    avoidedStyles?: Array<string> | null;
+    /**
+     * Avgspend
+     */
+    avgSpend?: number | null;
+    /**
+     * Stylesummary
+     */
+    styleSummary?: string | null;
+    tasteMarkers?: TasteMarkers | null;
+};
+
+/**
  * ProfileSummaryResponse
  */
 export type ProfileSummaryResponse = {
@@ -1026,6 +1062,31 @@ export type ProfileSummaryProfileSummaryGetResponses = {
 };
 
 export type ProfileSummaryProfileSummaryGetResponse = ProfileSummaryProfileSummaryGetResponses[keyof ProfileSummaryProfileSummaryGetResponses];
+
+export type PatchProfileProfilePatchData = {
+    body: ProfilePatchRequest;
+    path?: never;
+    query?: never;
+    url: '/profile';
+};
+
+export type PatchProfileProfilePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchProfileProfilePatchError = PatchProfileProfilePatchErrors[keyof PatchProfileProfilePatchErrors];
+
+export type PatchProfileProfilePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: ProfileSummaryResponse;
+};
+
+export type PatchProfileProfilePatchResponse = PatchProfileProfilePatchResponses[keyof PatchProfileProfilePatchResponses];
 
 export type RecommendRecommendPostData = {
     body?: BodyRecommendRecommendPost;

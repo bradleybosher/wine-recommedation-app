@@ -62,7 +62,17 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Extract preferred descriptors: tokenize tasting notes, exclude stopwords, top 15 terms
   - Infer avoided_styles: detect score scale, scan low-scored notes, extract negative descriptors (bitter, oaky, thin, etc.), top 10 with freq ≥ 2
   - Calculate avg_spend from purchase price median (rounded to nearest 5)
+  - **Apply `_overrides`**: any keys in `profile_data["_overrides"]` are merged
+    on top of the derived (or inferred) base via `apply_profile_overrides()`,
+    so manual user edits made via `PATCH /profile` are reflected everywhere
+    this function is consumed (recommendation prompt and `/profile-summary`).
   - Return dict with all above
+
+**apply_profile_overrides(base, overrides)** → dict:
+  - Shallow merge: each non-`None` top-level key in `overrides` replaces the
+    corresponding value in `base`. Returns a new dict; `base` is not mutated.
+  - Used by `build_taste_profile()` to layer user edits (PATCH /profile) on
+    top of the derived/inferred profile.
 
 **_infer_avoided_styles(profile_data)** → [str]:
   - First pass: collect all scores from notes + consumed exports to detect scale
