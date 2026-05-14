@@ -203,6 +203,48 @@ class RecommendRequest(BaseModel):
     )
 
 
+class Coords(BaseModel):
+    lat: float
+    lon: float
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class DrinkWindow(BaseModel):
+    from_year: int = Field(alias="from")
+    peak: int
+    until: int
+
+    # No to_camel here — fields are single words or use explicit alias above
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class WineColor(BaseModel):
+    glass: str
+    tint: str
+    ink: str
+    accent: str
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class StructureBars(BaseModel):
+    tannin: float
+    acidity: float
+    body: float
+    sweetness: float
+    oak: float
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class Critic(BaseModel):
+    score: float
+    source: str
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
 class WineRecommendation(BaseModel):
     rank: int
     wine_name: str
@@ -212,7 +254,22 @@ class WineRecommendation(BaseModel):
     price: Optional[float] = None
     reasoning: str
     confidence: str  # "high" | "medium" | "low"
-    fit_markers: Optional[List[str]] = None
+    fits: Optional[List[str]] = None  # renamed from fit_markers
+
+    # Phase 5 enrichment fields — populated by Claude via tool use
+    appellation: Optional[str] = None
+    country: Optional[str] = None
+    coords: Optional[Coords] = None
+    grape: Optional[str] = None
+    abv: Optional[float] = None
+    drink: Optional[DrinkWindow] = None
+    color: Optional[WineColor] = None  # backend-derived; not requested from Claude
+    bars: Optional[StructureBars] = None
+    wheel: Optional[Dict[str, int]] = None
+    nose: Optional[str] = None
+    palate: Optional[str] = None
+    pairs: Optional[List[str]] = None
+    critic: Optional[Critic] = None
 
     model_config = ConfigDict(
         alias_generator=to_camel,

@@ -1,6 +1,6 @@
 # Wine List Recommender
 
-A portfolio-grade web application for pre-dinner wine list analysis. Users upload a restaurant wine list (PDF primary, photo/vision fallback), configure a taste profile, and receive a ranked top-3 recommendation with specific reasoning for each wine.
+A portfolio-grade web application for pre-dinner wine list analysis. Users upload a restaurant wine list (PDF primary, photo/vision fallback), configure a taste profile, and receive ranked wine recommendations (default top-3, configurable) with per-wine enrichment and reasoning.
 
 **Designed for:** Pre-booking research. Not an at-the-table lookup tool.
 
@@ -15,7 +15,7 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **Taste Profile:** One-click CellarTracker import (TSV export) to understand user preferences
 - **Profile Tab:** View your palate portrait, cellar stats, and heuristic taste-marker bars (acidity, tannin, body, oak) in a dedicated profile view
 - **LLM-Powered Recommendations:** Structured wine recommendations via Claude (Anthropic API, tool use)
-- **Structured Output:** JSON-validated top-3 recommendations with reasoning, confidence scores, and quality assessment
+- **Structured Output:** JSON-validated recommendations (default top-3, configurable) with per-wine reasoning, confidence scores, enrichment fields (grape, region, aroma wheel, structure bars, food pairings), and list quality assessment
 - **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
 - **One-Click Refine:** After results render, tap a chip ("Under $80", "More adventurous", "Food match first", "Safer crowd-pleaser") to re-rank the same wine list against a different lens — no re-upload
 - **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis

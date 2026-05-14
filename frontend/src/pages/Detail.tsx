@@ -404,7 +404,7 @@ export default function Detail() {
             color: INK_SOFT,
           }}
         >
-          {wine.confidence} confidence · {wine.fitMarkers?.length ?? 0} profile markers
+          {wine.confidence} confidence · {wine.fits?.length ?? 0} profile markers
         </div>
         <button
           style={{ ...ghostBtn, background: INK, color: PAPER }}

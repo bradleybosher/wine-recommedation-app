@@ -10,7 +10,7 @@ import anthropic
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from models import RecommendationResponse
+from models import RecommendationResponse, WineColor, WineRecommendation
 
 logger = logging.getLogger("sommelier.recommender")
 
@@ -42,6 +42,30 @@ def _log_llm_exchange(attempt: int, system_prompt: str, user_payload: str, raw_r
 
 _MAX_ATTEMPTS = 3
 
+# Hex palette constants mirroring frontend tokens — used to derive WineColor server-side.
+_PALETTE_BRUNELLO = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
+_PALETTE_BAROLO   = WineColor(glass='#8a2a2e', tint='#f3dad4', ink='#3d1014', accent='#a83339')
+_PALETTE_CHABLIS  = WineColor(glass='#d9b743', tint='#f5ecc8', ink='#5a4612', accent='#b89826')
+_PALETTE_DEFAULT  = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
+
+
+def _derive_color(wine: WineRecommendation) -> WineColor:
+    """Map grape / region / wine_name to a palette. Mirrors frontend derivePalette."""
+    src = f"{wine.grape or ''} {wine.region or ''} {wine.wine_name}".lower()
+    if any(k in src for k in ('sangiovese', 'brunello', 'chianti', 'montalcino')):
+        return _PALETTE_BRUNELLO
+    if any(k in src for k in ('nebbiolo', 'barolo', 'barbaresco', 'piedmont', 'piemonte')):
+        return _PALETTE_BAROLO
+    if any(k in src for k in ('chardonnay', 'chablis', 'bourgogne blanc')):
+        return _PALETTE_CHABLIS
+    # Whites / rosés get the chablis palette as a generic light-wine fallback
+    if any(k in src for k in ('white', 'blanc', 'blanco', 'weiss', 'riesling',
+                               'sauvignon blanc', 'pinot gris', 'pinot grigio',
+                               'viognier', 'marsanne', 'roussanne', 'gruner')):
+        return _PALETTE_CHABLIS
+    return _PALETTE_DEFAULT
+
+
 # Tool definition passed to Claude for structured output via tool use.
 # Claude is forced to call this tool, returning a parsed dict directly —
 # no JSON parsing or repair logic required.
@@ -53,7 +77,7 @@ _RECOMMENDATION_TOOL: dict = {
         "properties": {
             "recommendations": {
                 "type": "array",
-                "description": "Top 3 wine recommendations from the list, ranked best-first.",
+                "description": "Ranked wine recommendations from the list, best-first.",
                 "items": {
                     "type": "object",
                     "properties": {
@@ -87,7 +111,7 @@ _RECOMMENDATION_TOOL: dict = {
                                 "or 'medium — right style but the vintage may be too young'."
                             ),
                         },
-                        "fit_markers": {
+                        "fits": {
                             "type": "array",
                             "items": {"type": "string"},
                             "description": (
@@ -100,6 +124,81 @@ _RECOMMENDATION_TOOL: dict = {
                                 "'Avoids the oaky profile you down-rate'. "
                                 "Omit the field entirely (do not return an empty array) if no clean signal applies."
                             ),
+                        },
+                        # --- Phase 5 enrichment fields ---
+                        "appellation": {
+                            "type": "string",
+                            "description": "Official appellation or designation (e.g. 'Brunello di Montalcino DOCG').",
+                        },
+                        "country": {
+                            "type": "string",
+                            "description": "Country of origin (e.g. 'Italy', 'France').",
+                        },
+                        "coords": {
+                            "type": "object",
+                            "description": "Approximate lat/lon of the wine's production region.",
+                            "properties": {
+                                "lat": {"type": "number"},
+                                "lon": {"type": "number"},
+                            },
+                            "required": ["lat", "lon"],
+                        },
+                        "grape": {
+                            "type": "string",
+                            "description": "Primary grape variety (e.g. 'Sangiovese Grosso', 'Nebbiolo').",
+                        },
+                        "abv": {
+                            "type": "number",
+                            "description": "Alcohol by volume percentage (e.g. 14.5).",
+                        },
+                        "drink": {
+                            "type": "object",
+                            "description": "Estimated drinking window (integer years).",
+                            "properties": {
+                                "from":  {"type": "integer"},
+                                "peak":  {"type": "integer"},
+                                "until": {"type": "integer"},
+                            },
+                            "required": ["from", "peak", "until"],
+                        },
+                        "bars": {
+                            "type": "object",
+                            "description": "Structure bars — each value 0–10.",
+                            "properties": {
+                                "tannin":    {"type": "number"},
+                                "acidity":   {"type": "number"},
+                                "body":      {"type": "number"},
+                                "sweetness": {"type": "number"},
+                                "oak":       {"type": "number"},
+                            },
+                            "required": ["tannin", "acidity", "body", "sweetness", "oak"],
+                        },
+                        "wheel": {
+                            "type": "object",
+                            "description": "Aroma wheel: 6–8 entries, key = aroma descriptor, value = intensity 0–10.",
+                            "additionalProperties": {"type": "number"},
+                        },
+                        "nose": {
+                            "type": "string",
+                            "description": "One concise sentence describing the aromatic profile.",
+                        },
+                        "palate": {
+                            "type": "string",
+                            "description": "One concise sentence describing the palate and finish.",
+                        },
+                        "pairs": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "2-4 food pairing suggestions (short, specific dish names).",
+                        },
+                        "critic": {
+                            "type": "object",
+                            "description": "Approximate critic score — omit if genuinely unknown.",
+                            "properties": {
+                                "score":  {"type": "number"},
+                                "source": {"type": "string"},
+                            },
+                            "required": ["score", "source"],
                         },
                     },
                     "required": ["rank", "wine_name", "reasoning", "confidence"],
@@ -168,6 +267,11 @@ def _attempt_recommendation(
     except ValidationError as exc:
         logger.warning("attempt=%d schema_validation_failed error=%s", attempt, exc)
         raise ValueError(f"Schema validation failed: {exc}") from exc
+
+    # Derive palette hex values server-side — not asked of Claude to avoid hallucinated hex codes.
+    for wine in recommendation.recommendations:
+        if wine.color is None:
+            wine.color = _derive_color(wine)
 
     logger.info("attempt=%d schema_validation_passed wines=%d", attempt, len(recommendation.recommendations))
     return recommendation

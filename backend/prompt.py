@@ -31,6 +31,8 @@ def build_system_prompt(
     taste_profile_override: str | None = None,
     meal_hints: str = "",
     profile_source: str = "cellartracker",
+    bottle_count: int = 3,
+    budget_ceiling: str = "",
 ) -> str:
     import logging
     logger = logging.getLogger(__name__)
@@ -67,6 +69,11 @@ or if a bottle is worth ordering specifically because they don't have it.
 
     meal_section = f"### TONIGHT'S MEAL\n{meal_hints}\n" if meal_hints else ""
 
+    constraints: list[str] = [f"Return exactly {bottle_count} ranked recommendations."]
+    if budget_ceiling:
+        constraints.append(f"Budget ceiling per bottle: {budget_ceiling} — exclude wines above this price.")
+    constraint_section = "\n".join(f"- {c}" for c in constraints)
+
     schema = """{
   "recommendations": [
     {
@@ -76,13 +83,25 @@ or if a bottle is worth ordering specifically because they don't have it.
       "vintage": "integer or null",
       "region": "string or null",
       "price": "number or null",
-      "reasoning": "string (2-4 sentences — if a cellar bottle is a close match, open with 'Like your [Producer Wine], but [how it differs]'; otherwise open by naming a concrete taste profile preference; contrast avoided styles where relevant)",
-      "confidence": "string — 'high|medium|low — short clause explaining why, e.g. high — hits your preference for grower Champagne with mineral complexity'",
-      "fit_markers": ["string", "string", "string"]
+      "appellation": "string or null  — official AOC/DOC/AVA designation",
+      "country": "string or null",
+      "coords": {"lat": number, "lon": number},
+      "grape": "string or null  — primary variety",
+      "abv": number_or_null,
+      "drink": {"from": integer, "peak": integer, "until": integer},
+      "bars": {"tannin": 0-10, "acidity": 0-10, "body": 0-10, "sweetness": 0-10, "oak": 0-10},
+      "wheel": {"Aroma 1": 0-10, "Aroma 2": 0-10, "...6-8 entries total"},
+      "nose": "one sentence aromatic profile",
+      "palate": "one sentence palate and finish",
+      "fits": ["profile tag 1", "profile tag 2"],
+      "pairs": ["dish 1", "dish 2", "dish 3"],
+      "critic": {"score": number, "source": "string"},
+      "reasoning": "string (2-4 sentences)",
+      "confidence": "high|medium|low — clause"
     }
   ],
-  "list_quality_note": "string or null (e.g., 'Limited white selection')",
-  "profile_match_summary": "string (1 sentence overview)"
+  "list_quality_note": "string or null",
+  "profile_match_summary": "string (1 sentence)"
 }"""
 
     prompt = f"""You are a precise, opinionated sommelier. Your primary job is to match wines from the list
@@ -91,6 +110,9 @@ do not let it override profile fit.
 
 **HARD CONSTRAINT**: ALL recommendations must be wines from the provided restaurant wine list ONLY.
 Do NOT recommend wines from the owner's cellar, even if they are a perfect profile match.
+
+**CONSTRAINTS**:
+{constraint_section}
 
 Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, no explanation).
 
@@ -113,12 +135,23 @@ Notes for confidence field:
 - The clause should name the specific preference being matched or the doubt causing uncertainty.
 - Examples: "high — hits your preference for grower Champagne with mineral complexity" / "medium — right style but the vintage may be too young"
 
-Notes for fit_markers field (optional):
+Notes for fits field (optional):
 - Provide 2-3 short tags (each <= 8 words) per recommendation, surfacing concrete profile signals that drove the pick.
 - Each tag MUST cite a real signal from the taste profile above: a top region/varietal/producer, a preferred descriptor, an avoided style, or a derived taste marker (acidity/tannin/body/oak level).
 - Good: "Matches your high-acidity preference", "Aligned with your top region: Northern Rhône", "Avoids the oaky profile you down-rate".
 - Bad (forbidden — too generic): "Great with food", "Crowd pleaser", "Classic choice".
 - If no clean signal applies, OMIT the field entirely. Do not return an empty array and do not invent signals not present in the profile.
+
+Notes for wheel field:
+- Provide 6-8 entries representing the dominant aroma families. Values are 0-10 intensity.
+- Use real aroma vocabulary (e.g. "Dried Cherry", "Tar", "Violets", "Cedar", "Mineral", "Truffle").
+
+Notes for bars field:
+- All values 0-10. Be accurate — a lean Chablis should have tannin ≈ 1, acidity ≈ 9; a big Amarone tannin ≈ 9, sweetness ≈ 3.
+
+Notes for drink field:
+- "from" = earliest year to open; "peak" = optimal drinking year; "until" = last acceptable year.
+- All integer years (e.g. 2026, 2032, 2042). Ground in the vintage year when known.
 
 Return ONLY the JSON object, no other text."""
     _prompt_logger.debug(prompt)

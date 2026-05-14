@@ -9,17 +9,45 @@ export type ClientOptions = {
  */
 export type BodyRecommendRecommendPost = {
     /**
-     * Wine List
-     */
-    wine_list: Blob | File;
-    /**
      * Meal
      */
-    meal: string;
+    meal?: string;
     /**
      * Style Terms
      */
     style_terms?: string;
+    /**
+     * Occasion
+     */
+    occasion?: string;
+    /**
+     * Menu
+     */
+    menu?: string;
+    /**
+     * Cellar Leans
+     */
+    cellar_leans?: string;
+    /**
+     * Temperament
+     */
+    temperament?: string;
+    /**
+     * Ceiling
+     */
+    ceiling?: string;
+    /**
+     * Bottle Count
+     */
+    bottle_count?: number;
+    /**
+     * Source Mode
+     */
+    source_mode?: string;
+    /**
+     * Wine List
+     */
+    wine_list?: Blob | File;
     /**
      * Test Fixture
      */
@@ -211,6 +239,52 @@ export type CellarStats = {
 };
 
 /**
+ * Coords
+ */
+export type Coords = {
+    /**
+     * Lat
+     */
+    lat: number;
+    /**
+     * Lon
+     */
+    lon: number;
+};
+
+/**
+ * Critic
+ */
+export type Critic = {
+    /**
+     * Score
+     */
+    score: number;
+    /**
+     * Source
+     */
+    source: string;
+};
+
+/**
+ * DrinkWindow
+ */
+export type DrinkWindow = {
+    /**
+     * From
+     */
+    from: number;
+    /**
+     * Peak
+     */
+    peak: number;
+    /**
+     * Until
+     */
+    until: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -355,6 +429,32 @@ export type SeedProfileRequest = {
 };
 
 /**
+ * StructureBars
+ */
+export type StructureBars = {
+    /**
+     * Tannin
+     */
+    tannin: number;
+    /**
+     * Acidity
+     */
+    acidity: number;
+    /**
+     * Body
+     */
+    body: number;
+    /**
+     * Sweetness
+     */
+    sweetness: number;
+    /**
+     * Oak
+     */
+    oak: number;
+};
+
+/**
  * TasteMarkers
  *
  * Heuristic taste-marker scores derived from preferred descriptors (1=very low … 5=very high).
@@ -484,6 +584,28 @@ export type ValidationError = {
 };
 
 /**
+ * WineColor
+ */
+export type WineColor = {
+    /**
+     * Glass
+     */
+    glass: string;
+    /**
+     * Tint
+     */
+    tint: string;
+    /**
+     * Ink
+     */
+    ink: string;
+    /**
+     * Accent
+     */
+    accent: string;
+};
+
+/**
  * WineRecommendation
  */
 export type WineRecommendation = {
@@ -520,9 +642,48 @@ export type WineRecommendation = {
      */
     confidence: string;
     /**
-     * Fitmarkers
+     * Fits
      */
-    fitMarkers?: Array<string> | null;
+    fits?: Array<string> | null;
+    /**
+     * Appellation
+     */
+    appellation?: string | null;
+    /**
+     * Country
+     */
+    country?: string | null;
+    coords?: Coords | null;
+    /**
+     * Grape
+     */
+    grape?: string | null;
+    /**
+     * Abv
+     */
+    abv?: number | null;
+    drink?: DrinkWindow | null;
+    color?: WineColor | null;
+    bars?: StructureBars | null;
+    /**
+     * Wheel
+     */
+    wheel?: {
+        [key: string]: number;
+    } | null;
+    /**
+     * Nose
+     */
+    nose?: string | null;
+    /**
+     * Palate
+     */
+    palate?: string | null;
+    /**
+     * Pairs
+     */
+    pairs?: Array<string> | null;
+    critic?: Critic | null;
 };
 
 export type HealthCheckDebugHealthGetData = {
@@ -867,7 +1028,7 @@ export type ProfileSummaryProfileSummaryGetResponses = {
 export type ProfileSummaryProfileSummaryGetResponse = ProfileSummaryProfileSummaryGetResponses[keyof ProfileSummaryProfileSummaryGetResponses];
 
 export type RecommendRecommendPostData = {
-    body: BodyRecommendRecommendPost;
+    body?: BodyRecommendRecommendPost;
     path?: never;
     query?: never;
     url: '/recommend';

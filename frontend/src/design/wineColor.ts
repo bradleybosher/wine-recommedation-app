@@ -25,8 +25,8 @@ export interface WineCoords {
   lon: number;
 }
 
-// Full enriched wine record used across all Phase 3 screens.
-// Phase 5 will replace derived fields with real backend data.
+// Full enriched wine record used across all Phase 3+ screens.
+// Backend (Phase 5+) provides all optional fields; derive* functions are fallbacks only.
 export interface EnrichedWine extends WineRecommendation {
   id: string;
   name: string;
@@ -170,34 +170,34 @@ function derivePairs(wineName: string, region?: string | null): string[] {
   return ['Roasted meat', 'Aged cheese', 'Mushroom dishes'];
 }
 
-// Enrich a raw WineRecommendation with derived visual fields.
-// Phase 5 will replace these with real backend-provided values.
+// Enrich a raw WineRecommendation with all display fields.
+// Uses backend-provided values (Phase 5+) and falls back to derived values when absent.
 export function enrichWine(wine: WineRecommendation): EnrichedWine {
-  const color = derivePalette(undefined, wine.region);
-  const country = deriveCountry(wine.region);
-  const coords = deriveCoords(wine.region, country);
-  const grape = deriveGrape(wine.wineName, undefined);
-  const bars = deriveBars(undefined, wine.region);
-  const wheel = deriveWheel(undefined);
+  const country = wine.country ?? deriveCountry(wine.region);
+  const color: WinePalette = wine.color ?? derivePalette(wine.grape, wine.region);
+  const coords = wine.coords ?? deriveCoords(wine.region, country);
+  const grape = wine.grape ?? deriveGrape(wine.wineName, undefined);
+  const bars = wine.bars ?? deriveBars(wine.grape, wine.region);
+  const wheel = wine.wheel ?? deriveWheel(wine.grape);
 
   return {
     ...wine,
     id: `wine-${wine.rank}`,
     name: wine.wineName,
     country,
-    appellation: wine.region ?? 'Unknown Appellation',
+    appellation: wine.appellation ?? wine.region ?? 'Unknown Appellation',
     coords,
     grape,
-    abv: 13.5,
-    drink: deriveDrinkWindow(wine.vintage),
+    abv: wine.abv ?? 13.5,
+    drink: wine.drink ?? deriveDrinkWindow(wine.vintage),
     color,
     bars,
     wheel,
-    nose: extractNose(wine.reasoning),
-    palate: wine.reasoning,
-    fits: wine.fitMarkers ?? [],
-    pairs: derivePairs(wine.wineName, wine.region),
-    critic: { score: 0, source: 'Editor' },
+    nose: wine.nose ?? extractNose(wine.reasoning),
+    palate: wine.palate ?? wine.reasoning,
+    fits: wine.fits ?? [],
+    pairs: wine.pairs ?? derivePairs(wine.wineName, wine.region),
+    critic: wine.critic ?? { score: 0, source: 'Editor' },
   };
 }
 

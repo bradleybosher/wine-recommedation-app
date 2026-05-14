@@ -155,12 +155,12 @@ export const profileSummaryProfileSummaryGet = <ThrowOnError extends boolean = f
  *
  * Recommend wines based on uploaded list and meal context.
  */
-export const recommendRecommendPost = <ThrowOnError extends boolean = false>(options: Options<RecommendRecommendPostData, ThrowOnError>) => (options.client ?? client).post<RecommendRecommendPostResponses, RecommendRecommendPostErrors, ThrowOnError>({
+export const recommendRecommendPost = <ThrowOnError extends boolean = false>(options?: Options<RecommendRecommendPostData, ThrowOnError>) => (options?.client ?? client).post<RecommendRecommendPostResponses, RecommendRecommendPostErrors, ThrowOnError>({
     ...formDataBodySerializer,
     url: '/recommend',
     ...options,
     headers: {
         'Content-Type': null,
-        ...options.headers
+        ...options?.headers
     }
 });

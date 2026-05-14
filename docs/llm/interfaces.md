@@ -108,15 +108,26 @@ def profile_summary() → ProfileSummaryResponse
 
 ```python
 @router.post("/recommend")
-async def recommend(request: Request, wine_list: UploadFile, meal: str, style_terms: str = "",
-                    test_fixture: str = "")
-  → RecommendationResponse
-  Rate-limit (429) → if TEST_MODE and test_fixture: drain upload, return
-  test_fixtures.FIXTURES[test_fixture] (400 if unknown) → 413 size check → response-cache
-  lookup → parse-cache lookup → vision extraction (parser.OCRError → 422) → strip invisible
-  Unicode → filter wine list → enriched profile (non-fatal) → cellar context → meal hints →
-  system prompt → get_recommendation (502 on failure) → score + log event (non-blocking) →
-  cache + return.
+async def recommend(
+  request: Request,
+  # Legacy
+  meal: str = Form(default=""), style_terms: str = Form(default=""),
+  # New Preferences (Phase 5)
+  occasion: str = Form(default=""), menu: str = Form(default=""),
+  cellar_leans: str = Form(default=""), temperament: str = Form(default=""),
+  ceiling: str = Form(default=""), bottle_count: int = Form(default=3),
+  source_mode: str = Form(default="winelist"),
+  # File
+  wine_list: UploadFile = File(default=None),
+  test_fixture: str = Form(default=""),
+) → RecommendationResponse
+  Composes effective_meal from occasion+menu (or legacy meal) and effective_style from
+  cellar_leans+temperament (or legacy style_terms).
+  Rate-limit (429) → TEST_MODE short-circuit → source_mode validation → 413 size check →
+  response-cache lookup (key includes bottle_count + ceiling) → parse wine list (skipped when
+  source_mode="cellar") → enriched profile (non-fatal) → cellar context → meal hints →
+  system prompt (with bottle_count, budget_ceiling) → get_recommendation (502 on failure) →
+  score + log event (non-blocking) → cache + return.
   Caps scorer confidence at "medium" when profile_source == "seed_bottles".
 ```
 
@@ -162,15 +173,55 @@ class SeedProfileRequest(BaseModel):
   loved: List[SeedBottle]      # 3..7
   disliked: List[SeedBottle]   # 0..3
 
+class Coords(BaseModel):
+  lat: float
+  lon: float
+
+class DrinkWindow(BaseModel):
+  from_year: int = Field(alias="from")   # Python: from_year=; JSON key: "from"
+  peak: int
+  until: int
+
+class WineColor(BaseModel):
+  glass: str   # hex — background swatch
+  tint: str    # hex — tint layer
+  ink: str     # hex — text on palette
+  accent: str  # hex — highlight
+
+class StructureBars(BaseModel):
+  tannin: float
+  acidity: float
+  body: float
+  sweetness: float
+  oak: float
+
+class Critic(BaseModel):
+  score: float
+  source: str
+
 class WineRecommendation(BaseModel):
   rank: int
   wine_name: str
   producer, region: Optional[str]
   vintage: Optional[int]
-  price: Optional[float]  # coerce_price validator strips currency symbols
-  reasoning: str (2–4 sentences, structured: personal comparison → contrast → food → cellar note)
-  confidence: str (format: "high|medium|low — single clause reason")
-  fit_markers: Optional[List[str]]  # 2–3 short tags grounding pick in profile signals; omitted when no clean match
+  price: Optional[float]       # coerce_price validator strips currency symbols
+  reasoning: str               # 2–4 sentences: personal comparison → contrast → food → cellar note
+  confidence: str              # "high|medium|low — single clause reason"
+  fits: Optional[List[str]]    # 2–3 short tags grounding pick in profile signals; omit when no clean match
+  # Phase 5 enrichment fields (all optional; populated server-side or by Claude):
+  appellation: Optional[str]
+  country: Optional[str]
+  coords: Optional[Coords]
+  grape: Optional[str]
+  abv: Optional[float]
+  drink: Optional[DrinkWindow]
+  color: Optional[WineColor]   # server-derived post-validation; never in Claude tool schema
+  bars: Optional[StructureBars]
+  wheel: Optional[Dict[str, float]]   # 6–8 aroma descriptors, intensity 0–10
+  nose: Optional[str]
+  palate: Optional[str]
+  pairs: Optional[List[str]]
+  critic: Optional[Critic]
 
 class RecommendationResponse(BaseModel):
   recommendations: List[WineRecommendation]
@@ -222,6 +273,9 @@ def get_recommendation(
   Call Anthropic Claude via tool use (provide_recommendations tool). tool_block.input is a
   pre-parsed dict — no JSON parsing needed. Retry up to 3× on Pydantic ValidationError.
   Raise HTTPException(502) on API error or unrecoverable schema mismatch.
+  Post-validation: calls _derive_color() for each WineRecommendation where color is None,
+  so color is always populated on the returned object. color is excluded from the Claude
+  tool schema to avoid hallucinated hex codes.
 ```
 
 ### prompt.py
@@ -234,10 +288,15 @@ def build_system_prompt(
   relevant_bottles: list[dict],
   cellar_summary: str = "",
   taste_profile_override: str | None = None,
-  meal_hints: str = ""
+  meal_hints: str = "",
+  profile_source: str = "cellartracker",
+  bottle_count: int = 3,
+  budget_ceiling: str = ""
 ) → str
   Construct system prompt: sommelier persona, taste profile, relevant bottles, schema, meal hints.
   If taste_profile_override provided, skips internal build_enriched_profile_text_basic() call.
+  When profile_source="seed_bottles", prepends directional-profile caveat.
+  Injects CONSTRAINTS block: "Return exactly N ranked recommendations." + optional budget ceiling.
   Writes full prompt to prompt.log via dedicated _prompt_logger.
   Returns full prompt string with JSON schema embedded.
 ```
