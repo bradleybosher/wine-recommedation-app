@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FILE_SIZE_LIMITS, ALLOWED_MIME_TYPES } from './constants';
 import { Upload, FileText } from 'lucide-react';
+import { INK, INK_SOFT, RULE } from '@/design/tokens';
 
 interface FileUploaderProps {
   onFileChange: (file: File | null, previewUrl: string, base64: string, errorMsg: string) => void;
@@ -26,10 +27,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
     return !!file && file.type.startsWith('image/');
   };
 
-  const isTextFile = (file: File | null): boolean => {
-    return !!file && (file.type.startsWith('text/') || file.type === 'application/pdf');
-  };
-
   const getFileTypeDisplay = (file: File | null): string => {
     if (!file) return '';
     if (file.type.startsWith('image/')) return 'Image';
@@ -41,7 +38,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
   const handleFileChange = (file: File | null) => {
     if (!file) return;
 
-    // Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
       onFileChange(null, '', '', `Invalid file type. Please upload an image, PDF, or text file.`);
       return;
@@ -69,8 +65,6 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
     reader.onerror = () => {
       onFileChange(null, '', '', `Couldn't read file. Try uploading again.`);
     };
-    
-    // Use readAsDataURL for all file types (works for images, PDFs, and text files)
     reader.readAsDataURL(file);
   };
 
@@ -106,66 +100,98 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
     setIsDragOver(false);
   };
 
-  const renderPreview = () => {
-    if (!file) return null;
-    
-    if (isImageFile(file)) {
-      return (
-        <img src={previewUrl} alt="Preview" className="max-h-48 mx-auto rounded-md mb-4" />
-      );
-    } else {
-      return (
-        <div className="flex flex-col items-center justify-center p-4">
-          <FileText className="mx-auto h-12 w-12 text-white/60" strokeWidth={1.5} />
-          <p className="mt-2 text-sm font-medium text-white/90">{file.name}</p>
-          <p className="text-xs text-white/50">{getFileTypeDisplay(file)} • {Math.round(file.size / 1024)} KB</p>
-        </div>
-      );
-    }
+  const dropZoneStyle: React.CSSProperties = {
+    border: `1px solid ${file ? INK : isDragOver ? INK_SOFT : RULE}`,
+    padding: '28px 24px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'border-color 0.15s',
+    background: isDragOver ? 'rgba(31,18,10,0.03)' : 'transparent',
   };
 
-  const renderEmptyState = () => {
+  const renderPreview = () => {
+    if (!file) return null;
+    if (isImageFile(file)) {
+      return (
+        <img src={previewUrl} alt="Preview" style={{ maxHeight: 160, margin: '0 auto 12px', display: 'block' }} />
+      );
+    }
     return (
-      <>
-        <Upload className="mx-auto h-12 w-12 text-white/40" strokeWidth={1.5} />
-        <p className="mt-2 text-sm text-white/80">Drag 'n' drop a file here, or click to select</p>
-        <p className="text-xs text-white/50 mt-1">Accepted formats: JPG, PNG, WEBP, GIF, PDF, TXT (Max 10MB)</p>
-      </>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
+        <FileText style={{ width: 32, height: 32, color: INK_SOFT, marginBottom: 8 }} strokeWidth={1.5} />
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>{file.name}</div>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, marginTop: 2 }}>
+          {getFileTypeDisplay(file)} · {Math.round(file.size / 1024)} KB
+        </div>
+      </div>
     );
   };
 
+  const renderEmptyState = () => (
+    <>
+      <Upload style={{ width: 28, height: 28, color: INK_SOFT, margin: '0 auto 10px', display: 'block', opacity: 0.5 }} strokeWidth={1.5} />
+      <div
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontStyle: 'italic',
+          fontSize: 10,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: INK_SOFT,
+          marginBottom: 4,
+        }}
+      >
+        Drop a file here or click to browse
+      </div>
+      <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, opacity: 0.6 }}>
+        JPG · PNG · PDF · TXT — max 10 MB
+      </div>
+    </>
+  );
+
   return (
     <div>
-      <label className="block text-lg font-medium text-white/80 mb-2">Wine List File</label>
+      <div
+        style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          color: INK_SOFT,
+          marginBottom: 8,
+        }}
+      >
+        File
+      </div>
       <div
         ref={dropZoneRef}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors duration-200 bg-glass-surface backdrop-blur-glass ${file ? 'border-wine-gold/70' : isDragOver ? 'border-wine-rose/70 bg-wine-rose/5' : 'border-white/25'}`}
+        style={dropZoneStyle}
       >
         <input
           type="file"
           accept=".jpg,.png,.webp,.gif,.pdf,.txt"
           onChange={handleFileSelect}
           ref={fileInputRef}
-          className="hidden"
+          style={{ display: 'none' }}
           id="wine-file-upload"
         />
-        <label htmlFor="wine-file-upload" className="block text-white/80 cursor-pointer">
+        <label htmlFor="wine-file-upload" style={{ display: 'block', cursor: 'pointer' }}>
           {file ? renderPreview() : renderEmptyState()}
         </label>
       </div>
       {file && !error && (
-        <p className="text-sm text-white/60 mt-2">
-          Selected: {file.name} ({getFileTypeDisplay(file)}, {Math.round(file.size / 1024)} KB)
-        </p>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, marginTop: 6 }}>
+          {file.name} · {Math.round(file.size / 1024)} KB
+        </div>
       )}
       {file && isImageFile(file) && !error && (
-        <p className="text-xs text-white/45 mt-1">
-          Photo uploads use OCR — for best results, crop out glare and ensure the text is sharp.
-        </p>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 12, color: INK_SOFT, marginTop: 2, opacity: 0.7 }}>
+          Photo uploads use OCR — crop out glare and ensure text is sharp.
+        </div>
       )}
     </div>
   );

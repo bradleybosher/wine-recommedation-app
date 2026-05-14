@@ -2,13 +2,60 @@ import React, { useState } from 'react';
 import FileUploader from './FileUploader';
 import { uploadProfileUploadProfilePost } from './client';
 import type { UploadProfileResponse } from './client/types.gen';
-import GlassCard from '@/components/ui/GlassCard';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { Loader2 } from 'lucide-react';
 
 interface UploadTastingHistoryScreenProps {
   onSuccess: (response: UploadProfileResponse) => void;
   onSkip: () => void;
 }
+
+const submitBtn = (enabled: boolean): React.CSSProperties => ({
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 14,
+  letterSpacing: 3,
+  textTransform: 'uppercase',
+  padding: '10px 22px',
+  background: enabled ? INK : 'transparent',
+  color: enabled ? PAPER : INK,
+  border: `1px solid ${INK}`,
+  cursor: enabled ? 'pointer' : 'not-allowed',
+  opacity: enabled ? 1 : 0.4,
+  flex: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+});
+
+const skipBtn: React.CSSProperties = {
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 12,
+  letterSpacing: 2,
+  textTransform: 'uppercase',
+  padding: '10px 18px',
+  background: 'transparent',
+  color: INK_SOFT,
+  border: `1px solid ${RULE}`,
+  cursor: 'pointer',
+};
+
+const tagStyle: React.CSSProperties = {
+  fontFamily: "'EB Garamond', serif",
+  fontSize: 12,
+  padding: '2px 8px',
+  border: `1px solid ${RULE}`,
+  color: INK_SOFT,
+};
+
+const sectionLabel: React.CSSProperties = {
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 10,
+  letterSpacing: 2,
+  textTransform: 'uppercase',
+  color: INK_SOFT,
+  marginBottom: 6,
+};
 
 const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({ onSuccess, onSkip }) => {
   const [fileData, setFileData] = useState({
@@ -40,9 +87,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
 
     try {
       const response = await uploadProfileUploadProfilePost({
-        body: {
-          file: fileData.file
-        }
+        body: { file: fileData.file }
       });
 
       if (response && response.data) {
@@ -69,109 +114,156 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
     );
 
     return (
-      <GlassCard className="p-8">
-        <div className="text-center mb-6">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-wine-gold mb-4" strokeWidth={1.5} />
-          <h2 className="text-2xl font-bold text-white mb-1">Taste Profile Refined</h2>
-          <p className="text-white/60 text-sm">{result.message}</p>
+      <div
+        style={{
+          border: `1px solid ${RULE}`,
+          padding: '28px 28px',
+          background: 'rgba(243,232,212,0.4)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 10,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: OXBLOOD,
+            marginBottom: 12,
+          }}
+        >
+          Taste Profile Refined
         </div>
 
         {hasProfileData ? (
-          <div className="space-y-4 mb-6">
-            <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wide">Inferred Preferences</h3>
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
             {profile.preferredGrapes && profile.preferredGrapes.length > 0 && (
-              <div className="bg-white/5 p-4 rounded-xl">
-                <p className="text-xs font-medium text-white/50 mb-2">Grapes</p>
-                <div className="flex flex-wrap gap-2">
+              <div>
+                <div style={sectionLabel}>Grapes</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {profile.preferredGrapes.map((grape, i) => (
-                    <span key={i} className="px-3 py-1 bg-wine-purple-mid/40 text-white border border-white/20 text-sm font-medium rounded-full capitalize">
-                      {grape}
-                    </span>
+                    <span key={i} style={tagStyle}>{grape}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {profile.preferredRegions && profile.preferredRegions.length > 0 && (
-              <div className="bg-white/5 p-4 rounded-xl">
-                <p className="text-xs font-medium text-white/50 mb-2">Regions</p>
-                <div className="flex flex-wrap gap-2">
+              <div>
+                <div style={sectionLabel}>Regions</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {profile.preferredRegions.map((region, i) => (
-                    <span key={i} className="px-3 py-1 bg-wine-amber/20 text-wine-gold border border-wine-amber/30 text-sm font-medium rounded-full capitalize">
-                      {region}
-                    </span>
+                    <span key={i} style={tagStyle}>{region}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {profile.preferredStyles && profile.preferredStyles.length > 0 && (
-              <div className="bg-white/5 p-4 rounded-xl">
-                <p className="text-xs font-medium text-white/50 mb-2">Style Descriptors</p>
-                <div className="flex flex-wrap gap-2">
+              <div>
+                <div style={sectionLabel}>Style</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {profile.preferredStyles.map((style, i) => (
-                    <span key={i} className="px-3 py-1 bg-wine-merlot/30 text-white border border-wine-rose/30 text-sm font-medium rounded-full capitalize">
-                      {style}
-                    </span>
+                    <span key={i} style={tagStyle}>{style}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {profile.avoidedStyles && profile.avoidedStyles.length > 0 && (
-              <div className="bg-wine-burgundy/15 p-4 rounded-xl border border-wine-rose/30">
-                <p className="text-xs font-medium text-wine-rose mb-2">Avoided Styles</p>
-                <div className="flex flex-wrap gap-2">
+              <div>
+                <div style={{ ...sectionLabel, color: OXBLOOD }}>Avoided</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {profile.avoidedStyles.map((style, i) => (
-                    <span key={i} className="px-3 py-1 bg-wine-burgundy/40 text-wine-rose border border-wine-rose/40 text-sm font-medium rounded-full capitalize">
-                      {style}
-                    </span>
+                    <span key={i} style={{ ...tagStyle, borderColor: OXBLOOD, color: OXBLOOD }}>{style}</span>
                   ))}
                 </div>
               </div>
             )}
 
             {profile.budgetMin != null && profile.budgetMax != null && (
-              <div className="bg-white/5 p-4 rounded-xl">
-                <p className="text-xs font-medium text-white/50 mb-1">Typical Spend</p>
-                <p className="text-lg font-semibold text-white">${profile.budgetMin} – ${profile.budgetMax} per bottle</p>
+              <div style={{ borderTop: `1px solid ${RULE}`, paddingTop: 12 }}>
+                <div style={sectionLabel}>Typical Spend</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: INK }}>
+                  ${profile.budgetMin} – ${profile.budgetMax}
+                </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="bg-wine-amber/10 border border-wine-amber/30 rounded-xl p-4 mb-6">
-            <p className="text-sm text-wine-gold">
-              Profile saved, but not enough tasting data to infer preferences yet. Add more exports (notes, consumed) to improve recommendations.
-            </p>
+          <div
+            style={{
+              fontFamily: "'EB Garamond', serif",
+              fontStyle: 'italic',
+              fontSize: 13,
+              color: INK_SOFT,
+              marginBottom: 20,
+              borderTop: `1px solid ${RULE}`,
+              paddingTop: 12,
+            }}
+          >
+            Profile saved, but not enough tasting data to infer preferences yet.
           </div>
         )}
 
-        <button
-          onClick={() => onSuccess(result)}
-          className="w-full flex justify-center py-3 px-4 border border-wine-rose/30 rounded-md shadow-sm text-lg font-medium text-white bg-wine-burgundy hover:bg-wine-merlot focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wine-rose transition-colors shadow-[0_0_20px_rgba(139,37,70,0.4)]"
-        >
+        <button onClick={() => onSuccess(result)} style={submitBtn(true)}>
           Continue
         </button>
-      </GlassCard>
+      </div>
     );
   }
 
   return (
-    <GlassCard className="p-8">
-      <h2 className="text-2xl font-bold text-white mb-2">Step 2: Refine Your Taste Profile</h2>
-      <p className="text-white/70 mb-6">
-        Upload tasting notes or a separate CellarTracker export to refine your taste profile. (Optional—use the same file again, or skip to proceed)
-      </p>
+    <div>
+      <div
+        style={{
+          borderTop: `2px solid ${INK}`,
+          borderBottom: `1px solid ${RULE}`,
+          padding: '16px 0',
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 10,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: OXBLOOD,
+            marginBottom: 4,
+          }}
+        >
+          Step 2 · Tasting History
+        </div>
+        <div
+          style={{
+            fontFamily: "'EB Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 14,
+            color: INK_SOFT,
+          }}
+        >
+          Upload a CellarTracker tasting history export to refine your taste profile. Optional — skip to proceed.
+        </div>
+      </div>
 
       {error && (
-        <div className="bg-wine-burgundy/30 border border-wine-rose/40 text-white/90 px-4 py-3 rounded-xl mb-6">
-          <strong className="font-bold">Error: </strong>
-          <span>{error}</span>
+        <div
+          style={{
+            border: `1px solid ${RULE}`,
+            padding: '10px 16px',
+            marginBottom: 16,
+            fontFamily: "'EB Garamond', serif",
+            fontSize: 13,
+            color: OXBLOOD,
+          }}
+        >
+          {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <FileUploader
           onFileChange={handleFileChange}
           file={fileData.file}
@@ -179,36 +271,28 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
           error={error}
         />
 
-        <div className="flex gap-4">
+        <div style={{ display: 'flex', gap: 12 }}>
           <button
             type="submit"
             disabled={!fileData.file || isLoading}
-            className={`flex-1 flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-              !fileData.file || isLoading
-                ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
-                : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
-            }`}
+            style={submitBtn(!!fileData.file && !isLoading)}
           >
             {isLoading ? (
-              <div className="flex items-center">
-                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
-                Uploading profile...
-              </div>
+              <>
+                <Loader2 className="animate-spin" style={{ width: 16, height: 16 }} strokeWidth={1.5} />
+                Uploading profile…
+              </>
             ) : (
-              'Upload Tasting History'
+              'Upload & Continue'
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={onSkip}
-            className="flex-1 flex justify-center py-3 px-4 border border-white/20 rounded-md shadow-sm text-lg font-medium text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wine-rose transition-colors"
-          >
-            Skip for Now
+          <button type="button" onClick={onSkip} style={skipBtn}>
+            Skip
           </button>
         </div>
       </form>
-    </GlassCard>
+    </div>
   );
 };
 

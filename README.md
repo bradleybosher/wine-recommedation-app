@@ -19,7 +19,7 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
 - **One-Click Refine:** After results render, tap a chip ("Under $80", "More adventurous", "Food match first", "Safer crowd-pleaser") to re-rank the same wine list against a different lens — no re-upload
 - **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis
-- **Responsive UI:** React 19 + Tailwind CSS v4; glassmorphism design system; works on desktop and tablet
+- **Vinothèque Editorial UI:** React 19 + Tailwind CSS v4 + react-router-dom; old-world paper/serif editorial design system; four-screen flow (Preferences → Flight → Detail → Compare); works on desktop and tablet
 
 ---
 
@@ -36,7 +36,8 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 ### Frontend
 - **React 19** + **TypeScript** — Type-safe UI components
 - **Vite** — Fast development and production builds
-- **Tailwind CSS v4** — Utility-first styling with glassmorphism design tokens
+- **Tailwind CSS v4** — Utility-first base with Vinothèque editorial design tokens (ink, paper, oxblood)
+- **react-router-dom** — Four-screen routed flow: Preferences → Flight → Detail → Compare
 - **@hey-api/openapi-ts** — Auto-generated SDK from backend OpenAPI spec
 
 ### Data Contract

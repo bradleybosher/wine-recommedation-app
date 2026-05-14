@@ -4,7 +4,7 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 
 ## Tech Stack
 - **Backend:** Python/FastAPI, PyMuPDF/fitz (PDF), pytesseract + PIL (OCR), Anthropic API (Claude, tool use), SQLite (cache), JSON (inventory + profile)
-- **Frontend:** React 19 + TypeScript + Tailwind CSS v4 + Vite, glassmorphism design system
+- **Frontend:** React 19 + TypeScript + Tailwind CSS v4 + Vite + react-router-dom, old-world editorial design system (Vinothèque)
 
 ## Data Flow
 ```
@@ -73,8 +73,9 @@ For every file modified, update the corresponding docs:
 
 ### 5. Frontend & Styling
 - **Imports:** `@/` alias only. No relative `../../` paths. Do not modify `vite.config.ts`.
-- **Cards:** `<GlassCard>` only — no `bg-white` containers.
-- **Background:** `<VibrantBackground>` in `App.tsx`; no background-color on page containers.
+- **Layout:** `<PaperFrame>` as page wrapper (not VibrantBackground, not GlassCard). No glassmorphism.
+- **Typography:** Cormorant Garamond (display) + EB Garamond (body). All font references via inline `fontFamily` strings.
 - **Icons:** `lucide-react` only; always `strokeWidth={1.5}`; no inline SVGs.
-- **Colour:** Wine palette + glass tokens from `src/index.css @theme`. No hardcoded hex/rgba.
-- **Text on glass:** White-based only (`text-white/70` minimum). No `text-gray-*` in `GlassCard`.
+- **Colour:** Import named tokens from `@/design/tokens` (INK, INK_SOFT, PAPER, OXBLOOD, RULE). No hardcoded hex/rgba; no `text-white`, `text-gray-*`, or `bg-wine-*` Tailwind classes.
+- **Style delivery:** Inline `CSSProperties` objects for all component styling. Tailwind utility classes only for stateful helpers (e.g. `animate-spin`, `hidden`).
+- **Decoration:** Hairline rules (1px solid RULE), no rounded corners, no drop shadows beyond inset paper.

@@ -20,7 +20,15 @@
       "Bash(.venv/Scripts/python.exe -m pytest *)",
       "Bash(.venv/Scripts/python.exe -c *)",
       "Bash(backend/.venv/Scripts/python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); from test_fixtures import FIXTURES; print\\(sorted\\(FIXTURES\\)\\); from routes import recommend; print\\('route import ok'\\)\")",
-      "Bash(backend/.venv/Scripts/python.exe -c ' *)"
+      "Bash(backend/.venv/Scripts/python.exe -c ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\frontend\" -Recurse -Include \"*.tsx\",\"*.ts\",\"*.json\" -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(cp \"C:\\\\Users\\\\Brad\\\\.claude\\\\plans\\\\wine-recommender-implement-the-smooth-valley.md\" \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\docs\\\\vinotheque-redesign-plan.md\")",
+      "Bash(npx vite *)",
+      "Bash(Test-Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\frontend\\\\src\\\\pages\\\\Compare.tsx\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs"
     ]
   },
   "model": "sonnet",

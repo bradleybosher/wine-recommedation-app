@@ -2,13 +2,43 @@ import React, { useState } from 'react';
 import FileUploader from './FileUploader';
 import { uploadInventoryUploadInventoryPost, getInventoryInventoryGet } from './client';
 import type { UploadInventoryResponse, InventoryResponse } from './client/types.gen';
-import GlassCard from '@/components/ui/GlassCard';
-import { CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { Loader2 } from 'lucide-react';
 
 interface UploadCellarInventoryScreenProps {
   onSuccess: (response: UploadInventoryResponse) => void;
   onSkip?: () => void;
 }
+
+const submitBtn = (enabled: boolean): React.CSSProperties => ({
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 14,
+  letterSpacing: 3,
+  textTransform: 'uppercase',
+  padding: '10px 22px',
+  background: enabled ? INK : 'transparent',
+  color: enabled ? PAPER : INK,
+  border: `1px solid ${INK}`,
+  cursor: enabled ? 'pointer' : 'not-allowed',
+  opacity: enabled ? 1 : 0.4,
+  flex: 1,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+});
+
+const skipBtn: React.CSSProperties = {
+  fontFamily: "'Cormorant Garamond', serif",
+  fontSize: 12,
+  letterSpacing: 2,
+  textTransform: 'uppercase',
+  padding: '10px 18px',
+  background: 'transparent',
+  color: INK_SOFT,
+  border: `1px solid ${RULE}`,
+  cursor: 'pointer',
+};
 
 const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = ({ onSuccess, onSkip }) => {
   const [fileData, setFileData] = useState({
@@ -42,25 +72,21 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
 
     try {
       const response = await uploadInventoryUploadInventoryPost({
-        body: {
-          file: fileData.file
-        }
+        body: { file: fileData.file }
       });
 
       if (response && response.data) {
         setResult(response.data);
 
-        // Fetch inventory details to get staleness info
         try {
           const inventoryResponse = await getInventoryInventoryGet();
           if (inventoryResponse && inventoryResponse.data) {
             setInventoryDetails(inventoryResponse.data);
           }
-        } catch (inventoryErr) {
-          console.log('Could not fetch inventory details');
+        } catch {
+          // non-fatal
         }
 
-        // Notify parent of success
         onSuccess(response.data);
       } else {
         throw new Error('Invalid response from server');
@@ -86,55 +112,120 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
     };
 
     return (
-      <GlassCard className="p-8">
-        <div className="text-center">
-          <CheckCircle2 className="mx-auto h-12 w-12 text-wine-gold mb-4" strokeWidth={1.5} />
-          <h2 className="text-2xl font-bold text-white mb-2">Cellar Inventory Loaded</h2>
-          <p className="text-white/70 mb-6">{result.message}</p>
-          <div className="bg-white/5 border border-white/15 rounded-lg p-4 mb-6">
-            <p className="text-lg font-semibold text-white">
-              {result.count} {result.count === 1 ? 'bottle' : 'bottles'} found
-            </p>
-            {ageHours !== null && ageHours !== undefined && (
-              <p className="text-sm text-white/70 mt-2">
-                Export from {getAgeDescription(ageHours)}
-              </p>
-            )}
-          </div>
-
-          {stale && (
-            <div className="bg-wine-amber/15 border border-wine-amber/40 rounded-lg p-4 text-left">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-wine-amber flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-                <div>
-                  <p className="font-semibold text-white">Your inventory may be outdated</p>
-                  <p className="text-sm text-white/80 mt-1">
-                    This export is older than a few weeks. Consider uploading a fresh CellarTracker export for more accurate recommendations.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+      <div
+        style={{
+          border: `1px solid ${RULE}`,
+          padding: '28px 28px',
+          background: 'rgba(243,232,212,0.4)',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 10,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: OXBLOOD,
+            marginBottom: 12,
+          }}
+        >
+          Cellar Inventory Loaded
         </div>
-      </GlassCard>
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 28,
+            color: INK,
+            letterSpacing: -0.3,
+            marginBottom: 4,
+          }}
+        >
+          {result.count} {result.count === 1 ? 'bottle' : 'bottles'} on record
+        </div>
+        {ageHours != null && (
+          <div
+            style={{
+              fontFamily: "'EB Garamond', serif",
+              fontStyle: 'italic',
+              fontSize: 13,
+              color: INK_SOFT,
+              marginBottom: 16,
+            }}
+          >
+            Export from {getAgeDescription(ageHours)}
+          </div>
+        )}
+        {stale && (
+          <div
+            style={{
+              borderTop: `1px solid ${RULE}`,
+              paddingTop: 12,
+              fontFamily: "'EB Garamond', serif",
+              fontStyle: 'italic',
+              fontSize: 13,
+              color: INK_SOFT,
+            }}
+          >
+            This export is older than a few weeks. Consider uploading a fresh CellarTracker
+            export for more accurate recommendations.
+          </div>
+        )}
+      </div>
     );
   }
 
   return (
-    <GlassCard className="p-8">
-      <h2 className="text-2xl font-bold text-white mb-2">Step 1: Your Cellar Inventory</h2>
-      <p className="text-white/70 mb-6">
-        Upload a CellarTracker export (TSV file) of your wine collection. We'll analyze your cellar to understand your taste preferences.
-      </p>
+    <div>
+      <div
+        style={{
+          borderTop: `2px solid ${INK}`,
+          borderBottom: `1px solid ${RULE}`,
+          padding: '16px 0',
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 10,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: OXBLOOD,
+            marginBottom: 4,
+          }}
+        >
+          Step 1 · Cellar Inventory
+        </div>
+        <div
+          style={{
+            fontFamily: "'EB Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 14,
+            color: INK_SOFT,
+          }}
+        >
+          Upload a CellarTracker export (TSV file) of your wine collection.
+        </div>
+      </div>
 
       {error && (
-        <div className="bg-wine-burgundy/30 border border-wine-rose/40 text-white/90 px-4 py-3 rounded-xl mb-6">
-          <strong className="font-bold">Error: </strong>
-          <span>{error}</span>
+        <div
+          style={{
+            border: `1px solid ${RULE}`,
+            padding: '10px 16px',
+            marginBottom: 16,
+            fontFamily: "'EB Garamond', serif",
+            fontSize: 13,
+            color: OXBLOOD,
+          }}
+        >
+          {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <FileUploader
           onFileChange={handleFileChange}
           file={fileData.file}
@@ -142,38 +233,30 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
           error={error}
         />
 
-        <div className="flex gap-4">
+        <div style={{ display: 'flex', gap: 12 }}>
           <button
             type="submit"
             disabled={!fileData.file || isLoading}
-            className={`flex-1 flex justify-center py-3 px-4 border rounded-md shadow-sm text-lg font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
-              !fileData.file || isLoading
-                ? 'bg-white/10 text-white/30 cursor-not-allowed border-white/10'
-                : 'bg-wine-burgundy hover:bg-wine-merlot border-wine-rose/30 focus:ring-wine-rose shadow-[0_0_20px_rgba(139,37,70,0.4)]'
-            }`}
+            style={submitBtn(!!fileData.file && !isLoading)}
           >
             {isLoading ? (
-              <div className="flex items-center">
-                <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" strokeWidth={1.5} />
-                Uploading inventory...
-              </div>
+              <>
+                <Loader2 className="animate-spin" style={{ width: 16, height: 16 }} strokeWidth={1.5} />
+                Uploading inventory…
+              </>
             ) : (
               'Upload & Continue'
             )}
           </button>
 
           {onSkip && (
-            <button
-              type="button"
-              onClick={onSkip}
-              className="flex justify-center py-3 px-4 border border-white/20 rounded-md text-lg font-medium text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-wine-rose transition-colors"
-            >
+            <button type="button" onClick={onSkip} style={skipBtn}>
               Skip
             </button>
           )}
         </div>
       </form>
-    </GlassCard>
+    </div>
   );
 };
 

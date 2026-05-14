@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wine Recommender — Two Directions</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'EB Garamond', 'Cormorant Garamond', serif;
+    color: #1f120a;
+    background: #f0eee9;
+  }
+  /* hint serif rendering */
+  body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="wine-data.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="atoms.jsx"></script>
+<script type="text/babel" src="vinotheque.jsx"></script>
+<script type="text/babel" src="almanac.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+
+const { useState, useEffect } = React;
+
+const DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showTweaks": true,
+  "wineColorTint": false,
+  "fontPair": "cormorant_eb",
+  "density": "magazine",
+  "showWheels": true,
+  "showMaps": true
+}/*EDITMODE-END*/;
+
+function App() {
+  const wines = window.WINES;
+
+  return (
+    <>
+      <DesignCanvas>
+        <DCSection id="intro" title="Wine Recommender · two old-world directions" subtitle="A side-by-side study. Variation A leans Wine-Spectator-magazine; Variation B leans bound sommelier's almanac. Both speak in serifs and ink; both adopt each wine's actual colour. Drag artboards to reorder, double-click to focus.">
+          <DCArtboard id="readme" label="Read me" width={520} height={420}>
+            <ReadMe />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="prefs" title="01 · Preferences" subtitle="Where the user describes the evening — meal, company, cellar leanings, ceiling. Right side has the same data with different voice.">
+          <DCArtboard id="vin-prefs" label="A · Vinothèque" width={780} height={720}>
+            <VinPreferences w={780} h={720} />
+          </DCArtboard>
+          <DCArtboard id="alm-prefs" label="B · The Cellar Almanac" width={780} height={720}>
+            <AlmPreferences w={780} h={720} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="list" title="02 · The flight" subtitle="Three recommendations composed for tonight. Replaces the original card-list screen.">
+          <DCArtboard id="vin-list" label="A · Vinothèque" width={820} height={900}>
+            <VinList w={820} h={900} wines={wines} />
+          </DCArtboard>
+          <DCArtboard id="alm-list" label="B · The Cellar Almanac" width={820} height={900}>
+            <AlmList w={820} h={900} wines={wines} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="detail" title="03 · A bottle, examined" subtitle="Expanded review of one wine. Flavor wheel, structure bars, terroir map, drinking window — all the wine signals.">
+          <DCArtboard id="vin-detail" label="A · Vinothèque" width={840} height={920}>
+            <VinDetail w={840} h={920} wine={wines[0]} />
+          </DCArtboard>
+          <DCArtboard id="alm-detail" label="B · The Cellar Almanac" width={840} height={920}>
+            <AlmDetail w={840} h={920} wine={wines[1]} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="compare" title="04 · Side by side" subtitle="Two wines weighed against each other. Replaces the 'Compare Top 2' button with a destination.">
+          <DCArtboard id="vin-compare" label="A · Vinothèque" width={840} height={780}>
+            <VinCompare w={840} h={780} wines={[wines[0], wines[1]]} />
+          </DCArtboard>
+          <DCArtboard id="alm-compare" label="B · The Cellar Almanac" width={840} height={780}>
+            <AlmCompare w={840} h={780} wines={[wines[0], wines[1]]} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="systems" title="System · the wine signals" subtitle="The atoms shared between both variations — flavor wheels, structure bars, region maps, drinking windows, glasses tinted to the wine's colour.">
+          <DCArtboard id="atoms-a" label="Per-wine signals · Brunello" width={820} height={420}>
+            <AtomsSheet wine={wines[0]} />
+          </DCArtboard>
+          <DCArtboard id="atoms-c" label="Per-wine signals · Chablis" width={820} height={420}>
+            <AtomsSheet wine={wines[2]} />
+          </DCArtboard>
+        </DCSection>
+
+      </DesignCanvas>
+
+      <TweaksHost />
+    </>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+function ReadMe() {
+  return (
+    <div style={{ padding: '32px 30px', background: '#f3e8d4', height: '100%', boxSizing: 'border-box', position: 'relative', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        backgroundImage: 'radial-gradient(rgba(80,40,10,0.03) 1px, transparent 1px)',
+        backgroundSize: '3px 3px',
+      }} />
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 11, letterSpacing: 6, textTransform: 'uppercase', color: '#5e1418', position: 'relative' }}>
+        a study · two directions
+      </div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 42, lineHeight: 0.96, color: '#1f120a', letterSpacing: -1, marginTop: 8, position: 'relative' }}>
+        Replacing a <span style={{ fontStyle: 'italic' }}>generic</span> wine list with something that smells of cellar.
+      </div>
+      <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 13.5, lineHeight: 1.55, color: '#3a261b', marginTop: 18, position: 'relative', maxWidth: 460 }}>
+        Both directions adopt an all-serif, old-world voice and let each wine carry its <em>own</em> colour through the page — garnet for the Brunello, brick for the Barolo, pale straw for the Chablis. Each variation runs the full prototype: <strong>Preferences → Flight → Detail → Compare</strong>.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 18, position: 'relative' }}>
+        <div style={{ paddingRight: 14, borderRight: '0.5px solid #1f120a' }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 18, color: '#5e1418' }}>A · Vinothèque</div>
+          <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12.5, lineHeight: 1.5, color: '#1f120a', marginTop: 4 }}>
+            A Wine-Spectator-meets-private-cellar-review magazine. Cream paper, oxblood ink, big numerals, columns, ornaments. Every wine reads like a published review.
+          </div>
+        </div>
+        <div>
+          <div style={{ fontFamily: "'IM Fell English', serif", fontStyle: 'italic', fontSize: 18, color: '#6e1a1c' }}>B · The Cellar Almanac</div>
+          <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12.5, lineHeight: 1.5, color: '#231408', marginTop: 4 }}>
+            A bound sommelier's atlas. Lined parchment, stitched binding, marginalia, dial-style preference controls, diagrammatic structure bars and aroma compasses.
+          </div>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', bottom: 20, left: 30, right: 30, fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 11.5, color: '#5e1418', display: 'flex', justifyContent: 'space-between' }}>
+        <span>✦ open Tweaks (top-right) to flip palette, wheel/map visibility, density</span>
+        <span>↓ scroll on</span>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+function AtomsSheet({ wine }) {
+  return (
+    <div style={{ padding: 24, height: '100%', boxSizing: 'border-box', background: wine.color.tint, position: 'relative', display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr 1fr', gap: 18, alignItems: 'center' }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', backgroundImage: 'radial-gradient(rgba(40,20,10,0.03) 1px, transparent 1px)', backgroundSize: '3px 3px' }} />
+      <div style={{ position: 'relative' }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: wine.color.accent, marginBottom: 2 }}>{wine.appellation}</div>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 28, lineHeight: 1, color: '#1f120a', letterSpacing: -0.5 }}>{wine.name}</div>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 13, color: '#3a261b', marginTop: 2 }}>{wine.producer} · {wine.vintage}</div>
+        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Bottle palette={wine.color} shape={wine.region === 'Burgundy' ? 'burgundy' : 'bordeaux'} size={40} />
+          <GlassPour palette={wine.color} size={56} fill={0.55} />
+          <div style={{ width: 22, height: 22, background: wine.color.glass, borderRadius: '50%', border: '0.5px solid #1f120a' }} />
+        </div>
+      </div>
+      <div style={{ position: 'relative' }}>
+        <SectionTitle label="aroma compass" />
+        <FlavorWheel data={wine.wheel} palette={wine.color} size={160} />
+      </div>
+      <div style={{ position: 'relative' }}>
+        <SectionTitle label="structure" />
+        <StructureBars bars={wine.bars} palette={wine.color} />
+      </div>
+      <div style={{ position: 'relative' }}>
+        <SectionTitle label="terroir & drinking window" />
+        <RegionMap country={wine.country} lat={wine.coords.lat} lon={wine.coords.lon} label={wine.appellation.split(' ·')[0]} palette={wine.color} size={130} />
+        <div style={{ marginTop: 4 }}>
+          <DrinkingWindow drink={wine.drink} palette={wine.color} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ label }) {
+  return (
+    <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 10, letterSpacing: 3, textTransform: 'uppercase', color: '#3a261b', marginBottom: 8 }}>
+      ✦ {label}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// Tweaks — only a few; the design works without them
+function TweaksHost() {
+  const [t, setTweak] = useTweaks(DEFAULTS);
+  return (
+    <TweaksPanel title="Tweaks">
+      <TweakSection title="Variations">
+        <TweakSelect label="Which to highlight" value={t.fontPair} onChange={(v) => setTweak('fontPair', v)} options={[
+          { value: 'cormorant_eb', label: 'Cormorant + EB Garamond' },
+          { value: 'imfell_eb', label: 'IM Fell + EB Garamond' },
+          { value: 'cormorant_only', label: 'Cormorant only' },
+        ]} />
+      </TweakSection>
+      <TweakSection title="Wine signals">
+        <TweakToggle label="Per-wine colour tint" value={t.wineColorTint} onChange={(v) => setTweak('wineColorTint', v)} />
+        <TweakToggle label="Show aroma wheels" value={t.showWheels} onChange={(v) => setTweak('showWheels', v)} />
+        <TweakToggle label="Show region maps" value={t.showMaps} onChange={(v) => setTweak('showMaps', v)} />
+      </TweakSection>
+      <TweakSection title="Notes">
+        <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 12, color: '#3a261b', lineHeight: 1.5 }}>
+          Tweaks affect future iterations — the canvas above shows the canonical layouts. Try clicking the maximize icon on any artboard to study one direction full-screen.
+        </div>
+      </TweakSection>
+    </TweaksPanel>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
