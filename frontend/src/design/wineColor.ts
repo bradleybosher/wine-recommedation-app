@@ -62,11 +62,17 @@ export function derivePalette(
   if (matchKeywords(source, ['nebbiolo', 'barolo', 'barbaresco', 'piedmont', 'piemonte'])) {
     return PALETTES.barolo;
   }
-  if (matchKeywords(source, ['chardonnay', 'chablis', 'burgundy', 'bourgogne', 'white'])) {
+  if (matchKeywords(source, ['chardonnay', 'chablis', 'burgundy', 'bourgogne', 'white', 'blanc', 'blanco', 'weiss', 'riesling', 'sauvignon blanc', 'pinot gris', 'pinot grigio', 'viognier', 'gruner'])) {
     return PALETTES.chablis;
   }
   if (matchKeywords(source, ['pinot noir', 'burgundy', 'bourgogne'])) {
     return PALETTES.chablis;
+  }
+  if (matchKeywords(source, ['rosé', 'rose', 'rosato', 'rosado', 'blush', 'tavel', 'provence'])) {
+    return PALETTES.rose;
+  }
+  if (matchKeywords(source, ['orange wine', 'skin contact', 'amber wine', 'ramato'])) {
+    return PALETTES.amber;
   }
   return DEFAULT_PALETTE;
 }

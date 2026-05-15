@@ -33,6 +33,18 @@ export const PALETTES = {
     ink: '#5a4612',
     accent: '#b89826',
   } satisfies WinePalette,
+  rose: {
+    glass: '#d4607a',
+    tint: '#fce8ee',
+    ink: '#5a1020',
+    accent: '#b84068',
+  } satisfies WinePalette,
+  amber: {
+    glass: '#c87a30',
+    tint: '#f5e0c0',
+    ink: '#4a2808',
+    accent: '#9a5c10',
+  } satisfies WinePalette,
 } as const;
 
 export type PaletteName = keyof typeof PALETTES;

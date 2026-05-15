@@ -25,10 +25,17 @@
       "Bash(Select-Object FullName)",
       "Bash(cp \"C:\\\\Users\\\\Brad\\\\.claude\\\\plans\\\\wine-recommender-implement-the-smooth-valley.md\" \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\docs\\\\vinotheque-redesign-plan.md\")",
       "Bash(npx vite *)",
-      "Bash(Test-Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\frontend\\\\src\\\\pages\\\\Compare.tsx\")"
+      "Bash(Test-Path \"c:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\frontend\\\\src\\\\pages\\\\Compare.tsx\")",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(node /tmp/navigate.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(cat > *)",
+      "Bash(cat)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs"
+      "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",
+      "\\tmp"
     ]
   },
   "model": "sonnet",

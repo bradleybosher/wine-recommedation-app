@@ -85,3 +85,8 @@ For every file modified, update the corresponding docs:
 - **Colour:** Import named tokens from `@/design/tokens` (INK, INK_SOFT, PAPER, OXBLOOD, RULE). No hardcoded hex/rgba; no `text-white`, `text-gray-*`, or `bg-wine-*` Tailwind classes.
 - **Style delivery:** Inline `CSSProperties` objects for all component styling. Tailwind utility classes only for stateful helpers (e.g. `animate-spin`, `hidden`).
 - **Decoration:** Hairline rules (1px solid RULE), no rounded corners, no drop shadows beyond inset paper.
+
+## Visual debugging workflow
+- Dev server runs on localhost:5173
+- To check rendering: `npx playwright screenshot http://localhost:5173 /tmp/screen.png`
+- Read the screenshot before and after any CSS/layout changes

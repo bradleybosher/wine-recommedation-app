@@ -33,6 +33,8 @@ export default function Preferences() {
   const [ceiling, setCeiling] = useState('');
   const [bottles, setBottles] = useState('');
 
+  const [testFixture, setTestFixture] = useState('');
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -73,6 +75,7 @@ export default function Preferences() {
           wine_list: listFile,
           meal,
           style_terms: styleTerms,
+          test_fixture: testFixture || undefined,
         },
       });
 
@@ -298,6 +301,46 @@ export default function Preferences() {
               }}
             >
               {error}
+            </div>
+          )}
+
+          {import.meta.env.VITE_SHOW_DEBUG === 'true' && (
+            <div>
+              <div
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 9,
+                  letterSpacing: 3,
+                  textTransform: 'uppercase',
+                  color: INK_SOFT,
+                  opacity: 0.85,
+                  marginBottom: 4,
+                }}
+              >
+                Test Fixture
+              </div>
+              <select
+                value={testFixture}
+                onChange={(e) => setTestFixture(e.target.value)}
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  border: `1px solid ${INK}`,
+                  padding: '6px 12px',
+                  background: 'transparent',
+                  color: INK,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                <option value="">— live API —</option>
+                <option value="happy">happy</option>
+                <option value="sparse">sparse</option>
+                <option value="long_reasoning">long_reasoning</option>
+                <option value="low_confidence">low_confidence</option>
+                <option value="two_wines">two_wines</option>
+              </select>
             </div>
           )}
 

@@ -95,19 +95,6 @@ export default function Detail() {
             <Bottle palette={wine.color} shape={shape} size={44} />
             <GlassPour palette={wine.color} size={80} fill={0.5} />
           </div>
-          <div
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic',
-              fontSize: 10,
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              color: INK_SOFT,
-              textAlign: 'center',
-            }}
-          >
-            in the glass — {wine.color.glass}
-          </div>
         </div>
 
         {/* Right — editorial body */}
@@ -150,11 +137,9 @@ export default function Detail() {
             {wine.producer} · {wine.vintage}
           </div>
 
-          {/* Two-column body with drop cap */}
+          {/* Palate with drop cap */}
           <div
             style={{
-              columns: 2,
-              columnGap: 22,
               fontFamily: "'EB Garamond', serif",
               fontSize: 13,
               lineHeight: 1.55,

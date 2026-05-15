@@ -46,6 +46,8 @@ _MAX_ATTEMPTS = 3
 _PALETTE_BRUNELLO = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
 _PALETTE_BAROLO   = WineColor(glass='#8a2a2e', tint='#f3dad4', ink='#3d1014', accent='#a83339')
 _PALETTE_CHABLIS  = WineColor(glass='#d9b743', tint='#f5ecc8', ink='#5a4612', accent='#b89826')
+_PALETTE_ROSE     = WineColor(glass='#d4607a', tint='#fce8ee', ink='#5a1020', accent='#b84068')
+_PALETTE_AMBER    = WineColor(glass='#c87a30', tint='#f5e0c0', ink='#4a2808', accent='#9a5c10')
 _PALETTE_DEFAULT  = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
 
 
@@ -56,12 +58,13 @@ def _derive_color(wine: WineRecommendation) -> WineColor:
         return _PALETTE_BRUNELLO
     if any(k in src for k in ('nebbiolo', 'barolo', 'barbaresco', 'piedmont', 'piemonte')):
         return _PALETTE_BAROLO
-    if any(k in src for k in ('chardonnay', 'chablis', 'bourgogne blanc')):
-        return _PALETTE_CHABLIS
-    # Whites / rosés get the chablis palette as a generic light-wine fallback
-    if any(k in src for k in ('white', 'blanc', 'blanco', 'weiss', 'riesling',
-                               'sauvignon blanc', 'pinot gris', 'pinot grigio',
-                               'viognier', 'marsanne', 'roussanne', 'gruner')):
+    if any(k in src for k in ('rosé', 'rose', 'rosato', 'rosado', 'blush', 'tavel', 'provence')):
+        return _PALETTE_ROSE
+    if any(k in src for k in ('orange wine', 'skin contact', 'amber wine', 'ramato')):
+        return _PALETTE_AMBER
+    if any(k in src for k in ('chardonnay', 'chablis', 'bourgogne blanc', 'white', 'blanc',
+                               'blanco', 'weiss', 'riesling', 'sauvignon blanc', 'pinot gris',
+                               'pinot grigio', 'viognier', 'marsanne', 'roussanne', 'gruner')):
         return _PALETTE_CHABLIS
     return _PALETTE_DEFAULT
 
