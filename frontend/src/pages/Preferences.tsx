@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import Fleuron from '@/design/atoms/Fleuron';
@@ -20,9 +20,11 @@ const FOLIO = [
 
 export default function Preferences() {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [sourceMode, setSourceMode] = useState<SourceMode>('cellar');
+  const initialSourceMode = (location.state as { sourceMode?: SourceMode } | null)?.sourceMode ?? 'cellar';
+  const [sourceMode, setSourceMode] = useState<SourceMode>(initialSourceMode);
   const [wineListFile, setWineListFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -75,6 +77,7 @@ export default function Preferences() {
           wine_list: listFile,
           meal,
           style_terms: styleTerms,
+          source_mode: sourceMode,
           test_fixture: testFixture || undefined,
         },
       });

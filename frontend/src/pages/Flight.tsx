@@ -92,6 +92,10 @@ export default function Flight() {
     navigate('/preferences');
   };
 
+  const handleNewWineList = () => {
+    navigate('/preferences', { state: { sourceMode: 'winelist' } });
+  };
+
   return (
     <PaperFrame>
       <Masthead dateline="Three bottles composed for this evening" />
@@ -183,6 +187,9 @@ export default function Flight() {
           Composed by the Editor · drawing from your cellar on file
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
+          <button style={ghostBtn} onClick={handleNewWineList}>
+            New wine list
+          </button>
           <button style={ghostBtn} onClick={handleRecompose}>
             ↻ Recompose
           </button>

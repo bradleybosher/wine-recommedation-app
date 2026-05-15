@@ -12,10 +12,17 @@ const Compare = lazy(() => import('./pages/Compare'))
 const Profile = lazy(() => import('./pages/Profile'))
 const History = lazy(() => import('./pages/History'))
 
-const rootElement = document.getElementById('root')
+type RootedElement = HTMLElement & { __reactRoot?: ReactDOM.Root }
+
+const rootElement = document.getElementById('root') as RootedElement | null
 if (!rootElement) throw new Error('Failed to find the root element')
 
-ReactDOM.createRoot(rootElement).render(
+// Reuse the root across HMR module reloads — two roots on the same element
+// corrupt React's fiber tree and produce cascading DOM and hook-state errors.
+const root = rootElement.__reactRoot ?? ReactDOM.createRoot(rootElement)
+rootElement.__reactRoot = root
+
+root.render(
   <React.StrictMode>
     <BrowserRouter>
       <RecommendationProvider>

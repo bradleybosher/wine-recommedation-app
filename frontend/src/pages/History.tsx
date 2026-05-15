@@ -31,7 +31,7 @@ export default function History() {
 
   useEffect(() => {
     listHistoryHistoryGet()
-      .then((r) => setFlights(r.data ?? []))
+      .then((r) => setFlights(Array.isArray(r.data) ? r.data : []))
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load history'))
       .finally(() => setLoading(false));
   }, []);
