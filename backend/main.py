@@ -16,6 +16,7 @@ from cache import init_db, purge_expired
 from logging_setup import configure_logging
 from middleware import install as install_middleware
 from routes.debug import router as debug_router
+from routes.history import router as history_router
 from routes.inventory import router as inventory_router
 from routes.profile import router as profile_router
 from routes.recommend import router as recommend_router
@@ -31,6 +32,7 @@ init_db()
 logger.info("cache_purge_on_startup expired_entries=%d", purge_expired())
 
 app.include_router(debug_router)
+app.include_router(history_router)
 app.include_router(inventory_router)
 app.include_router(profile_router)
 app.include_router(recommend_router)

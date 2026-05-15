@@ -14,6 +14,7 @@ from cache import (
     inventory_hash,
     make_key,
     make_parse_key,
+    save_flight,
     set_cached,
     set_parse_cached,
 )
@@ -210,6 +211,21 @@ async def recommend(
             log_recommendation_event(effective_meal, profile_hash, recommendation, scoring_result, wine_list_hash)
         except Exception as score_err:
             logger.exception("scoring_and_logging_failed: %s", score_err)
+        try:
+            save_flight(
+                occasion=occasion,
+                menu=menu,
+                cellar_leans=cellar_leans,
+                temperament=temperament,
+                ceiling=ceiling,
+                bottle_count=bottle_count,
+                source_mode=source_mode,
+                wine_list_hash=wine_list_hash,
+                profile_hash=profile_hash,
+                response=recommendation,
+            )
+        except Exception as hist_err:
+            logger.warning("auto_save_flight_failed: %s", hist_err)
         set_cached(cache_key, recommendation.model_dump_json())
         return recommendation
     except HTTPException as exc:

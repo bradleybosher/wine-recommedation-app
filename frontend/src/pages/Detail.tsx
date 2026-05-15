@@ -250,7 +250,7 @@ export default function Detail() {
 
       <div
         style={{
-          padding: '14px 40px 48px',
+          padding: '14px 40px 20px',
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
           gap: 24,
@@ -369,10 +369,7 @@ export default function Detail() {
       {/* Nav strip */}
       <div
         style={{
-          position: 'absolute',
-          left: 40,
-          right: 40,
-          bottom: 20,
+          padding: '0 40px 28px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',

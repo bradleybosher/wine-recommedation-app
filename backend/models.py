@@ -317,6 +317,31 @@ class RecommendationResponse(BaseModel):
     )
 
 
+class FlightSummary(BaseModel):
+    """Lightweight row for GET /history list view."""
+    id: str
+    created_at: float
+    occasion: str
+    menu: str
+    top_wine_name: str
+    bottle_count: int
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class FlightRecord(BaseModel):
+    """Full flight record returned by GET /history/{id}."""
+    id: str
+    created_at: float
+    occasion: str
+    menu: str
+    source_mode: str
+    bottle_count: int
+    response: RecommendationResponse
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
 class MealProfile(BaseModel):
     protein: Optional[str] = None
     cooking_method: Optional[str] = None

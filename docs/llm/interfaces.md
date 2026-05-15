@@ -15,6 +15,7 @@ app.add_middleware(CORSMiddleware, ...)
 install_middleware(app)                   # from middleware
 init_db(); purge_expired()                # from cache
 app.include_router(debug_router)
+app.include_router(history_router)
 app.include_router(inventory_router)
 app.include_router(profile_router)
 app.include_router(recommend_router)
@@ -437,6 +438,28 @@ def set_cached(key: str, response: str) → None
 
 def bust_cache() → None
   DELETE all entries from response_cache and parse_cache.
+
+def save_flight(occasion: str, menu: str, cellar_leans: str, temperament: str,
+                ceiling: str, bottle_count: int, source_mode: str,
+                wine_list_hash: str, profile_hash: str, response) → str
+  INSERT completed recommendation into flights table. Returns UUID4 hex flight_id.
+
+def list_flights(limit: int = 50, offset: int = 0) → list[dict]
+  SELECT newest-first from flights. Each dict: id, created_at, occasion, menu, top_wine_name, bottle_count.
+
+def get_flight(flight_id: str) → Optional[dict]
+  SELECT full flight row by id including response_json, or None if not found.
+
+def delete_flight(flight_id: str) → bool
+  DELETE flight by id. Returns True if deleted, False if not found.
+```
+
+### routes/history.py
+
+```python
+GET  /history                   → list[FlightSummary]   # limit/offset query params
+GET  /history/{flight_id}       → FlightRecord
+DELETE /history/{flight_id}     → {"id": str, "deleted": True}
 ```
 
 ### retry_utils.py

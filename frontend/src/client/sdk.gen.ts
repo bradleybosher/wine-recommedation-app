@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -87,6 +87,27 @@ export const pingDebugPingGet = <ThrowOnError extends boolean = false>(options?:
  * Get API version information.
  */
 export const getVersionDebugVersionGet = <ThrowOnError extends boolean = false>(options?: Options<GetVersionDebugVersionGetData, ThrowOnError>) => (options?.client ?? client).get<GetVersionDebugVersionGetResponses, unknown, ThrowOnError>({ url: '/debug/version', ...options });
+
+/**
+ * List History
+ *
+ * List all past flights, newest first.
+ */
+export const listHistoryHistoryGet = <ThrowOnError extends boolean = false>(options?: Options<ListHistoryHistoryGetData, ThrowOnError>) => (options?.client ?? client).get<ListHistoryHistoryGetResponses, ListHistoryHistoryGetErrors, ThrowOnError>({ url: '/history', ...options });
+
+/**
+ * Delete History
+ *
+ * Delete a flight by ID.
+ */
+export const deleteHistoryHistoryFlightIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteHistoryHistoryFlightIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteHistoryHistoryFlightIdDeleteResponses, DeleteHistoryHistoryFlightIdDeleteErrors, ThrowOnError>({ url: '/history/{flight_id}', ...options });
+
+/**
+ * Get History
+ *
+ * Retrieve a single flight by ID with full recommendation data.
+ */
+export const getHistoryHistoryFlightIdGet = <ThrowOnError extends boolean = false>(options: Options<GetHistoryHistoryFlightIdGetData, ThrowOnError>) => (options.client ?? client).get<GetHistoryHistoryFlightIdGetResponses, GetHistoryHistoryFlightIdGetErrors, ThrowOnError>({ url: '/history/{flight_id}', ...options });
 
 /**
  * Upload Inventory

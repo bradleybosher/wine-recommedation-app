@@ -104,6 +104,23 @@ export default function Preferences() {
         }}
       >
         <Link
+          to="/history"
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: 11,
+            letterSpacing: 3,
+            textTransform: 'uppercase',
+            color: INK_SOFT,
+            textDecoration: 'none',
+            borderBottom: `1px solid ${INK_SOFT}`,
+            paddingBottom: 1,
+            marginRight: 20,
+          }}
+        >
+          Past flights
+        </Link>
+        <Link
           to="/profile"
           style={{
             fontFamily: "'Cormorant Garamond', serif",

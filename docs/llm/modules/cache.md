@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running Haiku vision for the same PDF regardless of meal/profile changes; (2) **response cache** — avoid full LLM recommendation calls for identical wine_list + meal + inventory + profile combinations.
+SQLite-based caching and persistent flight history across three tiers: (1) **parse cache** — avoid re-running Haiku vision for the same PDF regardless of meal/profile changes; (2) **response cache** — avoid full LLM recommendation calls for identical wine_list + meal + inventory + profile combinations; (3) **flights table** — permanent history of every completed recommendation, used by the `/history` route.
 
 ## Constants
 
@@ -13,6 +13,7 @@ SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running 
 - `sqlite3` (built-in)
 - `hashlib` (SHA256 + MD5)
 - `json` (serialization)
+- `uuid` (flight ID generation)
 - `pathlib.Path` (file location)
 - `typing.Optional`
 
@@ -25,9 +26,10 @@ SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running 
 ## Key Functions
 
 **init_db()** → None:
-  - Create `response_cache` and `parse_cache` tables if not exist
+  - Create `response_cache`, `parse_cache`, and `flights` tables if not exist
   - response_cache schema: (key TEXT PRIMARY KEY, response TEXT, created_at REAL)
   - parse_cache schema: (pdf_hash TEXT PRIMARY KEY, wine_list_text TEXT, created_at REAL)
+  - flights schema: (id TEXT PRIMARY KEY, created_at REAL, occasion TEXT, menu TEXT, cellar_leans TEXT, temperament TEXT, ceiling TEXT, bottle_count INTEGER, source_mode TEXT, wine_list_hash TEXT, profile_hash TEXT, response_json TEXT)
   - Called once at app startup
 
 **make_parse_key(pdf_bytes)** → str:
@@ -69,12 +71,28 @@ SQLite-based caching across two tiers: (1) **parse cache** — avoid re-running 
   - DELETE all entries from both response_cache and parse_cache
   - Called after inventory or profile upload
 
+**save_flight(occasion, menu, cellar_leans, temperament, ceiling, bottle_count, source_mode, wine_list_hash, profile_hash, response)** → str:
+  - Insert completed flight into `flights` table; `response` is any object with `.model_dump_json()`
+  - Returns UUID4 hex flight_id
+  - Called automatically by `routes/recommend.py` after every successful recommendation (best-effort)
+
+**list_flights(limit, offset)** → list[dict]:
+  - SELECT newest-first from `flights`; extracts top wine name from response_json without full deserialisation
+  - Returns list of dicts with keys: id, created_at, occasion, menu, top_wine_name, bottle_count
+
+**get_flight(flight_id)** → Optional[dict]:
+  - SELECT full row by id; returns all columns including response_json, or None if not found
+
+**delete_flight(flight_id)** → bool:
+  - DELETE by id; returns True if a row was deleted
+
 **_conn()** → sqlite3.Connection:
   - Helper to get database connection
   - Used internally by all functions
 
 ## Patterns & Gotchas
 
+- **Three-tier persistence**: Parse cache → response cache → flights. The first two expire in 24 hours; `flights` is permanent (no TTL).
 - **Two-tier caching**: Parse cache (keyed by PDF bytes alone) sits upstream of the response cache (keyed by PDF + meal + inventory + profile). Parse cache prevents re-running Haiku even when meal or profile changes.
 - **Cache key design**: Response cache includes image bytes (not just hash) to handle image changes. Inventory + profile hashes prevent stale caches when user updates cellar/taste.
 - **TTL**: `CACHE_TTL_HOURS = 24` (24 hours), applied equally to both tables. `get_cached`/`get_parse_cached` lazily evict on read; `purge_expired` bulk-clears both tables at startup. `bust_cache` wipes both tables (called on inventory/profile upload).

@@ -18,8 +18,9 @@ Profile source (one of):
 → wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
 → Claude (recommend) → top-N recommendations (default 3; configurable via bottle_count)
   (per-wine confidence capped at "medium" for seed-derived; color derived server-side post-validation)
+→ auto-saved to flights table (cellar.db) → retrievable via GET /history for historical review
 ```
-**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
+**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug,history}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite — response/parse cache + permanent flight history), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal

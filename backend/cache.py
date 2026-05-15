@@ -1,4 +1,4 @@
-import sqlite3, hashlib, json, time
+import sqlite3, hashlib, json, time, uuid
 from pathlib import Path
 from typing import Optional
 
@@ -24,6 +24,22 @@ def init_db():
                 pdf_hash TEXT PRIMARY KEY,
                 wine_list_text TEXT,
                 created_at REAL
+            )
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS flights (
+                id            TEXT    PRIMARY KEY,
+                created_at    REAL,
+                occasion      TEXT,
+                menu          TEXT,
+                cellar_leans  TEXT,
+                temperament   TEXT,
+                ceiling       TEXT,
+                bottle_count  INTEGER,
+                source_mode   TEXT,
+                wine_list_hash TEXT,
+                profile_hash  TEXT,
+                response_json TEXT
             )
         """)
 
@@ -96,3 +112,71 @@ def bust_cache():
     with _conn() as c:
         c.execute("DELETE FROM response_cache")
         c.execute("DELETE FROM parse_cache")
+
+
+def save_flight(
+    occasion: str,
+    menu: str,
+    cellar_leans: str,
+    temperament: str,
+    ceiling: str,
+    bottle_count: int,
+    source_mode: str,
+    wine_list_hash: str,
+    profile_hash: str,
+    response,
+) -> str:
+    flight_id = uuid.uuid4().hex
+    with _conn() as c:
+        c.execute(
+            "INSERT INTO flights VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                flight_id, time.time(), occasion, menu, cellar_leans, temperament,
+                ceiling, bottle_count, source_mode, wine_list_hash, profile_hash,
+                response.model_dump_json(),
+            ),
+        )
+    return flight_id
+
+
+def list_flights(limit: int = 50, offset: int = 0) -> list[dict]:
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT id, created_at, occasion, menu, response_json, bottle_count "
+            "FROM flights ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        ).fetchall()
+    result = []
+    for flight_id, created_at, occasion, menu, response_json, bottle_count in rows:
+        try:
+            top_wine = json.loads(response_json)["recommendations"][0]["wine_name"]
+        except Exception:
+            top_wine = "Unknown"
+        result.append(dict(
+            id=flight_id, created_at=created_at, occasion=occasion or "",
+            menu=menu or "", top_wine_name=top_wine, bottle_count=bottle_count,
+        ))
+    return result
+
+
+def get_flight(flight_id: str) -> Optional[dict]:
+    with _conn() as c:
+        row = c.execute(
+            "SELECT id, created_at, occasion, menu, cellar_leans, temperament, "
+            "ceiling, bottle_count, source_mode, wine_list_hash, profile_hash, response_json "
+            "FROM flights WHERE id = ?",
+            (flight_id,),
+        ).fetchone()
+    if not row:
+        return None
+    keys = [
+        "id", "created_at", "occasion", "menu", "cellar_leans", "temperament",
+        "ceiling", "bottle_count", "source_mode", "wine_list_hash", "profile_hash", "response_json",
+    ]
+    return dict(zip(keys, row))
+
+
+def delete_flight(flight_id: str) -> bool:
+    with _conn() as c:
+        c.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
+        return c.total_changes > 0

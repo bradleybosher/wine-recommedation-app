@@ -285,6 +285,71 @@ export type DrinkWindow = {
 };
 
 /**
+ * FlightRecord
+ *
+ * Full flight record returned by GET /history/{id}.
+ */
+export type FlightRecord = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Createdat
+     */
+    createdAt: number;
+    /**
+     * Occasion
+     */
+    occasion: string;
+    /**
+     * Menu
+     */
+    menu: string;
+    /**
+     * Sourcemode
+     */
+    sourceMode: string;
+    /**
+     * Bottlecount
+     */
+    bottleCount: number;
+    response: RecommendationResponse;
+};
+
+/**
+ * FlightSummary
+ *
+ * Lightweight row for GET /history list view.
+ */
+export type FlightSummary = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Createdat
+     */
+    createdAt: number;
+    /**
+     * Occasion
+     */
+    occasion: string;
+    /**
+     * Menu
+     */
+    menu: string;
+    /**
+     * Topwinename
+     */
+    topWineName: string;
+    /**
+     * Bottlecount
+     */
+    bottleCount: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -935,6 +1000,106 @@ export type GetVersionDebugVersionGetResponses = {
 };
 
 export type GetVersionDebugVersionGetResponse = GetVersionDebugVersionGetResponses[keyof GetVersionDebugVersionGetResponses];
+
+export type ListHistoryHistoryGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Limit
+         */
+        limit?: number;
+        /**
+         * Offset
+         */
+        offset?: number;
+    };
+    url: '/history';
+};
+
+export type ListHistoryHistoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListHistoryHistoryGetError = ListHistoryHistoryGetErrors[keyof ListHistoryHistoryGetErrors];
+
+export type ListHistoryHistoryGetResponses = {
+    /**
+     * Response List History History Get
+     *
+     * Successful Response
+     */
+    200: Array<FlightSummary>;
+};
+
+export type ListHistoryHistoryGetResponse = ListHistoryHistoryGetResponses[keyof ListHistoryHistoryGetResponses];
+
+export type DeleteHistoryHistoryFlightIdDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * Flight Id
+         */
+        flight_id: string;
+    };
+    query?: never;
+    url: '/history/{flight_id}';
+};
+
+export type DeleteHistoryHistoryFlightIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteHistoryHistoryFlightIdDeleteError = DeleteHistoryHistoryFlightIdDeleteErrors[keyof DeleteHistoryHistoryFlightIdDeleteErrors];
+
+export type DeleteHistoryHistoryFlightIdDeleteResponses = {
+    /**
+     * Response Delete History History  Flight Id  Delete
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type DeleteHistoryHistoryFlightIdDeleteResponse = DeleteHistoryHistoryFlightIdDeleteResponses[keyof DeleteHistoryHistoryFlightIdDeleteResponses];
+
+export type GetHistoryHistoryFlightIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Flight Id
+         */
+        flight_id: string;
+    };
+    query?: never;
+    url: '/history/{flight_id}';
+};
+
+export type GetHistoryHistoryFlightIdGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetHistoryHistoryFlightIdGetError = GetHistoryHistoryFlightIdGetErrors[keyof GetHistoryHistoryFlightIdGetErrors];
+
+export type GetHistoryHistoryFlightIdGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: FlightRecord;
+};
+
+export type GetHistoryHistoryFlightIdGetResponse = GetHistoryHistoryFlightIdGetResponses[keyof GetHistoryHistoryFlightIdGetResponses];
 
 export type UploadInventoryUploadInventoryPostData = {
     body: BodyUploadInventoryUploadInventoryPost;
