@@ -5,7 +5,7 @@ import { Loader2, Pencil } from 'lucide-react';
 import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import RuleDouble from '@/design/atoms/RuleDouble';
-import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 
 import {
   patchProfileProfilePatch,
@@ -46,10 +46,10 @@ const DEFAULT_MARKERS: TasteMarkers = { acidity: 3, tannin: 3, body: 3, oak: 3 }
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 11,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '6px 14px',
+  padding: `${space.xs} ${space.sm}`,
   background: 'transparent',
   color: INK,
   border: `1px solid ${INK}`,
@@ -70,11 +70,11 @@ const dangerBtn: React.CSSProperties = {
 
 const inputStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 13,
+  fontSize: typeScale.body,
   color: INK,
   background: 'transparent',
   border: `1px solid ${RULE}`,
-  padding: '6px 8px',
+  padding: `${space.xs} ${space.xs}`,
   width: '100%',
   outline: 'none',
 };
@@ -84,7 +84,7 @@ const sectionHeading = (label: string): React.ReactElement => (
     style={{
       fontFamily: "'Cormorant Garamond', serif",
       fontStyle: 'italic',
-      fontSize: 10,
+      fontSize: typeScale.micro,
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: OXBLOOD,
@@ -97,7 +97,7 @@ const sectionHeading = (label: string): React.ReactElement => (
 
 const tagStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   padding: '2px 8px',
   border: `1px solid ${RULE}`,
   color: INK_SOFT,
@@ -198,7 +198,7 @@ const MarkerEditor: React.FC<MarkerEditorProps> = ({ label, value, editing, onCh
       style={{
         width: 72,
         fontFamily: "'Cormorant Garamond', serif",
-        fontSize: 11,
+        fontSize: typeScale.label,
         letterSpacing: 1,
         textTransform: 'uppercase',
         color: INK_SOFT,
@@ -225,7 +225,7 @@ const MarkerEditor: React.FC<MarkerEditorProps> = ({ label, value, editing, onCh
           ...inputStyle,
           width: 96,
           padding: '2px 6px',
-          fontSize: 12,
+          fontSize: typeScale.label,
         }}
       >
         {[1, 2, 3, 4, 5].map((n) => (
@@ -240,7 +240,7 @@ const MarkerEditor: React.FC<MarkerEditorProps> = ({ label, value, editing, onCh
           width: 96,
           fontFamily: "'EB Garamond', serif",
           fontStyle: 'italic',
-          fontSize: 12,
+          fontSize: typeScale.label,
           color: INK_SOFT,
           textAlign: 'right',
           flexShrink: 0,
@@ -268,7 +268,7 @@ const FieldRow: React.FC<{
     <div
       style={{
         fontFamily: "'Cormorant Garamond', serif",
-        fontSize: 10,
+        fontSize: typeScale.micro,
         letterSpacing: 2,
         textTransform: 'uppercase',
         color: INK_SOFT,
@@ -392,15 +392,15 @@ const Profile: React.FC = () => {
               : 'Re-upload your CellarTracker exports'
           }
         />
-        <div style={{ padding: '0 44px 16px' }}>
+        <div style={{ padding: `0 0 ${space.sm}` }}>
           <RuleDouble color={INK} opacity={0.55} />
         </div>
-        <div style={{ padding: '8px 44px' }}>
+        <div style={{ padding: `${space.xs} 0` }}>
           <button style={ghostBtn} onClick={() => setStartOver('none')}>
             ← Back to your palate
           </button>
         </div>
-        <div style={{ padding: '16px 44px 64px' }}>
+        <div style={{ padding: `${space.sm} 0 ${space.xl}` }}>
           {startOver === 'seed' ? (
             <SeedBottlesScreen
               onSuccess={async () => {
@@ -430,11 +430,11 @@ const Profile: React.FC = () => {
     <PaperFrame>
       <Masthead dateline="Your palate, with a hand at the dial" />
 
-      <div style={{ padding: '0 44px 8px' }}>
+      <div style={{ padding: `0 0 ${space.xs}` }}>
         <RuleDouble color={INK} opacity={0.45} />
       </div>
 
-      <div style={{ padding: '12px 44px 64px', maxWidth: 880, margin: '0 auto' }}>
+      <div style={{ padding: `${space.sm} 0 ${space.xl}`, maxWidth: 880, margin: '0 auto' }}>
         {/* Top bar: back link + edit/save actions */}
         <div
           style={{
@@ -449,7 +449,7 @@ const Profile: React.FC = () => {
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK_SOFT,
               textDecoration: 'none',
             }}
@@ -489,7 +489,7 @@ const Profile: React.FC = () => {
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 12,
+            fontSize: typeScale.body,
             color: INK_SOFT,
             marginBottom: 4,
           }}
@@ -502,7 +502,7 @@ const Profile: React.FC = () => {
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK,
               borderTop: `1px solid ${RULE}`,
               borderBottom: `1px solid ${RULE}`,
@@ -518,7 +518,7 @@ const Profile: React.FC = () => {
           <div
             style={{
               fontFamily: "'EB Garamond', serif",
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: OXBLOOD,
               padding: '6px 10px',
               border: `1px solid ${OXBLOOD}`,
@@ -544,7 +544,7 @@ const Profile: React.FC = () => {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 13,
+                fontSize: typeScale.body,
                 color: INK_SOFT,
               }}
             >
@@ -567,9 +567,9 @@ const Profile: React.FC = () => {
                       style={{
                         fontFamily: "'EB Garamond', serif",
                         fontStyle: 'italic',
-                        fontSize: 15,
+                        fontSize: typeScale.bodyLg,
                         color: INK,
-                        lineHeight: 1.6,
+                        lineHeight: lineHeight.body,
                       }}
                     >
                       "{data.styleSummary}"
@@ -579,7 +579,7 @@ const Profile: React.FC = () => {
                       style={{
                         fontFamily: "'EB Garamond', serif",
                         fontStyle: 'italic',
-                        fontSize: 13,
+                        fontSize: typeScale.body,
                         color: INK_SOFT,
                         opacity: 0.6,
                       }}
@@ -618,7 +618,7 @@ const Profile: React.FC = () => {
                 style={{
                   fontFamily: "'EB Garamond', serif",
                   fontStyle: 'italic',
-                  fontSize: 11,
+                  fontSize: typeScale.label,
                   color: INK_SOFT,
                   marginTop: 12,
                   opacity: 0.6,
@@ -711,7 +711,7 @@ const Profile: React.FC = () => {
                               <span
                                 style={{
                                   fontFamily: "'Cormorant Garamond', serif",
-                                  fontSize: 11,
+                                  fontSize: typeScale.label,
                                   color: INK_SOFT,
                                   width: 16,
                                   flexShrink: 0,
@@ -719,7 +719,7 @@ const Profile: React.FC = () => {
                               >
                                 {i + 1}
                               </span>
-                              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>
+                              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>
                                 {v}
                               </span>
                             </li>
@@ -754,7 +754,7 @@ const Profile: React.FC = () => {
                               <span
                                 style={{
                                   fontFamily: "'Cormorant Garamond', serif",
-                                  fontSize: 11,
+                                  fontSize: typeScale.label,
                                   color: INK_SOFT,
                                   width: 16,
                                   flexShrink: 0,
@@ -762,7 +762,7 @@ const Profile: React.FC = () => {
                               >
                                 {i + 1}
                               </span>
-                              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>
+                              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>
                                 {r}
                               </span>
                             </li>
@@ -797,7 +797,7 @@ const Profile: React.FC = () => {
                     <div
                       style={{
                         fontFamily: "'Cormorant Garamond', serif",
-                        fontSize: 28,
+                        fontSize: typeScale.h1,
                         color: INK,
                         letterSpacing: -0.5,
                       }}
@@ -828,10 +828,10 @@ const Profile: React.FC = () => {
                 style={{
                   fontFamily: "'EB Garamond', serif",
                   fontStyle: 'italic',
-                  fontSize: 13,
+                  fontSize: typeScale.body,
                   color: INK_SOFT,
                   marginBottom: 12,
-                  lineHeight: 1.6,
+                  lineHeight: lineHeight.body,
                 }}
               >
                 Replace the underlying profile entirely. Re-running either intake clears any manual edits you've made above.
@@ -875,7 +875,7 @@ const CellarReuploadFlow: React.FC<{ onDone: () => void }> = ({ onDone }) => {
         style={{
           fontFamily: "'EB Garamond', serif",
           fontStyle: 'italic',
-          fontSize: 13,
+          fontSize: typeScale.body,
           color: INK_SOFT,
         }}
       >

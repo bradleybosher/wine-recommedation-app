@@ -1,5 +1,5 @@
 import type { WinePalette } from '@/design/tokens';
-import { DEFAULT_PALETTE } from '@/design/tokens';
+import { DEFAULT_PALETTE, typeScale } from '@/design/tokens';
 
 interface Props {
   bars: Record<string, number>;
@@ -19,8 +19,8 @@ export default function StructureBars({ bars, palette = DEFAULT_PALETTE, labels,
       {keys.map((k) => {
         const v = bars[k] ?? 0;
         return (
-          <div key={k} style={{ display: 'grid', gridTemplateColumns: '74px 1fr 18px', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 13, color: ink, opacity: 0.78, textTransform: 'lowercase' }}>
+          <div key={k} style={{ display: 'grid', gridTemplateColumns: 'minmax(70px, max-content) 1fr 22px', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: typeScale.label, color: ink, opacity: 0.85, textTransform: 'lowercase' }}>
               {k}
             </span>
             <svg viewBox="0 0 200 12" preserveAspectRatio="none" width="100%" height={compact ? 10 : 14}>
@@ -31,7 +31,7 @@ export default function StructureBars({ bars, palette = DEFAULT_PALETTE, labels,
               <rect x={0} y={4} width={v * 20} height={4} fill={accent} opacity={0.85} />
               <circle cx={v * 20} cy={6} r={3} fill={accent} stroke={paper} strokeWidth={1} />
             </svg>
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 12, color: ink, opacity: 0.6, textAlign: 'right' }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.label, color: ink, opacity: 0.7, textAlign: 'right' }}>
               {v}
             </span>
           </div>

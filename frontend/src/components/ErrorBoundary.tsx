@@ -1,6 +1,6 @@
 import { Component, ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { INK, INK_SOFT, PAPER, RULE, OXBLOOD } from "@/design/tokens";
+import { INK, INK_SOFT, PAPER, RULE, OXBLOOD, typeScale, lineHeight } from "@/design/tokens";
 
 interface Props {
   children: ReactNode;
@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 20,
+                fontSize: typeScale.h3,
                 color: INK,
                 marginBottom: 8,
               }}
@@ -70,10 +70,10 @@ export class ErrorBoundary extends Component<Props, State> {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 14,
+                fontSize: typeScale.body,
                 color: INK_SOFT,
                 marginBottom: 24,
-                lineHeight: 1.5,
+                lineHeight: lineHeight.body,
               }}
             >
               An unexpected error occurred. Please refresh the page to try again.
@@ -82,7 +82,7 @@ export class ErrorBoundary extends Component<Props, State> {
               onClick={() => window.location.reload()}
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 12,
+                fontSize: typeScale.label,
                 letterSpacing: 2,
                 textTransform: 'uppercase',
                 padding: '8px 18px',

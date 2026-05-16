@@ -5,27 +5,26 @@ import Masthead from '@/design/atoms/Masthead';
 import FlavorWheel from '@/design/atoms/FlavorWheel';
 import StructureBars from '@/design/atoms/StructureBars';
 import Bottle from '@/design/atoms/Bottle';
-import { INK, INK_SOFT, PAPER } from '@/design/tokens';
+import WineTypeLabel from '@/design/atoms/WineTypeLabel';
+import { INK, INK_SOFT, OXBLOOD, PAPER, lineHeight, space, typeScale } from '@/design/tokens';
 import { enrichWine } from '@/design/wineColor';
 import { useRecommendations } from '@/state/recommendationStore';
 import type { EnrichedWine } from '@/design/wineColor';
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '8px 14px',
+  padding: `${space.xs} ${space.sm}`,
   background: 'transparent',
-  color: PAPER,
-  border: `1px solid ${PAPER}`,
+  color: INK,
+  border: `1px solid ${INK}`,
   cursor: 'pointer',
-  opacity: 0.7,
 };
 
 function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }) {
   const eyebrow = side === 'left' ? 'À gauche' : 'À droite';
-  const isWhite = wine.color.glass.startsWith('#d') || wine.color.glass.startsWith('#c');
   const bottleShape = wine.appellation?.toLowerCase().includes('burgundy') ||
     wine.appellation?.toLowerCase().includes('bourgogne') ||
     wine.appellation?.toLowerCase().includes('chablis')
@@ -46,22 +45,22 @@ function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }
   return (
     <div
       style={{
-        padding: '22px 28px',
+        padding: `${space.md} ${space.md}`,
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: space.sm,
         position: 'relative',
         minHeight: 0,
       }}
     >
       {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: space.sm }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 10,
+              fontSize: typeScale.micro,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: wine.color.accent,
@@ -72,8 +71,8 @@ function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 28,
-              lineHeight: 1,
+              fontSize: typeScale.h1,
+              lineHeight: lineHeight.tight,
               color: INK,
               marginTop: 2,
               letterSpacing: -0.5,
@@ -85,15 +84,16 @@ function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK_SOFT,
               marginTop: 2,
             }}
           >
             {wine.producer} · {wine.vintage}
           </div>
+          <WineTypeLabel palette={wine.color} grape={wine.grape} align="left" style={{ marginTop: 4 }} />
         </div>
-        <div style={{ flexShrink: 0, marginLeft: 12 }}>
+        <div style={{ flexShrink: 0 }}>
           <Bottle palette={wine.color} shape={bottleShape} size={36} />
         </div>
       </div>
@@ -110,8 +110,8 @@ function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }
       <div
         style={{
           fontFamily: "'EB Garamond', serif",
-          fontSize: 12.5,
-          lineHeight: 1.55,
+          fontSize: typeScale.body,
+          lineHeight: lineHeight.body,
           color: INK,
         }}
       >
@@ -143,26 +143,28 @@ function WinePane({ wine, side }: { wine: EnrichedWine; side: 'left' | 'right' }
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'baseline',
+          flexWrap: 'wrap',
+          gap: space.xs,
         }}
       >
         <span
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontWeight: 500,
-            fontSize: 32,
-            color: wine.color.accent,
+            fontSize: typeScale.h2,
+            color: hasScore ? OXBLOOD : INK_SOFT,
           }}
         >
           {hasScore ? wine.critic.score : '—'}
           {wine.price && (
-            <span style={{ fontSize: 12, color: INK_SOFT, opacity: 0.7 }}> · ${wine.price}</span>
+            <span style={{ fontSize: typeScale.label, color: INK_SOFT, opacity: 0.7 }}> · ${wine.price}</span>
           )}
         </span>
         <span
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 12,
+            fontSize: typeScale.label,
             color: INK_SOFT,
           }}
         >
@@ -198,10 +200,10 @@ export default function Compare() {
         <Masthead small dateline="A comparative tasting · two bottles, one table" />
         <div
           style={{
-            padding: '60px 44px',
+            padding: `${space.xl} 0`,
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 16,
+            fontSize: typeScale.bodyLg,
             color: INK_SOFT,
             textAlign: 'center',
           }}
@@ -225,32 +227,30 @@ export default function Compare() {
     <PaperFrame>
       <Masthead small dateline="A comparative tasting · two bottles, one table" />
 
-      {/* Two-column body */}
+      {/* Two-column body — reflows to single column under 720px container width */}
       <div
+        className="compare-grid"
         style={{
+          containerType: 'inline-size',
           display: 'grid',
-          gridTemplateColumns: '1fr 1px 1fr',
-          flex: 1,
-          minHeight: 0,
-          paddingBottom: 130,
+          gridTemplateColumns: '1fr 1fr',
+          gap: space.md,
+          borderTop: `1px dotted ${INK}`,
+          borderBottom: `1px dotted ${INK}`,
+          marginTop: space.sm,
         }}
       >
         <WinePane wine={wineA} side="left" />
-
-        {/* Vertical hairline rule */}
-        <div style={{ background: INK, opacity: 0.4 }} />
-
         <WinePane wine={wineB} side="right" />
       </div>
 
       {/* Nav strip */}
       <div
         style={{
-          position: 'absolute',
-          left: 44,
-          bottom: 100,
           display: 'flex',
-          gap: 12,
+          gap: space.sm,
+          marginTop: space.md,
+          marginBottom: space.md,
         }}
       >
         <button style={ghostBtn} onClick={() => navigate('/flight')}>
@@ -261,20 +261,17 @@ export default function Compare() {
       {/* Verdict band */}
       <div
         style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          padding: '14px 40px 44px',
+          padding: `${space.md} ${space.md}`,
           background: INK,
           color: PAPER,
+          marginBottom: space.md,
         }}
       >
         <div
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 9,
+            fontSize: typeScale.micro,
             letterSpacing: 4,
             textTransform: 'uppercase',
             opacity: 0.7,
@@ -285,8 +282,8 @@ export default function Compare() {
         <div
           style={{
             fontFamily: "'Cormorant Garamond', serif",
-            fontSize: 18,
-            lineHeight: 1.35,
+            fontSize: typeScale.h3,
+            lineHeight: lineHeight.snug,
             marginTop: 4,
             fontStyle: 'italic',
           }}

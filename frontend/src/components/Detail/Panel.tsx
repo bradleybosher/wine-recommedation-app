@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { INK, INK_SOFT } from '@/design/tokens';
+import { INK, INK_SOFT, space, typeScale } from '@/design/tokens';
 
 interface PanelProps {
   title: string;
@@ -14,14 +14,14 @@ export default function Panel({ title, caption, children }: PanelProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '0 14px',
+        padding: `0 ${space.sm}`,
       }}
     >
       <div
         style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
-          fontSize: 11,
+          fontSize: typeScale.label,
           letterSpacing: 3,
           textTransform: 'uppercase',
           color: INK_SOFT,
@@ -33,9 +33,10 @@ export default function Panel({ title, caption, children }: PanelProps) {
       <div
         style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 22,
+          fontSize: typeScale.h3,
           color: INK,
           marginBottom: 14,
+          textAlign: 'center',
         }}
       >
         {title}

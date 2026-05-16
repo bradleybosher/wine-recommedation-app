@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FILE_SIZE_LIMITS, ALLOWED_MIME_TYPES } from './constants';
 import { Upload, FileText } from 'lucide-react';
-import { INK, INK_SOFT, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, RULE, typeScale } from '@/design/tokens';
 
 interface FileUploaderProps {
   onFileChange: (file: File | null, previewUrl: string, base64: string, errorMsg: string) => void;
@@ -119,8 +119,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
         <FileText style={{ width: 32, height: 32, color: INK_SOFT, marginBottom: 8 }} strokeWidth={1.5} />
-        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>{file.name}</div>
-        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, marginTop: 2 }}>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>{file.name}</div>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.label, color: INK_SOFT, marginTop: 2 }}>
           {getFileTypeDisplay(file)} · {Math.round(file.size / 1024)} KB
         </div>
       </div>
@@ -134,7 +134,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
         style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontStyle: 'italic',
-          fontSize: 10,
+          fontSize: typeScale.micro,
           letterSpacing: 3,
           textTransform: 'uppercase',
           color: INK_SOFT,
@@ -143,7 +143,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
       >
         Drop a file here or click to browse
       </div>
-      <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, opacity: 0.6 }}>
+      <div style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.label, color: INK_SOFT, opacity: 0.6 }}>
         JPG · PNG · PDF · TXT — max 10 MB
       </div>
     </>
@@ -154,7 +154,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
       <div
         style={{
           fontFamily: "'Cormorant Garamond', serif",
-          fontSize: 10,
+          fontSize: typeScale.micro,
           letterSpacing: 2,
           textTransform: 'uppercase',
           color: INK_SOFT,
@@ -184,12 +184,12 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileChange, file, preview
         </label>
       </div>
       {file && !error && (
-        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 12, color: INK_SOFT, marginTop: 6 }}>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.label, color: INK_SOFT, marginTop: 6 }}>
           {file.name} · {Math.round(file.size / 1024)} KB
         </div>
       )}
       {file && isImageFile(file) && !error && (
-        <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 12, color: INK_SOFT, marginTop: 2, opacity: 0.7 }}>
+        <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: typeScale.label, color: INK_SOFT, marginTop: 2, opacity: 0.7 }}>
           Photo uploads use OCR — crop out glare and ensure text is sharp.
         </div>
       )}

@@ -45,9 +45,9 @@ _MAX_ATTEMPTS = 3
 # Hex palette constants mirroring frontend tokens — used to derive WineColor server-side.
 _PALETTE_BRUNELLO = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
 _PALETTE_BAROLO   = WineColor(glass='#8a2a2e', tint='#f3dad4', ink='#3d1014', accent='#a83339')
-_PALETTE_CHABLIS  = WineColor(glass='#d9b743', tint='#f5ecc8', ink='#5a4612', accent='#b89826')
-_PALETTE_ROSE     = WineColor(glass='#d4607a', tint='#fce8ee', ink='#5a1020', accent='#b84068')
-_PALETTE_AMBER    = WineColor(glass='#c87a30', tint='#f5e0c0', ink='#4a2808', accent='#9a5c10')
+_PALETTE_CHABLIS  = WineColor(glass='#b8932a', tint='#f0e0a8', ink='#3d2e08', accent='#8a6e12')
+_PALETTE_ROSE     = WineColor(glass='#c44a6a', tint='#f7d8e0', ink='#3d0a18', accent='#962e52')
+_PALETTE_AMBER    = WineColor(glass='#a86420', tint='#eccfa0', ink='#3a1f05', accent='#7a4810')
 _PALETTE_DEFAULT  = WineColor(glass='#7d1f24', tint='#f4dcd3', ink='#3a0d10', accent='#9a2a30')
 
 

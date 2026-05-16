@@ -31,7 +31,8 @@
       "Bash(node /tmp/navigate.mjs)",
       "Bash(node -e ' *)",
       "Bash(cat > *)",
-      "Bash(cat)"
+      "Bash(cat)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx\\)$\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

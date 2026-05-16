@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FileUploader from './FileUploader';
 import { uploadInventoryUploadInventoryPost, getInventoryInventoryGet } from './client';
 import type { UploadInventoryResponse, InventoryResponse } from './client/types.gen';
-import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, space, typeScale } from '@/design/tokens';
 import { Loader2 } from 'lucide-react';
 
 interface UploadCellarInventoryScreenProps {
@@ -12,10 +12,10 @@ interface UploadCellarInventoryScreenProps {
 
 const submitBtn = (enabled: boolean): React.CSSProperties => ({
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 14,
+  fontSize: typeScale.bodyLg,
   letterSpacing: 3,
   textTransform: 'uppercase',
-  padding: '10px 22px',
+  padding: `${space.sm} ${space.md}`,
   background: enabled ? INK : 'transparent',
   color: enabled ? PAPER : INK,
   border: `1px solid ${INK}`,
@@ -30,10 +30,10 @@ const submitBtn = (enabled: boolean): React.CSSProperties => ({
 
 const skipBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '10px 18px',
+  padding: `${space.sm} ${space.md}`,
   background: 'transparent',
   color: INK_SOFT,
   border: `1px solid ${RULE}`,
@@ -123,7 +123,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 10,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: OXBLOOD,
@@ -135,7 +135,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
         <div
           style={{
             fontFamily: "'Cormorant Garamond', serif",
-            fontSize: 28,
+            fontSize: typeScale.h1,
             color: INK,
             letterSpacing: -0.3,
             marginBottom: 4,
@@ -148,7 +148,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK_SOFT,
               marginBottom: 16,
             }}
@@ -163,7 +163,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
               paddingTop: 12,
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK_SOFT,
             }}
           >
@@ -189,7 +189,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 10,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: OXBLOOD,
@@ -202,7 +202,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 14,
+            fontSize: typeScale.body,
             color: INK_SOFT,
           }}
         >
@@ -217,7 +217,7 @@ const UploadCellarInventoryScreen: React.FC<UploadCellarInventoryScreenProps> = 
             padding: '10px 16px',
             marginBottom: 16,
             fontFamily: "'EB Garamond', serif",
-            fontSize: 13,
+            fontSize: typeScale.body,
             color: OXBLOOD,
           }}
         >

@@ -5,7 +5,7 @@ import Masthead from '@/design/atoms/Masthead';
 import Fleuron from '@/design/atoms/Fleuron';
 import RuleDouble from '@/design/atoms/RuleDouble';
 import Field from '@/design/Field';
-import { INK, INK_SOFT, OXBLOOD, PAPER } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, lineHeight, space, typeScale } from '@/design/tokens';
 import { recommendRecommendPost } from '@/client';
 import type { RecommendationResponse } from '@/client/types.gen';
 
@@ -101,9 +101,10 @@ export default function Preferences() {
 
       <div
         style={{
-          padding: '12px 44px 0',
+          padding: `${space.xs} 0`,
           display: 'flex',
           justifyContent: 'flex-end',
+          gap: space.md,
         }}
       >
         <Link
@@ -111,14 +112,13 @@ export default function Preferences() {
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 11,
+            fontSize: typeScale.label,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: INK_SOFT,
             textDecoration: 'none',
             borderBottom: `1px solid ${INK_SOFT}`,
             paddingBottom: 1,
-            marginRight: 20,
           }}
         >
           Past flights
@@ -128,7 +128,7 @@ export default function Preferences() {
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 11,
+            fontSize: typeScale.label,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: INK_SOFT,
@@ -143,10 +143,10 @@ export default function Preferences() {
 
       <div
         style={{
-          padding: '24px 44px 200px',
+          padding: `${space.md} 0 ${space.lg}`,
           display: 'grid',
-          gridTemplateColumns: '1fr 1.4fr',
-          gap: 36,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: space.lg,
         }}
       >
         {/* Left column — editorial prompt */}
@@ -155,7 +155,7 @@ export default function Preferences() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 14,
+              fontSize: typeScale.bodyLg,
               color: INK_SOFT,
               marginBottom: 6,
             }}
@@ -165,8 +165,8 @@ export default function Preferences() {
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 44,
-              lineHeight: 0.96,
+              fontSize: typeScale.h1,
+              lineHeight: lineHeight.tight,
               letterSpacing: -1,
               color: INK,
             }}
@@ -179,8 +179,8 @@ export default function Preferences() {
             style={{
               marginTop: 14,
               fontFamily: "'EB Garamond', serif",
-              fontSize: 13,
-              lineHeight: 1.55,
+              fontSize: typeScale.body,
+              lineHeight: lineHeight.body,
               color: INK_SOFT,
               fontStyle: 'italic',
             }}
@@ -195,13 +195,13 @@ export default function Preferences() {
         </div>
 
         {/* Right column — form */}
-        <div style={{ display: 'grid', gap: 18 }}>
+        <div style={{ display: 'grid', gap: space.sm }}>
           {/* Source mode pill toggle */}
           <div>
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 9,
+                fontSize: typeScale.micro,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
                 color: INK_SOFT,
@@ -211,17 +211,17 @@ export default function Preferences() {
             >
               Source
             </div>
-            <div style={{ display: 'flex', border: `1px solid ${INK}`, width: 'fit-content' }}>
+            <div style={{ display: 'flex', border: `1px solid ${INK}`, width: 'fit-content', flexWrap: 'wrap' }}>
               {(['cellar', 'winelist'] as SourceMode[]).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setSourceMode(mode)}
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 11,
+                    fontSize: typeScale.label,
                     letterSpacing: 2,
                     textTransform: 'uppercase',
-                    padding: '6px 16px',
+                    padding: `${space.xs} ${space.sm}`,
                     background: sourceMode === mode ? INK : 'transparent',
                     color: sourceMode === mode ? PAPER : INK,
                     border: 'none',
@@ -243,7 +243,7 @@ export default function Preferences() {
               onClick={() => fileInputRef.current?.click()}
               style={{
                 border: `1px solid ${isDragging ? INK : 'rgba(31,18,10,0.3)'}`,
-                padding: '20px',
+                padding: space.md,
                 textAlign: 'center',
                 cursor: 'pointer',
                 background: isDragging ? 'rgba(31,18,10,0.03)' : 'transparent',
@@ -258,14 +258,14 @@ export default function Preferences() {
               />
               {wineListFile ? (
                 <div>
-                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 14, color: INK }}>
+                  <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.body, color: INK }}>
                     {wineListFile.name}
                   </div>
                   <div
                     style={{
                       fontFamily: "'EB Garamond', serif",
                       fontStyle: 'italic',
-                      fontSize: 11,
+                      fontSize: typeScale.label,
                       color: INK_SOFT,
                       marginTop: 4,
                     }}
@@ -279,7 +279,7 @@ export default function Preferences() {
                     style={{
                       fontFamily: "'Cormorant Garamond', serif",
                       fontStyle: 'italic',
-                      fontSize: 11,
+                      fontSize: typeScale.label,
                       letterSpacing: 1,
                       textTransform: 'uppercase',
                       color: INK_SOFT,
@@ -288,7 +288,7 @@ export default function Preferences() {
                   >
                     Drop a wine list here
                   </div>
-                  <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 11, color: INK_SOFT }}>
+                  <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: typeScale.label, color: INK_SOFT }}>
                     PDF, JPEG, or PNG · click to browse
                   </div>
                 </div>
@@ -306,7 +306,7 @@ export default function Preferences() {
             placeholder="Sangiovese · Nebbiolo · old-world reds"
           />
           <Field label="Temperament" value={temperament} onChange={setTemperament} placeholder="Adventurous, within reason" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: space.sm }}>
             <Field label="Ceiling" value={ceiling} onChange={setCeiling} small placeholder="$200" />
             <Field label="Bottles" value={bottles} onChange={setBottles} small placeholder="3 selections" />
           </div>
@@ -316,7 +316,7 @@ export default function Preferences() {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 12,
+                fontSize: typeScale.body,
                 color: OXBLOOD,
               }}
             >
@@ -329,7 +329,7 @@ export default function Preferences() {
               <div
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: 9,
+                  fontSize: typeScale.micro,
                   letterSpacing: 3,
                   textTransform: 'uppercase',
                   color: INK_SOFT,
@@ -344,10 +344,10 @@ export default function Preferences() {
                 onChange={(e) => setTestFixture(e.target.value)}
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: 11,
+                  fontSize: typeScale.label,
                   letterSpacing: 1,
                   border: `1px solid ${INK}`,
-                  padding: '6px 12px',
+                  padding: `${space.xs} ${space.sm}`,
                   background: 'transparent',
                   color: INK,
                   cursor: 'pointer',
@@ -364,8 +364,8 @@ export default function Preferences() {
             </div>
           )}
 
-          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 12, color: INK_SOFT }}>
+          <div style={{ marginTop: space.xs, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: typeScale.body, color: INK_SOFT }}>
               ✦ The editor will draw from your cellar on file
             </div>
             <button
@@ -373,10 +373,10 @@ export default function Preferences() {
               disabled={isLoading}
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 14,
+                fontSize: typeScale.bodyLg,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
-                padding: '10px 22px',
+                padding: `${space.sm} ${space.md}`,
                 background: INK,
                 color: PAPER,
                 border: 'none',
@@ -390,15 +390,15 @@ export default function Preferences() {
         </div>
       </div>
 
-      {/* Footer folio band */}
-      <div style={{ position: 'absolute', left: 44, right: 44, bottom: 56 }}>
+      {/* Footer folio band — inline so layout reflows with viewport */}
+      <div style={{ marginTop: space.lg, marginBottom: space.md }}>
         <RuleDouble color={INK} opacity={0.45} />
         <div
           style={{
             marginTop: 14,
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 18,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: space.sm,
           }}
         >
           {FOLIO.map(([n, t, s]) => (
@@ -406,7 +406,7 @@ export default function Preferences() {
               <div
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
-                  fontSize: 18,
+                  fontSize: typeScale.h3,
                   fontStyle: 'italic',
                   color: OXBLOOD,
                 }}
@@ -417,7 +417,7 @@ export default function Preferences() {
                 style={{
                   fontFamily: "'Cormorant Garamond', serif",
                   fontWeight: 500,
-                  fontSize: 15,
+                  fontSize: typeScale.bodyLg,
                   color: INK,
                   letterSpacing: 0.2,
                 }}
@@ -428,7 +428,7 @@ export default function Preferences() {
                 style={{
                   fontFamily: "'EB Garamond', serif",
                   fontStyle: 'italic',
-                  fontSize: 11,
+                  fontSize: typeScale.label,
                   color: INK_SOFT,
                   marginTop: 2,
                 }}

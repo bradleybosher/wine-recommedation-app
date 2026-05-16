@@ -10,16 +10,17 @@ import GlassPour from '@/design/atoms/GlassPour';
 import Bottle from '@/design/atoms/Bottle';
 import DrinkingWindow from '@/design/atoms/DrinkingWindow';
 import Panel from '@/components/Detail/Panel';
-import { INK, INK_SOFT, PAPER } from '@/design/tokens';
+import WineTypeLabel from '@/design/atoms/WineTypeLabel';
+import { INK, INK_SOFT, OXBLOOD, PAPER, lineHeight, space, typeScale } from '@/design/tokens';
 import { enrichWine } from '@/design/wineColor';
 import { useRecommendations } from '@/state/recommendationStore';
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '8px 14px',
+  padding: `${space.xs} ${space.sm}`,
   background: 'transparent',
   color: INK,
   border: `1px solid ${INK}`,
@@ -45,10 +46,10 @@ export default function Detail() {
         <Masthead dateline="Wine not found" />
         <div
           style={{
-            padding: '60px 44px',
+            padding: `${space.xl} 0`,
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 16,
+            fontSize: typeScale.bodyLg,
             color: INK_SOFT,
             textAlign: 'center',
           }}
@@ -75,10 +76,11 @@ export default function Detail() {
       {/* Band 1 — Hero */}
       <div
         style={{
-          padding: '26px 40px 14px',
+          containerType: 'inline-size',
+          padding: `${space.md} 0 ${space.sm}`,
           display: 'grid',
-          gridTemplateColumns: '1fr 1.6fr',
-          gap: 24,
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.6fr)',
+          gap: space.md,
           alignItems: 'start',
         }}
       >
@@ -95,6 +97,7 @@ export default function Detail() {
             <Bottle palette={wine.color} shape={shape} size={44} />
             <GlassPour palette={wine.color} size={80} fill={0.5} />
           </div>
+          <WineTypeLabel palette={wine.color} grape={wine.grape} style={{ marginTop: 6 }} />
         </div>
 
         {/* Right — editorial body */}
@@ -103,7 +106,7 @@ export default function Detail() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 10,
+              fontSize: typeScale.micro,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: accent,
@@ -116,8 +119,8 @@ export default function Detail() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontWeight: 500,
-              fontSize: 56,
-              lineHeight: 0.92,
+              fontSize: typeScale.display,
+              lineHeight: lineHeight.tight,
               color: INK,
               letterSpacing: -1,
               marginBottom: 8,
@@ -129,7 +132,7 @@ export default function Detail() {
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 20,
+              fontSize: typeScale.h3,
               color: INK_SOFT,
               marginBottom: 14,
             }}
@@ -141,8 +144,8 @@ export default function Detail() {
           <div
             style={{
               fontFamily: "'EB Garamond', serif",
-              fontSize: 13,
-              lineHeight: 1.55,
+              fontSize: typeScale.body,
+              lineHeight: lineHeight.body,
               color: INK,
             }}
           >
@@ -150,7 +153,7 @@ export default function Detail() {
               style={{
                 float: 'left',
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 56,
+                fontSize: typeScale.display,
                 lineHeight: 0.78,
                 color: accent,
                 fontStyle: 'italic',
@@ -166,17 +169,19 @@ export default function Detail() {
       </div>
 
       {/* RuleDouble divider */}
-      <div style={{ padding: '10px 40px 0' }}>
+      <div style={{ padding: `${space.sm} 0 0` }}>
         <RuleDouble color={INK} opacity={0.45} />
       </div>
 
       {/* Band 2 — Triptych */}
       <div
+        className="detail-panels"
         style={{
-          padding: '20px 40px 24px',
+          containerType: 'inline-size',
+          padding: `${space.md} 0 ${space.md}`,
           display: 'grid',
-          gridTemplateColumns: '1fr 1px 1fr 1px 1fr',
-          gap: 0,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: space.md,
         }}
       >
         {/* FlavorWheel panel */}
@@ -187,7 +192,7 @@ export default function Detail() {
               marginTop: 10,
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 12,
+              fontSize: typeScale.label,
               color: INK_SOFT,
               textAlign: 'center',
               maxWidth: 180,
@@ -197,12 +202,9 @@ export default function Detail() {
           </div>
         </Panel>
 
-        {/* Vertical rule */}
-        <div style={{ background: INK, opacity: 0.15 }} />
-
         {/* StructureBars panel */}
         <Panel title="Structure" caption="Palate">
-          <div style={{ width: '100%', padding: '0 14px' }}>
+          <div style={{ width: '100%', padding: `0 ${space.sm}` }}>
             <StructureBars
               bars={{
                 tannin: wine.bars.tannin,
@@ -215,9 +217,6 @@ export default function Detail() {
             />
           </div>
         </Panel>
-
-        {/* Vertical rule */}
-        <div style={{ background: INK, opacity: 0.15 }} />
 
         {/* RegionMap panel */}
         <Panel title={wine.region ?? wine.country} caption="Terroir">
@@ -233,7 +232,7 @@ export default function Detail() {
               marginTop: 8,
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.label,
               color: INK_SOFT,
               textAlign: 'center',
             }}
@@ -244,16 +243,16 @@ export default function Detail() {
       </div>
 
       {/* Band 3 — Footer */}
-      <div style={{ padding: '0 40px 6px' }}>
+      <div style={{ padding: `0 0 ${space.xs}` }}>
         <RuleDouble color={INK} opacity={0.45} />
       </div>
 
       <div
         style={{
-          padding: '14px 40px 20px',
+          padding: `${space.sm} 0 ${space.md}`,
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr',
-          gap: 24,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: space.md,
           alignItems: 'start',
         }}
       >
@@ -263,7 +262,7 @@ export default function Detail() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 10,
+              fontSize: typeScale.micro,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: INK_SOFT,
@@ -277,15 +276,15 @@ export default function Detail() {
               key={i}
               style={{
                 fontFamily: "'EB Garamond', serif",
-                fontSize: 13,
+                fontSize: typeScale.body,
                 color: INK,
-                lineHeight: 1.5,
+                lineHeight: lineHeight.body,
                 display: 'flex',
                 gap: 6,
                 alignItems: 'baseline',
               }}
             >
-              <span style={{ color: accent, fontSize: 10 }}>✦</span>
+              <span style={{ color: accent, fontSize: typeScale.micro }}>✦</span>
               {p}
             </div>
           ))}
@@ -297,7 +296,7 @@ export default function Detail() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 10,
+              fontSize: typeScale.micro,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: INK_SOFT,
@@ -315,7 +314,7 @@ export default function Detail() {
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 10,
+              fontSize: typeScale.micro,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: INK_SOFT,
@@ -330,22 +329,22 @@ export default function Detail() {
                 fontFamily: "'Cormorant Garamond', serif",
                 fontStyle: 'italic',
                 fontWeight: 500,
-                fontSize: 56,
-                color: accent,
-                lineHeight: 1,
+                fontSize: typeScale.display,
+                color: OXBLOOD,
+                lineHeight: lineHeight.tight,
               }}
             >
               {wine.critic.score}
-              <span style={{ fontSize: 18, opacity: 0.7 }}>/100</span>
+              <span style={{ fontSize: typeScale.h3, opacity: 0.7, color: INK_SOFT }}>/100</span>
             </div>
           ) : (
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 28,
+                fontSize: typeScale.h2,
                 color: INK_SOFT,
-                lineHeight: 1,
+                lineHeight: lineHeight.tight,
               }}
             >
               N / R
@@ -354,7 +353,7 @@ export default function Detail() {
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 14,
+              fontSize: typeScale.body,
               color: INK,
               marginTop: 4,
             }}
@@ -369,10 +368,12 @@ export default function Detail() {
       {/* Nav strip */}
       <div
         style={{
-          padding: '0 40px 28px',
+          padding: `0 0 ${space.lg}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
+          gap: space.sm,
+          flexWrap: 'wrap',
         }}
       >
         <button style={ghostBtn} onClick={() => navigate('/flight')}>
@@ -382,7 +383,7 @@ export default function Detail() {
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 11,
+            fontSize: typeScale.label,
             color: INK_SOFT,
           }}
         >

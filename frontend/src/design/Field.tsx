@@ -1,4 +1,4 @@
-import { INK, INK_SOFT, OXBLOOD } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, typeScale } from '@/design/tokens';
 
 interface Props {
   label: string;
@@ -12,7 +12,7 @@ interface Props {
 export default function Field({ label, value, small = false, inkAccent = false, onChange, placeholder }: Props) {
   const valueStyle: React.CSSProperties = {
     fontFamily: "'Cormorant Garamond', serif",
-    fontSize: small ? 18 : 22,
+    fontSize: small ? typeScale.h3 : typeScale.h2,
     color: inkAccent ? OXBLOOD : INK,
     fontStyle: inkAccent ? 'italic' : 'normal',
     borderBottom: `1px solid ${INK}`,
@@ -23,7 +23,7 @@ export default function Field({ label, value, small = false, inkAccent = false, 
     <div style={{ fontFamily: "'Cormorant Garamond', serif" }}>
       <div
         style={{
-          fontSize: 9,
+          fontSize: typeScale.micro,
           letterSpacing: 3,
           textTransform: 'uppercase' as const,
           color: INK_SOFT,

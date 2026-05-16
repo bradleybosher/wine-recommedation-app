@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { profileSummaryProfileSummaryGet } from '@/client';
 import type { ProfileSummaryResponse, TasteMarkers } from '@/client/types.gen';
-import { INK, INK_SOFT, OXBLOOD, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, RULE, typeScale, lineHeight } from '@/design/tokens';
 import { Loader2 } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -35,7 +35,7 @@ const MarkerBar: React.FC<MarkerBarProps> = ({ label, value }) => (
       style={{
         width: 72,
         fontFamily: "'Cormorant Garamond', serif",
-        fontSize: 11,
+        fontSize: typeScale.micro,
         letterSpacing: 1,
         textTransform: 'uppercase',
         color: INK_SOFT,
@@ -66,7 +66,7 @@ const MarkerBar: React.FC<MarkerBarProps> = ({ label, value }) => (
         width: 64,
         fontFamily: "'EB Garamond', serif",
         fontStyle: 'italic',
-        fontSize: 12,
+        fontSize: typeScale.label,
         color: INK_SOFT,
         textAlign: 'right',
         flexShrink: 0,
@@ -82,7 +82,7 @@ const sectionHead = (label: string): React.ReactElement => (
     style={{
       fontFamily: "'Cormorant Garamond', serif",
       fontStyle: 'italic',
-      fontSize: 10,
+      fontSize: typeScale.micro,
       letterSpacing: 3,
       textTransform: 'uppercase',
       color: OXBLOOD,
@@ -95,7 +95,7 @@ const sectionHead = (label: string): React.ReactElement => (
 
 const tagStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   padding: '2px 8px',
   border: `1px solid ${RULE}`,
   color: INK_SOFT,
@@ -136,7 +136,7 @@ const ProfileTab: React.FC = () => {
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 13,
+            fontSize: typeScale.body,
             color: INK_SOFT,
           }}
         >
@@ -153,7 +153,7 @@ const ProfileTab: React.FC = () => {
           border: `1px solid ${RULE}`,
           padding: '10px 16px',
           fontFamily: "'EB Garamond', serif",
-          fontSize: 13,
+          fontSize: typeScale.body,
           color: OXBLOOD,
         }}
       >
@@ -195,9 +195,9 @@ const ProfileTab: React.FC = () => {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 15,
+                fontSize: typeScale.bodyLg,
                 color: INK,
-                lineHeight: 1.6,
+                lineHeight: lineHeight.body,
               }}
             >
               "{data.styleSummary}"
@@ -207,7 +207,7 @@ const ProfileTab: React.FC = () => {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 13,
+                fontSize: typeScale.body,
                 color: INK_SOFT,
                 opacity: 0.6,
               }}
@@ -240,7 +240,7 @@ const ProfileTab: React.FC = () => {
                   <div
                     style={{
                       fontFamily: "'Cormorant Garamond', serif",
-                      fontSize: 28,
+                      fontSize: typeScale.h1,
                       color: INK,
                       letterSpacing: -0.5,
                     }}
@@ -250,7 +250,7 @@ const ProfileTab: React.FC = () => {
                   <div
                     style={{
                       fontFamily: "'Cormorant Garamond', serif",
-                      fontSize: 10,
+                      fontSize: typeScale.micro,
                       letterSpacing: 2,
                       textTransform: 'uppercase',
                       color: INK_SOFT,
@@ -280,7 +280,7 @@ const ProfileTab: React.FC = () => {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 11,
+                fontSize: typeScale.micro,
                 color: INK_SOFT,
                 marginTop: 12,
                 opacity: 0.5,
@@ -320,7 +320,7 @@ const ProfileTab: React.FC = () => {
       {/* ── Top Varietals & Regions ──────────────────────────────────────── */}
       {((data.topVarietals && data.topVarietals.length > 0) || (data.topRegions && data.topRegions.length > 0)) &&
         section(
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 24 }}>
             {data.topVarietals && data.topVarietals.length > 0 && (
               <div>
                 {sectionHead('Top Varietals')}
@@ -333,7 +333,7 @@ const ProfileTab: React.FC = () => {
                       <span
                         style={{
                           fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: 11,
+                          fontSize: typeScale.label,
                           color: INK_SOFT,
                           width: 16,
                           flexShrink: 0,
@@ -341,7 +341,7 @@ const ProfileTab: React.FC = () => {
                       >
                         {i + 1}
                       </span>
-                      <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>{v}</span>
+                      <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>{v}</span>
                     </li>
                   ))}
                 </ol>
@@ -360,7 +360,7 @@ const ProfileTab: React.FC = () => {
                       <span
                         style={{
                           fontFamily: "'Cormorant Garamond', serif",
-                          fontSize: 11,
+                          fontSize: typeScale.label,
                           color: INK_SOFT,
                           width: 16,
                           flexShrink: 0,
@@ -368,7 +368,7 @@ const ProfileTab: React.FC = () => {
                       >
                         {i + 1}
                       </span>
-                      <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>{r}</span>
+                      <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>{r}</span>
                     </li>
                   ))}
                 </ol>
@@ -385,7 +385,7 @@ const ProfileTab: React.FC = () => {
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 28,
+                fontSize: typeScale.h1,
                 color: INK,
                 letterSpacing: -0.5,
               }}

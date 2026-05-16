@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import FileUploader from './FileUploader';
 import { uploadProfileUploadProfilePost } from './client';
 import type { UploadProfileResponse } from './client/types.gen';
-import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, space, typeScale } from '@/design/tokens';
 import { Loader2 } from 'lucide-react';
 
 interface UploadTastingHistoryScreenProps {
@@ -12,10 +12,10 @@ interface UploadTastingHistoryScreenProps {
 
 const submitBtn = (enabled: boolean): React.CSSProperties => ({
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 14,
+  fontSize: typeScale.bodyLg,
   letterSpacing: 3,
   textTransform: 'uppercase',
-  padding: '10px 22px',
+  padding: `${space.sm} ${space.md}`,
   background: enabled ? INK : 'transparent',
   color: enabled ? PAPER : INK,
   border: `1px solid ${INK}`,
@@ -30,10 +30,10 @@ const submitBtn = (enabled: boolean): React.CSSProperties => ({
 
 const skipBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '10px 18px',
+  padding: `${space.sm} ${space.md}`,
   background: 'transparent',
   color: INK_SOFT,
   border: `1px solid ${RULE}`,
@@ -42,7 +42,7 @@ const skipBtn: React.CSSProperties = {
 
 const tagStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   padding: '2px 8px',
   border: `1px solid ${RULE}`,
   color: INK_SOFT,
@@ -50,7 +50,7 @@ const tagStyle: React.CSSProperties = {
 
 const sectionLabel: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 10,
+  fontSize: typeScale.micro,
   letterSpacing: 2,
   textTransform: 'uppercase',
   color: INK_SOFT,
@@ -125,7 +125,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 10,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: OXBLOOD,
@@ -184,7 +184,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
             {profile.budgetMin != null && profile.budgetMax != null && (
               <div style={{ borderTop: `1px solid ${RULE}`, paddingTop: 12 }}>
                 <div style={sectionLabel}>Typical Spend</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 22, color: INK }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.h2, color: INK }}>
                   ${profile.budgetMin} – ${profile.budgetMax}
                 </div>
               </div>
@@ -195,7 +195,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 13,
+              fontSize: typeScale.body,
               color: INK_SOFT,
               marginBottom: 20,
               borderTop: `1px solid ${RULE}`,
@@ -227,7 +227,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 10,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: OXBLOOD,
@@ -240,7 +240,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 14,
+            fontSize: typeScale.body,
             color: INK_SOFT,
           }}
         >
@@ -255,7 +255,7 @@ const UploadTastingHistoryScreen: React.FC<UploadTastingHistoryScreenProps> = ({
             padding: '10px 16px',
             marginBottom: 16,
             fontFamily: "'EB Garamond', serif",
-            fontSize: 13,
+            fontSize: typeScale.body,
             color: OXBLOOD,
           }}
         >

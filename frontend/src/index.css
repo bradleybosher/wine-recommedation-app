@@ -33,3 +33,29 @@ html, body {
 #root {
   min-height: 100%;
 }
+
+/* Responsive reflow for grid layouts that opt-in via containerType: 'inline-size'. */
+@container (max-width: 640px) {
+  .flight-entry-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .flight-entry-score {
+    text-align: left !important;
+    justify-items: start !important;
+  }
+  .flight-entry-score > div:last-child {
+    justify-content: flex-start !important;
+  }
+}
+
+@container (max-width: 720px) {
+  .compare-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@container (max-width: 560px) {
+  .detail-panels {
+    grid-template-columns: 1fr !important;
+  }
+}

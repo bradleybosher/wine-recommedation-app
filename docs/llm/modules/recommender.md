@@ -44,10 +44,12 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 
 Keyword-match on `grape + region + wine_name` to select a palette. Mirrors the frontend's `derivePalette` logic so visual output is consistent even before full type sync.
 
-Palettes (module-level constants):
-- `_PALETTE_BRUNELLO` — Sangiovese / Chianti / Brunello / Montalcino
-- `_PALETTE_BAROLO` — Nebbiolo / Barolo / Barbaresco / Piedmont / Piemonte
-- `_PALETTE_CHABLIS` — Chardonnay / Chablis / Bourgogne Blanc; also generic whites (Blanc, Riesling, Sauvignon Blanc, Pinot Gris/Grigio, Viognier, Marsanne, Roussanne, Grüner)
+Palettes (module-level constants — glass hex values mirror `frontend/src/design/tokens.ts`):
+- `_PALETTE_BRUNELLO` — Sangiovese / Chianti / Brunello / Montalcino (`glass='#7d1f24'`)
+- `_PALETTE_BAROLO` — Nebbiolo / Barolo / Barbaresco / Piedmont / Piemonte (`glass='#8a2a2e'`)
+- `_PALETTE_CHABLIS` — Chardonnay / Chablis / Bourgogne Blanc; also generic whites (`glass='#b8932a'` — darkened for luminance contrast on cream paper)
+- `_PALETTE_ROSE` — Rosé wines (`glass='#c44a6a'` — deepened for luminance separation from paper background)
+- `_PALETTE_AMBER` — Orange/amber wines (`glass='#a86420'` — shifted hue for deuteranope legibility)
 - `_PALETTE_DEFAULT` — everything else (same hex values as `_PALETTE_BRUNELLO`)
 
 `color` is intentionally **excluded from the Claude tool schema** to avoid hallucinated hex codes.

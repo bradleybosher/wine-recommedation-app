@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { seedProfileSeedProfilePost } from './client';
 import type { SeedBottle, UploadProfileResponse } from './client/types.gen';
-import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, space, typeScale } from '@/design/tokens';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface SeedBottlesScreenProps {
@@ -22,10 +22,10 @@ const newRow = (sentiment: 'loved' | 'disliked'): Row => ({
 
 const submitBtn = (enabled: boolean): React.CSSProperties => ({
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 14,
+  fontSize: typeScale.bodyLg,
   letterSpacing: 3,
   textTransform: 'uppercase',
-  padding: '10px 22px',
+  padding: `${space.sm} ${space.md}`,
   background: enabled ? INK : 'transparent',
   color: enabled ? PAPER : INK,
   border: `1px solid ${INK}`,
@@ -40,7 +40,7 @@ const submitBtn = (enabled: boolean): React.CSSProperties => ({
 
 const inputStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 14,
+  fontSize: typeScale.body,
   padding: '6px 10px',
   border: `1px solid ${RULE}`,
   background: 'transparent',
@@ -52,7 +52,7 @@ const inputStyle: React.CSSProperties = {
 
 const tagStyle: React.CSSProperties = {
   fontFamily: "'EB Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   padding: '2px 8px',
   border: `1px solid ${RULE}`,
   color: INK_SOFT,
@@ -135,7 +135,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 10,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: OXBLOOD,
@@ -154,17 +154,17 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
               paddingBottom: 10,
             }}
           >
-            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.micro, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT }}>
               Source
             </span>
-            <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color: INK_SOFT, fontStyle: 'italic' }}>
+            <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK_SOFT, fontStyle: 'italic' }}>
               {completedLoved.length} seed wine{completedLoved.length === 1 ? '' : 's'} · {conf} confidence
             </span>
           </div>
 
           {profile?.preferredStyles && profile.preferredStyles.length > 0 && (
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Style</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.micro, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Style</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {profile.preferredStyles.map((s, i) => (
                   <span key={i} style={tagStyle}>{s}</span>
@@ -175,7 +175,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
 
           {profile?.preferredGrapes && profile.preferredGrapes.length > 0 && (
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Grapes</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.micro, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Grapes</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {profile.preferredGrapes.map((g, i) => (
                   <span key={i} style={tagStyle}>{g}</span>
@@ -186,7 +186,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
 
           {profile?.preferredRegions && profile.preferredRegions.length > 0 && (
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Regions</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.micro, letterSpacing: 2, textTransform: 'uppercase', color: INK_SOFT, marginBottom: 6 }}>Regions</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {profile.preferredRegions.map((r, i) => (
                   <span key={i} style={tagStyle}>{r}</span>
@@ -197,7 +197,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
 
           {profile?.avoidedStyles && profile.avoidedStyles.length > 0 && (
             <div>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: OXBLOOD, marginBottom: 6 }}>Avoided</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: typeScale.micro, letterSpacing: 2, textTransform: 'uppercase', color: OXBLOOD, marginBottom: 6 }}>Avoided</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {profile.avoidedStyles.map((s, i) => (
                   <span key={i} style={{ ...tagStyle, borderColor: OXBLOOD, color: OXBLOOD }}>{s}</span>
@@ -274,7 +274,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
 
   const addBtn = (disabled: boolean): React.CSSProperties => ({
     fontFamily: "'Cormorant Garamond', serif",
-    fontSize: 11,
+    fontSize: typeScale.micro,
     letterSpacing: 2,
     textTransform: 'uppercase',
     padding: '4px 10px',
@@ -297,7 +297,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
             padding: '10px 16px',
             marginBottom: 16,
             fontFamily: "'EB Garamond', serif",
-            fontSize: 13,
+            fontSize: typeScale.body,
             color: OXBLOOD,
           }}
         >
@@ -321,7 +321,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 10,
+                fontSize: typeScale.micro,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
                 color: OXBLOOD,
@@ -359,7 +359,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 10,
+                fontSize: typeScale.micro,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
                 color: INK_SOFT,
@@ -383,7 +383,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 13,
+                fontSize: typeScale.body,
                 color: INK_SOFT,
                 opacity: 0.6,
               }}
@@ -419,7 +419,7 @@ const SeedBottlesScreen: React.FC<SeedBottlesScreenProps> = ({ onSuccess, onBack
             style={{
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 12,
+              fontSize: typeScale.label,
               color: INK_SOFT,
               textAlign: 'center',
               opacity: 0.7,

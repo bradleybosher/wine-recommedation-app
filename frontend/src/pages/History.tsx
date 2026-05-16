@@ -3,17 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import RuleDouble from '@/design/atoms/RuleDouble';
-import { INK, INK_SOFT, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, RULE, space, typeScale } from '@/design/tokens';
 import { listHistoryHistoryGet, getHistoryHistoryFlightIdGet } from '@/client';
 import { useRecommendations } from '@/state/recommendationStore';
 import type { FlightSummary } from '@/client/types.gen';
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 11,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '6px 12px',
+  padding: `${space.xs} ${space.sm}`,
   background: 'transparent',
   color: INK,
   border: `1px solid ${INK}`,
@@ -57,13 +57,13 @@ export default function History() {
       <Masthead dateline={`Tasting Notes Archive · ${today}`} />
 
       {/* Nav row */}
-      <div style={{ padding: '10px 44px 0', display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ paddingBottom: space.xs, display: 'flex', justifyContent: 'flex-end' }}>
         <Link
           to="/preferences"
           style={{
             fontFamily: "'Cormorant Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 11,
+            fontSize: typeScale.micro,
             letterSpacing: 3,
             textTransform: 'uppercase',
             color: INK_SOFT,
@@ -77,12 +77,12 @@ export default function History() {
       </div>
 
       {/* Header */}
-      <div style={{ padding: '20px 44px 4px' }}>
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 26, color: INK, lineHeight: 1 }}>
+      <div style={{ paddingBottom: 4 }}>
+        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: typeScale.h2, color: INK, lineHeight: 1 }}>
           Past Flights
         </div>
       </div>
-      <div style={{ padding: '10px 44px 16px' }}>
+      <div style={{ padding: `${space.xs} 0 ${space.md}` }}>
         <RuleDouble color={INK} opacity={0.45} />
       </div>
 
@@ -90,7 +90,7 @@ export default function History() {
       {!loading && flights.length > 0 && (
         <div
           style={{
-            padding: '0 44px 8px',
+            paddingBottom: space.xs,
             display: 'grid',
             gridTemplateColumns: '72px 1fr 1fr 96px',
             gap: 16,
@@ -102,7 +102,7 @@ export default function History() {
               key={h}
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 9,
+                fontSize: typeScale.micro,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
                 color: INK_SOFT,
@@ -115,15 +115,15 @@ export default function History() {
       )}
 
       {/* Body */}
-      <div style={{ padding: '0 44px 80px' }}>
+      <div style={{ paddingBottom: space.xl }}>
         {loading && (
-          <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: 15, color: INK_SOFT, paddingTop: 40, textAlign: 'center' }}>
+          <div style={{ fontFamily: "'EB Garamond', serif", fontStyle: 'italic', fontSize: typeScale.bodyLg, color: INK_SOFT, paddingTop: 40, textAlign: 'center' }}>
             Loading…
           </div>
         )}
 
         {!loading && error && (
-          <div style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: '#c0392b', paddingTop: 24 }}>
+          <div style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: OXBLOOD, paddingTop: 24 }}>
             {error}
           </div>
         )}
@@ -135,7 +135,7 @@ export default function History() {
               textAlign: 'center',
               fontFamily: "'EB Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 16,
+              fontSize: typeScale.bodyLg,
               color: INK_SOFT,
             }}
           >
@@ -166,16 +166,16 @@ export default function History() {
                 borderBottom: isLast ? 'none' : `1px solid ${RULE}`,
               }}
             >
-              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 13, color: INK_SOFT }}>
+              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK_SOFT }}>
                 {dateStr}
               </span>
-              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: 14, color: INK }}>
+              <span style={{ fontFamily: "'EB Garamond', serif", fontSize: typeScale.body, color: INK }}>
                 {flight.occasion || '—'}
                 {flight.menu && (
-                  <span style={{ color: INK_SOFT, fontSize: 12 }}>{' · '}{flight.menu}</span>
+                  <span style={{ color: INK_SOFT, fontSize: typeScale.label }}>{' · '}{flight.menu}</span>
                 )}
               </span>
-              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: 15, color: INK }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: typeScale.bodyLg, color: INK }}>
                 {flight.topWineName}
               </span>
               <button

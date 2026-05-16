@@ -7,7 +7,7 @@ import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import RuleDouble from '@/design/atoms/RuleDouble';
 import Fleuron from '@/design/atoms/Fleuron';
-import { INK, INK_SOFT, OXBLOOD, PAPER, RULE } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 
 interface UploadFlowProps {
   onComplete: () => void;
@@ -18,10 +18,10 @@ type CtStep = 'inventory' | 'profile' | 'complete';
 
 const primaryBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 14,
+  fontSize: typeScale.bodyLg,
   letterSpacing: 3,
   textTransform: 'uppercase',
-  padding: '10px 22px',
+  padding: `${space.sm} ${space.md}`,
   background: INK,
   color: PAPER,
   border: `1px solid ${INK}`,
@@ -31,10 +31,10 @@ const primaryBtn: React.CSSProperties = {
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
-  fontSize: 12,
+  fontSize: typeScale.label,
   letterSpacing: 2,
   textTransform: 'uppercase',
-  padding: '8px 14px',
+  padding: `${space.xs} ${space.sm}`,
   background: 'transparent',
   color: INK,
   border: `1px solid ${INK}`,
@@ -78,7 +78,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
         <Masthead dateline="Your taste profile is ready" />
         <div
           style={{
-            padding: '48px 44px',
+            padding: `${space.xl} 0`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -91,7 +91,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
             <div
               style={{
                 fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 28,
+                fontSize: typeScale.h1,
                 color: INK,
                 letterSpacing: -0.5,
                 marginBottom: 12,
@@ -103,9 +103,9 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
               style={{
                 fontFamily: "'EB Garamond', serif",
                 fontStyle: 'italic',
-                fontSize: 15,
+                fontSize: typeScale.bodyLg,
                 color: INK_SOFT,
-                lineHeight: 1.6,
+                lineHeight: lineHeight.body,
               }}
             >
               {isSeed
@@ -130,7 +130,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
               <div
                 style={{
                   fontFamily: "'EB Garamond', serif",
-                  fontSize: 13,
+                  fontSize: typeScale.body,
                   color: INK_SOFT,
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -144,7 +144,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
               <div
                 style={{
                   fontFamily: "'EB Garamond', serif",
-                  fontSize: 13,
+                  fontSize: typeScale.body,
                   color: INK_SOFT,
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -158,7 +158,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
               <div
                 style={{
                   fontFamily: "'EB Garamond', serif",
-                  fontSize: 13,
+                  fontSize: typeScale.body,
                   color: INK_SOFT,
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -183,16 +183,16 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
       <PaperFrame>
         <Masthead dateline="Establish your cellar — two pathways" />
 
-        <div style={{ padding: '0 44px 16px' }}>
+        <div style={{ padding: `0 0 ${space.sm}` }}>
           <RuleDouble color={INK} opacity={0.55} />
         </div>
 
-        <div style={{ padding: '20px 44px', maxWidth: 700, margin: '0 auto' }}>
+        <div style={{ padding: `${space.md} 0`, maxWidth: 700, margin: '0 auto' }}>
           <div
             style={{
               fontFamily: "'Cormorant Garamond', serif",
               fontStyle: 'italic',
-              fontSize: 11,
+              fontSize: typeScale.label,
               letterSpacing: 3,
               textTransform: 'uppercase',
               color: OXBLOOD,
@@ -202,7 +202,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
             Choose your path
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: space.md }}>
             {/* CellarTracker card */}
             <button
               onClick={() => setPathway('cellartracker')}
@@ -222,7 +222,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
-                    fontSize: 10,
+                    fontSize: typeScale.micro,
                     letterSpacing: 3,
                     textTransform: 'uppercase',
                     color: OXBLOOD,
@@ -234,7 +234,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                 <div
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 22,
+                    fontSize: typeScale.h2,
                     color: INK,
                     letterSpacing: -0.3,
                     marginBottom: 10,
@@ -246,9 +246,9 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                   style={{
                     fontFamily: "'EB Garamond', serif",
                     fontStyle: 'italic',
-                    fontSize: 13,
+                    fontSize: typeScale.body,
                     color: INK_SOFT,
-                    lineHeight: 1.6,
+                    lineHeight: lineHeight.body,
                   }}
                 >
                   Upload your cellar inventory and tasting history TSV exports.
@@ -275,7 +275,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
                     fontStyle: 'italic',
-                    fontSize: 10,
+                    fontSize: typeScale.micro,
                     letterSpacing: 3,
                     textTransform: 'uppercase',
                     color: INK_SOFT,
@@ -288,7 +288,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                 <div
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 22,
+                    fontSize: typeScale.h2,
                     color: INK,
                     letterSpacing: -0.3,
                     marginBottom: 10,
@@ -300,9 +300,9 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                   style={{
                     fontFamily: "'EB Garamond', serif",
                     fontStyle: 'italic',
-                    fontSize: 13,
+                    fontSize: typeScale.body,
                     color: INK_SOFT,
-                    lineHeight: 1.6,
+                    lineHeight: lineHeight.body,
                   }}
                 >
                   Tell us 3–7 wines you have loved (and a few you disliked).
@@ -320,15 +320,15 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
     return (
       <PaperFrame>
         <Masthead small dateline="Name the wines that shaped your palate" />
-        <div style={{ padding: '0 44px 16px' }}>
+        <div style={{ padding: `0 0 ${space.sm}` }}>
           <RuleDouble color={INK} opacity={0.55} />
         </div>
-        <div style={{ padding: '8px 44px' }}>
+        <div style={{ padding: `${space.xs} 0` }}>
           <button style={ghostBtn} onClick={() => setPathway('choose')}>
             ← Change pathway
           </button>
         </div>
-        <div style={{ padding: '16px 44px' }}>
+        <div style={{ padding: `${space.sm} 0` }}>
           <SeedBottlesScreen onSuccess={handleSeedSuccess} onBack={() => setPathway('choose')} />
         </div>
       </PaperFrame>
@@ -339,12 +339,12 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
   return (
     <PaperFrame>
       <Masthead small dateline="Upload your CellarTracker exports" />
-      <div style={{ padding: '0 44px 16px' }}>
+      <div style={{ padding: `0 0 ${space.sm}` }}>
         <RuleDouble color={INK} opacity={0.55} />
       </div>
 
       {/* Step indicator */}
-      <div style={{ padding: '12px 44px', display: 'flex', alignItems: 'center', gap: 0 }}>
+      <div style={{ padding: `${space.sm} 0`, display: 'flex', alignItems: 'center', gap: 0 }}>
         {['Cellar', 'Refine', 'Compose'].map((label, idx) => {
           const stepDone =
             (idx === 0 && !!inventoryResult) ||
@@ -366,7 +366,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 11,
+                    fontSize: typeScale.label,
                     color: stepDone ? PAPER : stepActive ? INK : INK_SOFT,
                     opacity: stepActive || stepDone ? 1 : 0.5,
                   }}
@@ -376,7 +376,7 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
                 <span
                   style={{
                     fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: 10,
+                    fontSize: typeScale.micro,
                     letterSpacing: 2,
                     textTransform: 'uppercase',
                     color: stepActive ? INK : INK_SOFT,
@@ -403,13 +403,13 @@ const UploadFlow: React.FC<UploadFlowProps> = ({ onComplete }) => {
         })}
       </div>
 
-      <div style={{ padding: '4px 44px' }}>
+      <div style={{ padding: `${space.xs} 0` }}>
         <button style={ghostBtn} onClick={() => setPathway('choose')}>
           ← Change pathway
         </button>
       </div>
 
-      <div style={{ padding: '16px 44px' }}>
+      <div style={{ padding: `${space.sm} 0` }}>
         {ctStep === 'inventory' && (
           <UploadCellarInventoryScreen
             onSuccess={handleInventorySuccess}

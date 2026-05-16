@@ -4,7 +4,7 @@ import UploadFlow from './UploadFlow';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { getInventoryInventoryGet } from './client';
 import { Loader2 } from 'lucide-react';
-import { INK, INK_SOFT, PAPER } from '@/design/tokens';
+import { INK, INK_SOFT, PAPER, typeScale } from '@/design/tokens';
 import './index.css';
 
 const DebugPanel = React.lazy(() => import('./DebugPanel'));
@@ -40,7 +40,7 @@ export default function App() {
     return (
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: '100dvh',
           background: PAPER,
           display: 'flex',
           alignItems: 'center',
@@ -58,7 +58,7 @@ export default function App() {
           style={{
             fontFamily: "'EB Garamond', serif",
             fontStyle: 'italic',
-            fontSize: 13,
+            fontSize: typeScale.body,
             color: INK_SOFT,
           }}
         >
