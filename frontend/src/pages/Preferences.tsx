@@ -56,10 +56,6 @@ export default function Preferences() {
 
   const handleSubmit = async () => {
     const meal = [occasion, menu].filter(Boolean).join(' — ');
-    if (!meal.trim()) {
-      setError('Please describe the occasion or menu.');
-      return;
-    }
     if (sourceMode === 'winelist' && !wineListFile) {
       setError('Please upload a wine list.');
       return;
