@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
@@ -43,10 +43,27 @@ export default function Flight() {
 
   const data = recommendations;
 
-  const wines = useMemo(
-    () => (data?.recommendations ?? []).map(enrichWine),
-    [data],
-  );
+  type SortKey = 'match' | 'price' | 'food';
+  const [sortKey, setSortKey] = useState<SortKey>('match');
+
+  const wines = useMemo(() => {
+    const base = (data?.recommendations ?? []).map(enrichWine);
+    if (sortKey === 'price') {
+      return [...base].sort((a, b) => {
+        if (a.price == null && b.price == null) return a.rank - b.rank;
+        if (a.price == null) return 1;
+        if (b.price == null) return -1;
+        return a.price - b.price;
+      });
+    }
+    if (sortKey === 'food') {
+      return [...base].sort((a, b) => {
+        const diff = (b.pairs?.length ?? 0) - (a.pairs?.length ?? 0);
+        return diff !== 0 ? diff : a.rank - b.rank;
+      });
+    }
+    return base;
+  }, [data, sortKey]);
 
   if (!data) {
     return (
@@ -127,9 +144,25 @@ export default function Flight() {
             flexWrap: 'wrap',
           }}
         >
-          <span style={{ borderBottom: `1px solid ${INK}` }}>Best match</span>
-          <span>· By price</span>
-          <span>· Food first</span>
+          {(
+            [
+              { key: 'match', label: 'Best match' },
+              { key: 'price', label: 'By price' },
+              { key: 'food', label: 'Food first' },
+            ] as { key: SortKey; label: string }[]
+          ).map(({ key, label }, i) => (
+            <span
+              key={key}
+              onClick={() => setSortKey(key)}
+              style={{
+                cursor: 'pointer',
+                borderBottom: sortKey === key ? `1px solid ${INK}` : 'none',
+                color: sortKey === key ? INK : INK_SOFT,
+              }}
+            >
+              {i > 0 ? `· ${label}` : label}
+            </span>
+          ))}
         </div>
       </div>
 
