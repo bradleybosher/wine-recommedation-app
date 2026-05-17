@@ -22,7 +22,13 @@
       "Bash(grep *)",
       "Bash(kill *)",
       "Skill(update-config)",
-      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import prompt; import recommender; print\\('OK'\\)\")"
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import prompt; import recommender; print\\('OK'\\)\")",
+      "Bash(Sort-Object)",
+      "Bash(pwd && ls -la \"c:\\\\Users\\\\Brad\\\\.claude\\\\\" 2>/dev/null || echo \"Need to check path\")",
+      "Read(//c/Users/Brad/.claude\" 2>/dev/**)",
+      "WebSearch",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8000\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

@@ -35,6 +35,7 @@ from prompt import build_system_prompt
 from rate_limit import check_rate_limit
 from recommender import get_recommendation
 from scorer import score_recommendation
+from wine_reviews import enrich_critics
 from test_fixtures import FIXTURES
 
 router = APIRouter()
@@ -211,6 +212,10 @@ async def recommend(
             wine_list_text, effective_meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
             source_mode=source_mode,
         )
+        try:
+            enrich_critics(recommendation)
+        except Exception as critic_err:
+            logger.warning("critic_enrichment_failed: %s", critic_err)
         try:
             scoring_result = score_recommendation(
                 recommendation, wine_list_text, taste_profile,
