@@ -11,7 +11,7 @@ import Bottle from '@/design/atoms/Bottle';
 import DrinkingWindow from '@/design/atoms/DrinkingWindow';
 import Panel from '@/components/Detail/Panel';
 import WineTypeLabel from '@/design/atoms/WineTypeLabel';
-import { INK, INK_SOFT, OXBLOOD, PAPER, lineHeight, space, typeScale } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 import { enrichWine } from '@/design/wineColor';
 import { useRecommendations } from '@/state/recommendationStore';
 
@@ -139,6 +139,27 @@ export default function Detail() {
           >
             {wine.producer} · {wine.vintage}
           </div>
+
+          {(() => {
+            const anchor = wine.reasoning.split('. ')[0];
+            const isLikeYour = anchor.startsWith('Like your');
+            return (
+              <>
+                {isLikeYour && <div style={{ width: '100%', height: 1, background: RULE, margin: '6px 0 4px' }} />}
+                <div
+                  style={{
+                    fontFamily: isLikeYour ? "'Cormorant Garamond', serif" : "'EB Garamond', serif",
+                    fontStyle: 'italic',
+                    fontSize: typeScale.bodyLg,
+                    color: isLikeYour ? OXBLOOD : INK_SOFT,
+                    marginBottom: 10,
+                  }}
+                >
+                  {anchor}
+                </div>
+              </>
+            );
+          })()}
 
           {/* Palate with drop cap */}
           <div

@@ -110,6 +110,7 @@ Enrichment fields (all Optional, populated by Claude via tool use):
 - `palate`: Optional[str] — one sentence palate and finish
 - `pairs`: Optional[List[str]] — 2–4 food pairing suggestions
 - `critic`: Optional[Critic]
+- `verified_on_list`: Optional[bool] — set server-side post-validation; `True` if wine name is grounded in the uploaded list text (`_is_grounded`); `False` if not found; `None` in cellar mode (no list to check against)
 
 ### RecommendationResponse
 
@@ -119,6 +120,15 @@ Fields:
 - `recommendations`: List[WineRecommendation] (up to N, default 3)
 - `list_quality_note`: Optional[str] (warning if list is limited, e.g., "No reds")
 - `profile_match_summary`: str (1 sentence overview)
+- `flight_id`: Optional[str] — UUID hex of the persisted flight; set after `save_flight()` on non-cached paths; `None` on cache hits (no new flight created)
+
+### FlightFeedback
+
+One-tap post-flight feedback chip, stored inside the `response_json` blob of a `flights` row (no extra column).
+
+Fields:
+- `chip`: str — one of `"too_bold" | "over_budget" | "off_profile" | "perfect"`
+- `recorded_at`: float — unix timestamp
 
 ### InventoryResponse
 

@@ -3,7 +3,7 @@ import type { EnrichedWine } from '@/design/wineColor';
 import RegionMap from '@/design/atoms/RegionMap';
 import StructureBars from '@/design/atoms/StructureBars';
 import WineTypeLabel from '@/design/atoms/WineTypeLabel';
-import { INK, INK_SOFT, OXBLOOD, lineHeight, space, typeScale } from '@/design/tokens';
+import { INK, INK_SOFT, OXBLOOD, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 
 interface ListEntryProps {
   wine: EnrichedWine;
@@ -15,6 +15,9 @@ export default function ListEntry({ wine }: ListEntryProps) {
   // Rank ordinality must read independent of palette hue (colour-blind safe);
   // accent stays for decorative cues only (region label, food-fit pips).
   const rankColor = wine.rank === 1 ? OXBLOOD : INK;
+
+  const anchor = wine.reasoning.split('. ')[0];
+  const showHairline = anchor.startsWith('Like your');
 
   return (
     <div
@@ -122,6 +125,27 @@ export default function ListEntry({ wine }: ListEntryProps) {
           }}
         >
           {wine.producer} · {wine.vintage}
+        </div>
+        {showHairline && (
+          <div
+            style={{
+              width: '100%',
+              height: 1,
+              background: RULE,
+              margin: '6px 0 4px',
+            }}
+          />
+        )}
+        <div
+          style={{
+            fontFamily: showHairline ? "'Cormorant Garamond', serif" : "'EB Garamond', serif",
+            fontStyle: 'italic',
+            fontSize: typeScale.body,
+            color: showHairline ? OXBLOOD : INK_SOFT,
+            marginBottom: 6,
+          }}
+        >
+          {anchor}
         </div>
         <div
           style={{
@@ -240,34 +264,62 @@ export default function ListEntry({ wine }: ListEntryProps) {
             compact
           />
         </div>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            alignItems: 'baseline',
-            gap: 10,
-          }}
-        >
-          <span
+        <div>
+          <div
             style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontStyle: 'italic',
-              fontSize: typeScale.label,
-              color: INK_SOFT,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'baseline',
+              gap: 10,
             }}
           >
-            cellar price
-          </span>
-          <span
-            style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontWeight: 500,
-              fontSize: typeScale.h3,
-              color: INK,
-            }}
-          >
-            {wine.price != null ? `$${wine.price}` : '—'}
-          </span>
+            <span
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontStyle: 'italic',
+                fontSize: typeScale.label,
+                color: INK_SOFT,
+              }}
+            >
+              cellar price
+            </span>
+            <span
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontWeight: 500,
+                fontSize: typeScale.h3,
+                color: INK,
+              }}
+            >
+              {wine.price != null ? `$${wine.price}` : '—'}
+            </span>
+          </div>
+          {wine.verifiedOnList === true && (
+            <div
+              style={{
+                fontFamily: "'EB Garamond', serif",
+                fontSize: typeScale.micro,
+                color: INK_SOFT,
+                textAlign: 'right',
+                marginTop: 3,
+              }}
+            >
+              ✓ on list
+            </div>
+          )}
+          {wine.verifiedOnList === false && (
+            <div
+              style={{
+                fontFamily: "'EB Garamond', serif",
+                fontSize: typeScale.micro,
+                color: OXBLOOD,
+                textAlign: 'right',
+                marginTop: 3,
+              }}
+            >
+              ⚠ not verified
+            </div>
+          )}
         </div>
       </div>
     </div>

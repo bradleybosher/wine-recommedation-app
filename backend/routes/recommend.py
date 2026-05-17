@@ -34,7 +34,7 @@ from profile import (
 from prompt import build_system_prompt
 from rate_limit import check_rate_limit
 from recommender import get_recommendation
-from scorer import score_recommendation
+from scorer import _is_grounded, score_recommendation
 from wine_reviews import enrich_critics
 from test_fixtures import FIXTURES
 
@@ -216,6 +216,10 @@ async def recommend(
             enrich_critics(recommendation)
         except Exception as critic_err:
             logger.warning("critic_enrichment_failed: %s", critic_err)
+        if source_mode == "winelist":
+            for rec in recommendation.recommendations:
+                rec.verified_on_list = _is_grounded(rec.wine_name, wine_list_text)
+
         try:
             scoring_result = score_recommendation(
                 recommendation, wine_list_text, taste_profile,
@@ -224,8 +228,9 @@ async def recommend(
             log_recommendation_event(effective_meal, profile_hash, recommendation, scoring_result, wine_list_hash)
         except Exception as score_err:
             logger.exception("scoring_and_logging_failed: %s", score_err)
+        flight_id = None
         try:
-            save_flight(
+            flight_id = save_flight(
                 occasion=occasion,
                 menu=menu,
                 cellar_leans=cellar_leans,
@@ -239,7 +244,10 @@ async def recommend(
             )
         except Exception as hist_err:
             logger.warning("auto_save_flight_failed: %s", hist_err)
+        # Cache before attaching flight_id so the id isn't replayed on cache hits
         set_cached(cache_key, recommendation.model_dump_json())
+        if flight_id:
+            recommendation.flight_id = flight_id
         return recommendation
     except HTTPException as exc:
         log_recommendation_event(effective_meal, profile_hash, None, None, wine_list_hash, error=str(exc.detail))

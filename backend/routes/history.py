@@ -4,8 +4,8 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 
-from cache import delete_flight, get_flight, list_flights
-from models import FlightRecord, FlightSummary, RecommendationResponse
+from cache import delete_flight, get_flight, list_flights, update_flight_feedback
+from models import FlightFeedback, FlightRecord, FlightSummary, RecommendationResponse
 
 router = APIRouter()
 logger = logging.getLogger("sommelier.api")
@@ -26,8 +26,10 @@ async def get_history(flight_id: str) -> FlightRecord:
         raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
 
     try:
-        response_data = json.loads(flight["response_json"])
-        response = RecommendationResponse(**response_data)
+        blob = json.loads(flight["response_json"])
+        feedback_data = blob.pop("feedback", None)
+        response = RecommendationResponse(**blob)
+        feedback = FlightFeedback(**feedback_data) if feedback_data else None
     except (json.JSONDecodeError, ValueError) as exc:
         logger.exception("flight_deserialize_failed flight_id=%s: %s", flight_id, exc)
         raise HTTPException(status_code=500, detail="Failed to deserialize flight data") from exc
@@ -40,7 +42,17 @@ async def get_history(flight_id: str) -> FlightRecord:
         source_mode=flight["source_mode"] or "winelist",
         bottle_count=flight["bottle_count"],
         response=response,
+        feedback=feedback,
     )
+
+
+@router.patch("/history/{flight_id}/feedback")
+async def patch_feedback(flight_id: str, body: FlightFeedback) -> dict:
+    """Record a one-tap feedback chip for a saved flight."""
+    updated = update_flight_feedback(flight_id, body)
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
+    return {"ok": True}
 
 
 @router.delete("/history/{flight_id}")

@@ -290,6 +290,7 @@ class WineRecommendation(BaseModel):
     palate: Optional[str] = None
     pairs: Optional[List[str]] = None
     critic: Optional[Critic] = None
+    verified_on_list: Optional[bool] = None  # set server-side post-validation; None in cellar mode
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -310,11 +311,19 @@ class RecommendationResponse(BaseModel):
     recommendations: List[WineRecommendation]
     list_quality_note: Optional[str] = None
     profile_match_summary: str
+    flight_id: Optional[str] = None  # set after save_flight(); not stored in cache
 
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True
     )
+
+
+class FlightFeedback(BaseModel):
+    chip: str           # "too_bold" | "over_budget" | "off_profile" | "perfect"
+    recorded_at: float  # unix timestamp
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
 class FlightSummary(BaseModel):
@@ -338,6 +347,7 @@ class FlightRecord(BaseModel):
     source_mode: str
     bottle_count: int
     response: RecommendationResponse
+    feedback: Optional[FlightFeedback] = None
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 

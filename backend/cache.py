@@ -2,6 +2,8 @@ import sqlite3, hashlib, json, time, uuid
 from pathlib import Path
 from typing import Optional
 
+from models import FlightFeedback
+
 CACHE_TTL_HOURS: int = 24  # 24 hours
 
 _SOM_DIR = Path(__file__).resolve().parent
@@ -180,3 +182,24 @@ def delete_flight(flight_id: str) -> bool:
     with _conn() as c:
         c.execute("DELETE FROM flights WHERE id = ?", (flight_id,))
         return c.total_changes > 0
+
+
+def update_flight_feedback(flight_id: str, feedback: FlightFeedback) -> bool:
+    """Merge feedback into the response JSON blob of an existing flight row.
+
+    No new columns — feedback is serialised inside the existing ``response_json`` field.
+    Returns True if the row was found and updated, False if not found.
+    """
+    with _conn() as c:
+        row = c.execute(
+            "SELECT response_json FROM flights WHERE id = ?", (flight_id,)
+        ).fetchone()
+        if not row:
+            return False
+        data = json.loads(row[0])
+        data["feedback"] = feedback.model_dump(by_alias=True)
+        c.execute(
+            "UPDATE flights SET response_json = ? WHERE id = ?",
+            (json.dumps(data), flight_id),
+        )
+        return True

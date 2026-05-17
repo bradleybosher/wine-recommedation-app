@@ -16,6 +16,7 @@ SQLite-based caching and persistent flight history across three tiers: (1) **par
 - `uuid` (flight ID generation)
 - `pathlib.Path` (file location)
 - `typing.Optional`
+- `models.FlightFeedback`
 
 ## Inputs/Outputs
 
@@ -85,6 +86,11 @@ SQLite-based caching and persistent flight history across three tiers: (1) **par
 
 **delete_flight(flight_id)** → bool:
   - DELETE by id; returns True if a row was deleted
+
+**update_flight_feedback(flight_id, feedback: FlightFeedback)** → bool:
+  - SELECT `response_json`, merge `feedback.model_dump(by_alias=True)` into the blob at key `"feedback"`, UPDATE the row
+  - No new DB columns — feedback is serialised inside the existing `response_json` field
+  - Returns `True` if the row was found and updated, `False` if not found
 
 **_conn()** → sqlite3.Connection:
   - Helper to get database connection

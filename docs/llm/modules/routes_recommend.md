@@ -48,7 +48,9 @@ File/test:
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
 11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`. Also passes `taste_markers` and `palate_persona` extracted from `build_taste_profile(load_profile_data())` so the prompt can render the numeric markers block and quote the persona verbatim (both populated by `_synthesized` or `_inferred` profiles; absent for legacy CT-only).
 12. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
-13. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response. Cache the result and return.
+13. **Per-wine grounding** (winelist mode only): after recommendations are returned, iterate and set `rec.verified_on_list = scorer._is_grounded(rec.wine_name, wine_list_text)` on each wine.
+14. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response.
+15. `save_flight(...)` — best-effort; captures the returned `flight_id`. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
 14. On `HTTPException`: log error event, re-raise.
 15. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
 
@@ -67,7 +69,7 @@ File/test:
 - `prompt.build_system_prompt`
 - `rate_limit.check_rate_limit`
 - `recommender.get_recommendation`
-- `scorer.score_recommendation`
+- `scorer._is_grounded`, `scorer.score_recommendation`
 
 ## Patterns & Gotchas
 

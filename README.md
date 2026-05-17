@@ -18,7 +18,12 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **LLM-Powered Recommendations:** Structured wine recommendations via Claude (Anthropic API, tool use)
 - **Structured Output:** JSON-validated recommendations (default top-3, configurable) with per-wine reasoning, confidence scores, enrichment fields (grape, region, aroma wheel, structure bars, food pairings), and list quality assessment
 - **Why This Fits You:** Each recommendation surfaces 2–3 short tags grounding the pick in concrete signals from your taste profile (top regions, preferred descriptors, avoided styles, taste markers)
+- **Cellar Anchor Lead-in:** The first sentence of each wine's reasoning is surfaced prominently — highlighted in accent colour when it references a wine already in your cellar ("Like your…"), otherwise shown as a soft profile-fit note
+- **Grounding Badge:** In winelist mode each card shows `✓ on list` or `⚠ not verified` below the price so you know at a glance which recommendations are confirmed on the actual menu
+- **Structure Comparison Strip:** Below the wine cards, a 5 × N matrix (tannin · acidity · body · sweetness · oak) renders SVG bars coloured per wine palette so you can compare structure across the flight at a glance
 - **One-Click Refine:** After results render, tap a chip ("Under $80", "More adventurous", "Food match first", "Safer crowd-pleaser") to re-rank the same wine list against a different lens — no re-upload
+- **Post-Flight Feedback Chips:** Rate the flight ("Too bold", "Over budget", "Off profile", "Perfect") with one tap; feedback is saved to the flight record and surfaces a nudge to refine your palate on the Profile page
+- **One-Tap Profile Deepening:** If the top-ranked wine's grape isn't yet in your profile, a callout prompts you to add it with a single tap — keeping your profile in sync with what you're actually enjoying
 - **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis
 - **Vinothèque Editorial UI:** React 19 + Tailwind CSS v4 + react-router-dom; old-world paper/serif editorial design system; four-screen flow (Preferences → Flight → Detail → Compare); works on desktop and tablet
 
@@ -258,7 +263,6 @@ The debug panel shows:
 
 ## Future Ideas (v2+)
 
-- Feedback loop: user ratings → profile refinement over time
 - Vivino OAuth import as a profile source
 - Food pairing as a first-class input (e.g., "duck + cherry gastrique" → style recommendations)
 - Restaurant wine list caching + historical price tracking

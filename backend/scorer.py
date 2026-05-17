@@ -82,8 +82,11 @@ def _score_completeness(response: RecommendationResponse) -> float:
     return min(len(response.recommendations) / _TARGET_RECS, 1.0)
 
 
-def _wine_in_list(wine_name: str, wine_list_text: str) -> bool:
-    """Return True if wine_name is plausibly present in wine_list_text."""
+def _is_grounded(wine_name: str, wine_list_text: str) -> bool:
+    """Return True if wine_name is plausibly present in wine_list_text.
+
+    Uses substring match first, then ≥75% significant-token overlap as fuzzy fallback.
+    """
     if not wine_name or not wine_list_text:
         return False
 
@@ -108,7 +111,7 @@ def _score_grounding(response: RecommendationResponse, wine_list_text: str) -> f
     if not wine_list_text:
         return 0.5  # neutral: cannot assess
 
-    hits = sum(1 for r in recs if _wine_in_list(r.wine_name, wine_list_text))
+    hits = sum(1 for r in recs if _is_grounded(r.wine_name, wine_list_text))
     return hits / len(recs)
 
 

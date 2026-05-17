@@ -285,6 +285,20 @@ export type DrinkWindow = {
 };
 
 /**
+ * FlightFeedback
+ */
+export type FlightFeedback = {
+    /**
+     * Chip
+     */
+    chip: string;
+    /**
+     * Recordedat
+     */
+    recordedAt: number;
+};
+
+/**
  * FlightRecord
  *
  * Full flight record returned by GET /history/{id}.
@@ -315,6 +329,7 @@ export type FlightRecord = {
      */
     bottleCount: number;
     response: RecommendationResponse;
+    feedback?: FlightFeedback | null;
 };
 
 /**
@@ -483,6 +498,10 @@ export type RecommendationResponse = {
      * Profilematchsummary
      */
     profileMatchSummary: string;
+    /**
+     * Flightid
+     */
+    flightId?: string | null;
 };
 
 /**
@@ -785,6 +804,10 @@ export type WineRecommendation = {
      */
     pairs?: Array<string> | null;
     critic?: Critic | null;
+    /**
+     * Verifiedonlist
+     */
+    verifiedOnList?: boolean | null;
 };
 
 export type HealthCheckDebugHealthGetData = {
@@ -1100,6 +1123,40 @@ export type GetHistoryHistoryFlightIdGetResponses = {
 };
 
 export type GetHistoryHistoryFlightIdGetResponse = GetHistoryHistoryFlightIdGetResponses[keyof GetHistoryHistoryFlightIdGetResponses];
+
+export type PatchFeedbackHistoryFlightIdFeedbackPatchData = {
+    body: FlightFeedback;
+    path: {
+        /**
+         * Flight Id
+         */
+        flight_id: string;
+    };
+    query?: never;
+    url: '/history/{flight_id}/feedback';
+};
+
+export type PatchFeedbackHistoryFlightIdFeedbackPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PatchFeedbackHistoryFlightIdFeedbackPatchError = PatchFeedbackHistoryFlightIdFeedbackPatchErrors[keyof PatchFeedbackHistoryFlightIdFeedbackPatchErrors];
+
+export type PatchFeedbackHistoryFlightIdFeedbackPatchResponses = {
+    /**
+     * Response Patch Feedback History  Flight Id  Feedback Patch
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type PatchFeedbackHistoryFlightIdFeedbackPatchResponse = PatchFeedbackHistoryFlightIdFeedbackPatchResponses[keyof PatchFeedbackHistoryFlightIdFeedbackPatchResponses];
 
 export type UploadInventoryUploadInventoryPostData = {
     body: BodyUploadInventoryUploadInventoryPost;

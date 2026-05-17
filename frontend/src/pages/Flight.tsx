@@ -4,10 +4,16 @@ import PaperFrame from '@/design/PaperFrame';
 import Masthead from '@/design/atoms/Masthead';
 import RuleDouble from '@/design/atoms/RuleDouble';
 import ListEntry from '@/components/Flight/ListEntry';
-import { INK, INK_SOFT, PAPER, lineHeight, space, typeScale } from '@/design/tokens';
+import StructureComparison from '@/components/Flight/StructureComparison';
+import { INK, INK_SOFT, PAPER, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 import { enrichWine } from '@/design/wineColor';
 import { useRecommendations } from '@/state/recommendationStore';
-import type { RecommendationResponse } from '@/client/types.gen';
+import type { RecommendationResponse, ProfileSummaryResponse } from '@/client/types.gen';
+import {
+  patchFeedbackHistoryFlightIdFeedbackPatch,
+  profileSummaryProfileSummaryGet,
+  patchProfileProfilePatch,
+} from '@/client/sdk.gen';
 
 const ghostBtn: React.CSSProperties = {
   fontFamily: "'Cormorant Garamond', serif",
@@ -33,6 +39,15 @@ export default function Flight() {
   const { recommendations, setRecommendations } = useRecommendations();
 
   // Hydrate context from router state if arriving fresh from Preferences
+  const data = recommendations;
+
+  type SortKey = 'match' | 'price' | 'food';
+  const [sortKey, setSortKey] = useState<SortKey>('match');
+  const [feedbackChip, setFeedbackChip] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileSummaryResponse | null>(null);
+  const [grapeAdded, setGrapeAdded] = useState(false);
+  const [grapeCalloutDismissed, setGrapeCalloutDismissed] = useState(false);
+
   useEffect(() => {
     const stateData = (location.state as { recommendations?: RecommendationResponse } | null)
       ?.recommendations;
@@ -41,10 +56,17 @@ export default function Flight() {
     }
   }, []);
 
-  const data = recommendations;
+  useEffect(() => {
+    profileSummaryProfileSummaryGet().then(({ data }) => {
+      if (data) setProfile(data);
+    });
+  }, []);
 
-  type SortKey = 'match' | 'price' | 'food';
-  const [sortKey, setSortKey] = useState<SortKey>('match');
+  useEffect(() => {
+    if (!grapeAdded) return;
+    const t = setTimeout(() => setGrapeCalloutDismissed(true), 3000);
+    return () => clearTimeout(t);
+  }, [grapeAdded]);
 
   const wines = useMemo(() => {
     const base = (data?.recommendations ?? []).map(enrichWine);
@@ -92,6 +114,14 @@ export default function Flight() {
   }
 
   const topTwo = wines.slice(0, 2);
+  const topWine = wines[0];
+  const showGrapeCallout =
+    (grapeAdded || (
+      !grapeCalloutDismissed &&
+      !!topWine?.grape &&
+      !!profile &&
+      !(profile.topVarietals ?? []).includes(topWine.grape)
+    ));
 
   const handleCompare = () => {
     if (topTwo.length >= 2) {
@@ -105,6 +135,23 @@ export default function Flight() {
 
   const handleNewWineList = () => {
     navigate('/preferences', { state: { sourceMode: 'winelist' } });
+  };
+
+  const handleFeedbackChip = async (chip: string) => {
+    if (!data.flightId) return;
+    await patchFeedbackHistoryFlightIdFeedbackPatch({
+      path: { flight_id: data.flightId },
+      body: { chip, recordedAt: Date.now() / 1000 },
+    });
+    setFeedbackChip(chip);
+  };
+
+  const handleAddGrape = async () => {
+    if (!topWine?.grape || !profile) return;
+    await patchProfileProfilePatch({
+      body: { topVarietals: [...(profile.topVarietals ?? []), topWine.grape] },
+    });
+    setGrapeAdded(true);
   };
 
   return (
@@ -192,6 +239,137 @@ export default function Flight() {
           }}
         >
           {data.profileMatchSummary}
+        </div>
+      )}
+
+      <StructureComparison wines={wines} />
+
+      {/* Grape callout */}
+      {(showGrapeCallout && topWine) && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: space.sm,
+            flexWrap: 'wrap',
+            marginTop: space.md,
+            paddingTop: space.sm,
+            borderTop: `1px solid ${RULE}`,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "'EB Garamond', serif",
+              fontStyle: 'italic',
+              fontSize: typeScale.label,
+              color: INK_SOFT,
+            }}
+          >
+            {grapeAdded ? `${topWine.grape} added. ✓` : `Enjoying ${topWine.grape}?`}
+          </div>
+          {!grapeAdded && (
+            <>
+              <button
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: typeScale.label,
+                  color: INK,
+                  border: `1px solid ${RULE}`,
+                  background: 'transparent',
+                  padding: '4px 10px',
+                  cursor: 'pointer',
+                  borderRadius: 0,
+                }}
+                onClick={handleAddGrape}
+              >
+                Add to your profile
+              </button>
+              <button
+                style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: typeScale.label,
+                  color: INK,
+                  border: `1px solid ${RULE}`,
+                  background: 'transparent',
+                  padding: '4px 10px',
+                  cursor: 'pointer',
+                  borderRadius: 0,
+                }}
+                onClick={() => setGrapeCalloutDismissed(true)}
+              >
+                Dismiss
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Feedback chips */}
+      {data.flightId && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: space.sm,
+            flexWrap: 'wrap',
+            marginTop: space.md,
+          }}
+        >
+          {feedbackChip === null ? (
+            <>
+              <div
+                style={{
+                  fontFamily: "'EB Garamond', serif",
+                  fontStyle: 'italic',
+                  fontSize: typeScale.label,
+                  color: INK_SOFT,
+                }}
+              >
+                How was the flight?
+              </div>
+              {[
+                { label: 'Too bold', value: 'too_bold' },
+                { label: 'Over budget', value: 'over_budget' },
+                { label: 'Off profile', value: 'off_profile' },
+                { label: 'Perfect', value: 'perfect' },
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: typeScale.label,
+                    color: INK,
+                    border: `1px solid ${RULE}`,
+                    background: 'transparent',
+                    padding: '4px 10px',
+                    cursor: 'pointer',
+                    borderRadius: 0,
+                  }}
+                  onClick={() => handleFeedbackChip(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </>
+          ) : (
+            <div
+              style={{
+                fontFamily: "'EB Garamond', serif",
+                fontStyle: 'italic',
+                fontSize: typeScale.label,
+                color: INK_SOFT,
+              }}
+            >
+              Noted. Adjust your palate on the{' '}
+              <span
+                onClick={() => navigate('/profile')}
+                style={{ textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Profile page
+              </span>{' '}
+              →
+            </div>
+          )}
         </div>
       )}
 

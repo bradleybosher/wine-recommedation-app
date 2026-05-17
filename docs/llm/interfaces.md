@@ -258,11 +258,17 @@ class WineRecommendation(BaseModel):
   palate: Optional[str]
   pairs: Optional[List[str]]
   critic: Optional[Critic]
+  verified_on_list: Optional[bool]  # server-set post-validation; True/False on winelist; None on cellar mode
 
 class RecommendationResponse(BaseModel):
   recommendations: List[WineRecommendation]
   list_quality_note: Optional[str]
   profile_match_summary: str (1 sentence)
+  flight_id: Optional[str]    # set after save_flight(); absent on cache hits
+
+class FlightFeedback(BaseModel):
+  chip: str           # "too_bold" | "over_budget" | "off_profile" | "perfect"
+  recorded_at: float  # unix timestamp
 
 class InventoryResponse(BaseModel):
   bottles: List[Bottle] = []
@@ -505,14 +511,19 @@ def get_flight(flight_id: str) → Optional[dict]
 
 def delete_flight(flight_id: str) → bool
   DELETE flight by id. Returns True if deleted, False if not found.
+
+def update_flight_feedback(flight_id: str, feedback: FlightFeedback) → bool
+  Merge feedback.model_dump(by_alias=True) into the response_json blob under key "feedback".
+  No new DB columns. Returns True if updated, False if flight not found.
 ```
 
 ### routes/history.py
 
 ```python
-GET  /history                   → list[FlightSummary]   # limit/offset query params
-GET  /history/{flight_id}       → FlightRecord
-DELETE /history/{flight_id}     → {"id": str, "deleted": True}
+GET    /history                         → list[FlightSummary]   # limit/offset query params
+GET    /history/{flight_id}             → FlightRecord          # includes feedback if submitted
+PATCH  /history/{flight_id}/feedback   → {"ok": true}           # body: FlightFeedback; 404 if not found
+DELETE /history/{flight_id}            → {"id": str, "deleted": True}
 ```
 
 ### retry_utils.py
@@ -599,8 +610,12 @@ def score_recommendation(
 ) → ScoringResult
   Four-dimension quality score. Weights: confidence 0.30, completeness 0.20,
   grounding 0.30, budget_fit 0.20.
-  Grounding: case-insensitive substring match; fallback to ≥75% word-token overlap.
-  Returns 0.0 if no recommendations (poor grounding); 0.5 if wine_list_text empty (cannot assess).
+  Grounding: delegates to _is_grounded() per wine. Returns 0.0 if no recommendations; 0.5 if wine_list_text empty.
+
+def _is_grounded(wine_name: str, wine_list_text: str) → bool
+  Return True if wine_name is plausibly in wine_list_text.
+  Fast path: case-insensitive substring. Fallback: ≥75% significant tokens (≥3 chars) found in list.
+  Importable from scorer for use in routes/recommend.py to set verified_on_list per wine.
   Budget fit: [budget_min×0.8, budget_max×1.2]; neutral 0.5 if no budget/prices.
   Populates warnings list with data-gap notes when neutral fallbacks are used.
   Never raises; returns neutral ScoringResult(0.5, ..., warnings=[]) on internal error.

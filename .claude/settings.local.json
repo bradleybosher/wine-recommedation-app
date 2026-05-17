@@ -28,7 +28,8 @@
       "Read(//c/Users/Brad/.claude\" 2>/dev/**)",
       "WebSearch",
       "Bash(netstat -ano)",
-      "Bash(findstr \":8000\")"
+      "Bash(findstr \":8000\")",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import models; import cache; from routes import history, recommend; print\\('all imports OK'\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchFeedbackHistoryFlightIdFeedbackPatchData, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -108,6 +108,20 @@ export const deleteHistoryHistoryFlightIdDelete = <ThrowOnError extends boolean 
  * Retrieve a single flight by ID with full recommendation data.
  */
 export const getHistoryHistoryFlightIdGet = <ThrowOnError extends boolean = false>(options: Options<GetHistoryHistoryFlightIdGetData, ThrowOnError>) => (options.client ?? client).get<GetHistoryHistoryFlightIdGetResponses, GetHistoryHistoryFlightIdGetErrors, ThrowOnError>({ url: '/history/{flight_id}', ...options });
+
+/**
+ * Patch Feedback
+ *
+ * Record a one-tap feedback chip for a saved flight.
+ */
+export const patchFeedbackHistoryFlightIdFeedbackPatch = <ThrowOnError extends boolean = false>(options: Options<PatchFeedbackHistoryFlightIdFeedbackPatchData, ThrowOnError>) => (options.client ?? client).patch<PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, ThrowOnError>({
+    url: '/history/{flight_id}/feedback',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Upload Inventory
