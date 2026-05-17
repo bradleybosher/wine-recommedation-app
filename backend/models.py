@@ -112,7 +112,7 @@ class TasteProfile(BaseModel):
     food_pairing: Optional[str] = None
 
     profile_source: str = "manual"
-    inference_confidence: Optional[str] = None  # "high" | "medium" | "low"; set when profile_source == "seed_bottles"
+    inference_confidence: Optional[str] = None  # "high" | "medium" | "low"; set when profile_source is "seed_bottles" or "cellartracker_synthesized"
 
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -183,8 +183,8 @@ class ProfileSummaryResponse(BaseModel):
     style_summary: Optional[str] = None
     taste_markers: Optional[TasteMarkers] = None
     cellar_stats: Optional[CellarStats] = None
-    profile_source: Optional[str] = None  # "cellartracker" | "seed_bottles" | "manual"
-    inference_confidence: Optional[str] = None  # populated only when profile_source == "seed_bottles"
+    profile_source: Optional[str] = None  # "cellartracker" | "cellartracker_synthesized" | "seed_bottles" | "manual"
+    inference_confidence: Optional[str] = None  # populated when profile_source is "seed_bottles" or "cellartracker_synthesized"
     seed_bottle_count: Optional[int] = None  # number of seed bottles, when profile is seed-derived
 
     model_config = ConfigDict(

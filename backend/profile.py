@@ -273,21 +273,338 @@ def apply_profile_overrides(base: dict, overrides: dict) -> dict:
     return merged
 
 
+SYNTHESIZED_KEY = "_synthesized"
+
+# Per-tier cap on how many raw notes are fed to the synthesis LLM call.
+# Sorting within tier keeps the most extreme examples (top/bottom of the tier).
+_SYNTHESIS_NOTES_PER_TIER = 50
+
+# Below this note count we mark inference_confidence="low" — sparse signal.
+_SYNTHESIS_LOW_CONFIDENCE_THRESHOLD = 10
+
+
+def _gather_scored_notes(profile_data: dict) -> tuple[list[dict], float, float]:
+    """Collect non-empty tasting notes with their max numeric score.
+
+    Returns (notes_list, mid_low_threshold, mid_high_threshold). Each note is
+    {"note": str, "score": float, "wine": str}. Thresholds are derived from the
+    detected score scale (0-100 or 0-10) and are used to bucket into tiers.
+    """
+    rows_with_notes: list[dict] = []
+    all_scores: list[float] = []
+    for row in _iter_export_rows(profile_data, "notes", "consumed"):
+        note = _row_get_ci(row, "Note", "Notes", "ConsumptionNote", "BottleNote", "PurchaseNote")
+        if not note:
+            continue
+        score = _row_max_rating_score(row)
+        producer = _row_get_ci(row, "Producer")
+        wine = _row_get_ci(row, "Wine")
+        vintage = _row_get_ci(row, "Vintage")
+        label_parts = [p for p in (vintage, producer, wine) if p]
+        rows_with_notes.append({
+            "note": note,
+            "score": score,
+            "wine": " ".join(label_parts) if label_parts else "(unlabelled)",
+        })
+        if score is not None:
+            all_scores.append(score)
+
+    if not all_scores:
+        return rows_with_notes, 0.0, 0.0
+
+    max_score = max(all_scores)
+    if max_score > 10:
+        low_threshold = 85.0
+        high_threshold = 93.0
+    else:
+        low_threshold = 7.5
+        high_threshold = 9.0
+    return rows_with_notes, low_threshold, high_threshold
+
+
+def _bucket_notes_by_tier(
+    notes: list[dict], low_threshold: float, high_threshold: float
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Split scored notes into (high, mid, low) tiers, sorted within each tier."""
+    high: list[dict] = []
+    mid: list[dict] = []
+    low: list[dict] = []
+    for entry in notes:
+        score = entry.get("score")
+        if score is None:
+            mid.append(entry)
+            continue
+        if score >= high_threshold:
+            high.append(entry)
+        elif score <= low_threshold:
+            low.append(entry)
+        else:
+            mid.append(entry)
+    high.sort(key=lambda e: e.get("score") or 0, reverse=True)
+    low.sort(key=lambda e: e.get("score") or 0)
+    mid.sort(key=lambda e: e.get("score") or 0, reverse=True)
+    return high, mid, low
+
+
+def _format_note_block(label: str, entries: list[dict], cap: int) -> str:
+    if not entries:
+        return f"{label}: (none)\n"
+    picked = entries[:cap]
+    lines = []
+    for e in picked:
+        score = e.get("score")
+        score_str = f" [{score:g}]" if score is not None else ""
+        wine = e.get("wine") or ""
+        note = (e.get("note") or "").strip().replace("\n", " ")
+        lines.append(f"  - {wine}{score_str}: {note}")
+    suffix = f" (showing {len(picked)} of {len(entries)})" if len(entries) > cap else ""
+    return f"{label}{suffix}:\n" + "\n".join(lines) + "\n"
+
+
+def synthesize_palate_from_notes(
+    profile_data: dict,
+    anthropic_api_key: str,
+    anthropic_model: str,
+) -> dict | None:
+    """Single Anthropic tool-use call to synthesize a rich palate profile from raw CT notes.
+
+    Builds the deterministic structured signals first (top_varietals, top_regions,
+    top_producers, highly_rated, avg_spend) and feeds them to Claude as grounding
+    context alongside the raw tasting notes grouped by score tier. Claude returns
+    multi-word sensory descriptors, taste_markers, style_summary, and a 2-3 sentence
+    palate_persona naming signature styles.
+
+    Returns the synthesized dict (shape mirrors seed_profile.infer_profile_from_seeds()
+    output + ``palate_persona``), or None if there are no usable notes to synthesize from.
+    Raises anthropic.APIError or RuntimeError on Claude-side failures — callers should
+    catch and fall back to the deterministic profile.
+    """
+    logger = logging.getLogger("sommelier.profile")
+
+    # Strip any prior synthesis so the deterministic helper below produces a clean
+    # frequency-derived base for the structured fields we echo through unchanged.
+    raw_view = {k: v for k, v in profile_data.items() if k != SYNTHESIZED_KEY}
+    deterministic = build_taste_profile(raw_view)
+
+    notes, low_threshold, high_threshold = _gather_scored_notes(raw_view)
+    if not notes:
+        logger.info("synthesize_palate_from_notes: no tasting notes present, skipping synthesis")
+        return None
+
+    high_tier, mid_tier, low_tier = _bucket_notes_by_tier(notes, low_threshold, high_threshold)
+    note_count = len(notes)
+    cap = _SYNTHESIS_NOTES_PER_TIER
+
+    notes_section = (
+        _format_note_block("HIGH-SCORED (loved)", high_tier, cap)
+        + _format_note_block("MID-SCORED (liked/acceptable)", mid_tier, cap)
+        + _format_note_block("LOW-SCORED (disliked)", low_tier, cap)
+    )
+
+    rated_labels = []
+    for b in deterministic.get("highly_rated", [])[:10]:
+        parts = [b.get("vintage", ""), b.get("producer", ""), b.get("wine", "")]
+        label = " ".join(p for p in parts if p).strip()
+        if label:
+            rated_labels.append(label)
+
+    structured_context = (
+        f"Top varietals (frequency-ranked): {deterministic.get('top_varietals', [])}\n"
+        f"Top regions (frequency-ranked): {deterministic.get('top_regions', [])}\n"
+        f"Top producers (frequency-ranked): {deterministic.get('top_producers', [])}\n"
+        f"Highly rated bottles: {rated_labels}\n"
+        f"Average spend (USD/bottle): {deterministic.get('avg_spend')}\n"
+        f"Total tasting notes available: {note_count}\n"
+    )
+
+    confidence_hint = (
+        "Notes are sparse — be conservative and mark inference_confidence='low'."
+        if note_count < _SYNTHESIS_LOW_CONFIDENCE_THRESHOLD
+        else "Lean into a full sommelier persona — extrapolate signature styles even when the notes only hint at them."
+    )
+
+    prompt_text = (
+        "You are a master sommelier synthesizing a rich palate profile for a wine buyer from their\n"
+        "CellarTracker tasting history. The buyer's free-text notes are short and inconsistent;\n"
+        "your job is to read between the lines and infer the deeper style signature — texture,\n"
+        "fermentation character, tension/breadth, oxidative/reductive leanings, oak handling.\n\n"
+        "GROUND TRUTH (structured signals — use for context, do NOT echo as style phrases):\n"
+        f"{structured_context}\n"
+        "RAW TASTING NOTES (grouped by score tier, with score in brackets):\n"
+        f"{notes_section}\n"
+        "Synthesis rules:\n"
+        "- preferred_descriptors: 4-7 MULTI-WORD sensory phrases. Focus on texture, weight,\n"
+        "  fermentation character, tension. Examples: 'taut mineral-driven whites with laser acidity',\n"
+        "  'oxidative sherried complexity', 'reductive sulfurous reds with fine tannin',\n"
+        "  'silky medium-bodied reds with savoury earth'. Never echo grape or region names.\n"
+        "- avoided_styles: 2-4 multi-word phrases naming styles to avoid, grounded in the\n"
+        "  low-scored notes when present; otherwise infer the counterpoint to the loved profile.\n"
+        "- style_summary: ONE sentence (20-30 words) capturing overall palate character without\n"
+        "  naming specific grapes or regions.\n"
+        "- taste_markers: integer 1-5 scores for acidity, tannin, body, oak. Treat 3 as neutral.\n"
+        "  Use the high-scored notes as your ground truth for the scale.\n"
+        "- palate_persona: 2-3 sentences naming signature style preferences in plain language.\n"
+        "  Example: 'Loves oxidative, sherried complexity and reductive whites with tension.\n"
+        "  Averse to overtly oaky reds and fruit-forward styles. Prefers wines with savoury\n"
+        "  earth and fine tannin over plush, polished fruit.' Be specific and opinionated.\n"
+        "- inference_confidence: 'high' if notes are extensive and stylistically coherent;\n"
+        "  'medium' if the set is sparse but sensible; 'low' if contradictory or minimal.\n"
+        "- top_varietals, top_regions, top_producers, highly_rated, avg_spend: echo the\n"
+        "  ground-truth values verbatim — they are deterministic, not inferred.\n\n"
+        f"{confidence_hint}"
+    )
+
+    tool = {
+        "name": "synthesize_palate_profile",
+        "description": "Synthesize a rich palate profile from CellarTracker notes and structured metadata.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "top_varietals": {"type": "array", "items": {"type": "string"}},
+                "top_regions": {"type": "array", "items": {"type": "string"}},
+                "top_producers": {"type": "array", "items": {"type": "string"}},
+                "highly_rated": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "producer": {"type": "string"},
+                            "wine": {"type": "string"},
+                            "vintage": {"type": "string"},
+                        },
+                        "required": ["producer", "wine", "vintage"],
+                    },
+                },
+                "preferred_descriptors": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "4-7 multi-word sensory phrases.",
+                },
+                "avoided_styles": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "2-4 multi-word phrases naming styles to avoid.",
+                },
+                "avg_spend": {"type": ["integer", "null"]},
+                "style_summary": {
+                    "type": "string",
+                    "description": "One sentence, 20-30 words.",
+                },
+                "taste_markers": {
+                    "type": "object",
+                    "properties": {
+                        "acidity": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "tannin": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "body": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "oak": {"type": "integer", "minimum": 1, "maximum": 5},
+                    },
+                    "required": ["acidity", "tannin", "body", "oak"],
+                },
+                "palate_persona": {
+                    "type": "string",
+                    "description": "2-3 sentences naming signature style preferences in plain language.",
+                },
+                "inference_confidence": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"],
+                },
+            },
+            "required": [
+                "top_varietals", "top_regions", "top_producers", "highly_rated",
+                "preferred_descriptors", "avoided_styles", "style_summary",
+                "taste_markers", "palate_persona", "inference_confidence",
+            ],
+        },
+    }
+
+    logger.info(
+        "synthesize_palate_from_notes: calling Claude model=%s notes=%d high=%d mid=%d low=%d",
+        anthropic_model, note_count, len(high_tier), len(mid_tier), len(low_tier),
+    )
+
+    client = anthropic.Anthropic(api_key=anthropic_api_key)
+    response = client.messages.create(
+        model=anthropic_model,
+        max_tokens=2048,
+        messages=[{"role": "user", "content": prompt_text}],
+        tools=[tool],
+        tool_choice={"type": "tool", "name": "synthesize_palate_profile"},
+    )
+
+    tool_block = next(
+        (b for b in response.content if b.type == "tool_use" and b.name == "synthesize_palate_profile"),
+        None,
+    )
+    if not tool_block:
+        raise RuntimeError("Anthropic did not return the expected tool_use block for palate synthesis.")
+
+    synthesized = dict(tool_block.input)
+    synthesized["profile_source"] = "cellartracker_synthesized"
+    synthesized["note_count"] = note_count
+
+    logger.info(
+        "synthesize_palate_from_notes: success confidence=%s descriptors=%d persona_chars=%d",
+        synthesized.get("inference_confidence"),
+        len(synthesized.get("preferred_descriptors", [])),
+        len(synthesized.get("palate_persona", "")),
+    )
+    return synthesized
+
+
+def persist_synthesized_profile(synthesized: dict) -> None:
+    """Merge the synthesized palate dict into profile_data.json under ``_synthesized``.
+
+    Unlike persist_seed_profile, this preserves the underlying CellarTracker rows
+    (list/notes/consumed/purchases) — they are the source the synthesis was built
+    from. Busts the profile cache after write so subsequent loads see the update.
+    """
+    logger = logging.getLogger("sommelier.profile")
+    data = load_profile_data()
+    data[SYNTHESIZED_KEY] = synthesized
+    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache()
+    logger.info("persist_synthesized_profile: wrote synthesized palate to %s", PROFILE_DATA_PATH)
+
+
+def clear_synthesized_profile() -> None:
+    """Remove any prior synthesized palate from profile_data.json.
+
+    Called before a fresh synthesis attempt so a failed Claude call doesn't leave
+    stale synthesized data behind (the deterministic fallback in build_taste_profile()
+    can then take over until the next successful synthesis).
+    """
+    data = load_profile_data()
+    if SYNTHESIZED_KEY not in data:
+        return
+    data.pop(SYNTHESIZED_KEY, None)
+    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache()
+
+
 def build_taste_profile(profile_data: dict) -> dict:
     """Derive structured taste signals from merged profile export data.
 
-    If a seed-bottle inferred profile is present (key ``_inferred``), return it
-    directly — it is already shaped like this function's output, having been
-    synthesized by seed_profile.infer_profile_from_seeds().
+    Short-circuit order (first match wins):
+      1. ``_synthesized`` — LLM-synthesized CellarTracker palate produced by
+         synthesize_palate_from_notes() at upload time. Same shape as the
+         seed-bottle inferred profile (multi-word descriptors, taste_markers,
+         palate_persona, style_summary).
+      2. ``_inferred`` — seed-bottle profile from infer_profile_from_seeds().
+      3. Fallback: deterministic frequency-token derivation from raw notes
+         (used when synthesis hasn't run or failed).
 
     Any user manual edits stored under ``_overrides`` are merged on top of the
-    derived/inferred base before returning, so /profile-summary and the
+    derived/inferred/synthesized base before returning, so /profile-summary and the
     recommendation prompt both see the edited values.
     """
     if not isinstance(profile_data, dict):
         profile_data = {}
 
     overrides = profile_data.get("_overrides") or {}
+
+    synthesized = profile_data.get("_synthesized")
+    if isinstance(synthesized, dict) and synthesized:
+        return apply_profile_overrides(synthesized, overrides)
 
     inferred = profile_data.get("_inferred")
     if isinstance(inferred, dict) and inferred:
@@ -389,7 +706,11 @@ def build_taste_profile_pydantic(profile_data: dict) -> TasteProfile:
         budget_max = int(round(avg_spend)) + 10
 
     profile_source = structured.get("profile_source", "cellartracker")
-    inference_confidence = structured.get("inference_confidence") if profile_source == "seed_bottles" else None
+    inference_confidence = (
+        structured.get("inference_confidence")
+        if profile_source in ("seed_bottles", "cellartracker_synthesized")
+        else None
+    )
 
     return TasteProfile(
         preferred_grapes=preferred_grapes,
@@ -649,8 +970,9 @@ def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) ->
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
 
-    if structured.get("profile_source") == "seed_bottles":
-        logger.info("build_enriched_profile_text: seed-bottle profile already enriched, skipping anthropic call")
+    source = structured.get("profile_source")
+    if source in ("seed_bottles", "cellartracker_synthesized"):
+        logger.info("build_enriched_profile_text: profile already enriched (source=%s), skipping anthropic call", source)
         enriched = structured
     else:
         logger.info("build_enriched_profile_text: calling enrich_profile_with_anthropic")

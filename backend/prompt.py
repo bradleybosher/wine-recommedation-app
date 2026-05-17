@@ -33,6 +33,8 @@ def build_system_prompt(
     profile_source: str = "cellartracker",
     bottle_count: int = 3,
     budget_ceiling: str = "",
+    taste_markers: dict | None = None,
+    palate_persona: str | None = None,
 ) -> str:
     import logging
     logger = logging.getLogger(__name__)
@@ -65,6 +67,23 @@ or if a bottle is worth ordering specifically because they don't have it.
             "treat as directional, not authoritative; prefer recommendations that match "
             "the dominant style signals over edge-of-profile picks.)\n"
             + taste_profile
+        )
+
+    taste_markers_section = ""
+    if isinstance(taste_markers, dict):
+        markers_block = ", ".join([
+            f"Acidity {taste_markers.get('acidity', 3)}/5",
+            f"Tannin {taste_markers.get('tannin', 3)}/5",
+            f"Body {taste_markers.get('body', 3)}/5",
+            f"Oak {taste_markers.get('oak', 3)}/5",
+        ])
+        taste_markers_section = f"Taste markers (1-5 preference scale): {markers_block}\n\n"
+
+    palate_persona_section = ""
+    if isinstance(palate_persona, str) and palate_persona.strip():
+        palate_persona_section = (
+            "**PALATE PERSONA** (inferred signature — cite these signals in your reasoning):\n"
+            f"{palate_persona.strip()}\n\n"
         )
 
     meal_section = f"### TONIGHT'S MEAL\n{meal_hints}\n" if meal_hints else ""
@@ -116,9 +135,9 @@ Do NOT recommend wines from the owner's cellar, even if they are a perfect profi
 
 Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, no explanation).
 
-PRIORITY — Owner taste profile (match this first):
+{palate_persona_section}PRIORITY — Owner taste profile (match this first):
 {taste_profile}
-{character_line}{cellar_section}
+{taste_markers_section}{character_line}{cellar_section}
 If a wine from the owner's cellar appears on the restaurant list, only recommend it if it offers
 significantly better value than alternatives with equal profile fit.
 {meal_section}Return your response as valid JSON matching this schema exactly:
@@ -137,8 +156,8 @@ Notes for confidence field:
 
 Notes for fits field (optional):
 - Provide 2-3 short tags (each <= 8 words) per recommendation, surfacing concrete profile signals that drove the pick.
-- Each tag MUST cite a real signal from the taste profile above: a top region/varietal/producer, a preferred descriptor, an avoided style, or a derived taste marker (acidity/tannin/body/oak level).
-- Good: "Matches your high-acidity preference", "Aligned with your top region: Northern Rhône", "Avoids the oaky profile you down-rate".
+- Each tag MUST cite a real signal from the taste profile above: a top region/varietal/producer, a preferred descriptor, an avoided style, a numeric taste marker (acidity/tannin/body/oak 1-5), or a phrase quoted/paraphrased from the PALATE PERSONA block.
+- Good: "Matches your high-acidity preference (5/5)", "Aligned with your top region: Northern Rhône", "Hits your oxidative-style signature", "Avoids the overtly oaky profile you down-rate".
 - Bad (forbidden — too generic): "Great with food", "Crowd pleaser", "Classic choice".
 - If no clean signal applies, OMIT the field entirely. Do not return an empty array and do not invent signals not present in the profile.
 

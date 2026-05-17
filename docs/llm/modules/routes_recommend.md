@@ -46,7 +46,7 @@ File/test:
 8. **Enriched profile**: Try `profile.build_enriched_profile_text(...)`. On any error fall back to standard profile (non-fatal).
 9. Compute `cellar_summary` (top 5 terms) and `relevant` bottles (top 10 terms, possibly overridden by `effective_style`) via `cellar_terms.*` + `inventory.get_relevant_bottles`.
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
-11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`.
+11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`. Also passes `taste_markers` and `palate_persona` extracted from `build_taste_profile(load_profile_data())` so the prompt can render the numeric markers block and quote the persona verbatim (both populated by `_synthesized` or `_inferred` profiles; absent for legacy CT-only).
 12. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
 13. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response. Cache the result and return.
 14. On `HTTPException`: log error event, re-raise.
@@ -63,7 +63,7 @@ File/test:
 - `meal_parser.{meal_to_wine_hints, parse_meal_description}`
 - `models.RecommendationResponse`
 - `parser.{OCRError, parse_wine_list}`
-- `profile.{build_enriched_profile_text, build_taste_profile_pydantic, extract_profile_preference_terms, load_profile_data}`
+- `profile.{build_enriched_profile_text, build_taste_profile, build_taste_profile_pydantic, extract_profile_preference_terms, load_profile_data}`
 - `prompt.build_system_prompt`
 - `rate_limit.check_rate_limit`
 - `recommender.get_recommendation`

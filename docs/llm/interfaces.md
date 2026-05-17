@@ -84,7 +84,12 @@ def get_inventory() → InventoryResponse
 @router.post("/upload-profile")
 async def upload_profile(file: UploadFile) → UploadProfileResponse
   Detect export type via profile.ingest_export. 400 on parse failure or empty file,
-  413 on oversize. Clears any prior _overrides. Returns type detected + derived TasteProfile.
+  413 on oversize. Clears any prior _overrides and _synthesized, then attempts
+  synthesize_palate_from_notes() and persists the result under _synthesized on success.
+  Synthesis failure (Anthropic error etc.) is logged and tolerated — the deterministic
+  fallback in build_taste_profile() keeps the upload working. The status string
+  ("synthesized (confidence: ...)" | "failed (deterministic fallback active)" | "skipped")
+  is appended to the response message. Returns type detected + derived TasteProfile.
 
 @router.post("/seed-profile")
 async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
@@ -109,10 +114,11 @@ def patch_profile(req: ProfilePatchRequest) → ProfileSummaryResponse
 @router.get("/profile-summary")
 def profile_summary() → ProfileSummaryResponse
   Build taste profile, taste markers, and cellar stats. An explicit taste_markers dict
-  on the merged profile (seed inference or user override) wins; otherwise markers are
-  derived from descriptors. style_summary comes from a user override if present, from
-  the seed-derived profile when available, otherwise from enrich_profile_with_anthropic
-  (failure-tolerant — falls back to None).
+  on the merged profile (seed/synthesized inference or user override) wins; otherwise
+  markers are derived from descriptors. style_summary comes from a user override if
+  present, or the seed-derived/synthesized profile when available, otherwise from
+  enrich_profile_with_anthropic (failure-tolerant — falls back to None).
+  inference_confidence is surfaced for both seed_bottles and cellartracker_synthesized.
 ```
 
 ### routes/recommend.py
@@ -302,11 +308,17 @@ def build_system_prompt(
   meal_hints: str = "",
   profile_source: str = "cellartracker",
   bottle_count: int = 3,
-  budget_ceiling: str = ""
+  budget_ceiling: str = "",
+  taste_markers: dict | None = None,
+  palate_persona: str | None = None
 ) → str
   Construct system prompt: sommelier persona, taste profile, relevant bottles, schema, meal hints.
   If taste_profile_override provided, skips internal build_enriched_profile_text_basic() call.
   When profile_source="seed_bottles", prepends directional-profile caveat.
+  When taste_markers provided, renders a numeric block ("Acidity 5/5, Tannin 3/5, ...") under
+  the prose profile so Claude can cite specific axes in reasoning/fits.
+  When palate_persona provided, quotes it verbatim under a **PALATE PERSONA** header inserted
+  above the PRIORITY block; fits tags may cite/paraphrase persona phrases.
   Injects CONSTRAINTS block: "Return exactly N ranked recommendations." + optional budget ceiling.
   Writes full prompt to prompt.log via dedicated _prompt_logger.
   Returns full prompt string with JSON schema embedded.
@@ -333,10 +345,13 @@ def load_profile_data() → Dict
   Gracefully handles missing/corrupt files. Cache busted by bust_profile_cache().
 
 def build_taste_profile(profile_data: dict) → Dict
-  Derive taste profile: top varietals, regions, producers, preferred descriptors.
+  Short-circuit order: (1) profile_data["_synthesized"] (LLM-synthesized CT palate);
+  (2) profile_data["_inferred"] (seed-bottle profile); (3) deterministic frequency fallback.
+  Fallback derives taste profile: top varietals, regions, producers, preferred descriptors.
   Infer avoided_styles from low-scored (≤3.0) tasting notes.
   Return dict with keys: top_varietals, top_regions, top_producers, highly_rated,
-  preferred_descriptors, avoided_styles, avg_spend.
+  preferred_descriptors, avoided_styles, avg_spend (plus taste_markers, palate_persona,
+  style_summary, inference_confidence, profile_source when sourced from _synthesized or _inferred).
 
 def build_enriched_profile_text_basic() → str
   Format taste profile as prose paragraph for system prompt (non-enriched version).
@@ -349,10 +364,29 @@ def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) �
   This is the function called from main.py (not build_enriched_profile_text_basic).
 
 def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_model: str) → dict
+  LEGACY fallback path — only invoked when no _synthesized profile exists. The newer
+  synthesize_palate_from_notes() subsumes this with richer context (raw notes vs. tokens).
   Call Anthropic Claude via tool use (enrich_taste_profile tool); get back multi-word style
   phrases + style_summary. tool_block.input is pre-parsed — no JSON parsing needed.
   Returns raw unchanged on any error (fully safe fallback).
   enrich_profile_with_ollama is kept as a backward-compat alias.
+
+def synthesize_palate_from_notes(profile_data: dict, anthropic_api_key: str, anthropic_model: str) → dict | None
+  Primary LLM palate path for CellarTracker uploads. Single Anthropic tool-use call
+  (synthesize_palate_profile tool) fed raw tasting notes grouped by score tier (high/mid/low,
+  capped 50 per tier) plus the deterministic structured signals.
+  Returns dict shaped like seed-bottle inferred profile + palate_persona (2-3 sentence
+  sommelier persona), note_count, profile_source="cellartracker_synthesized".
+  Returns None when no notes present. Raises anthropic.APIError / RuntimeError on failure —
+  caller must catch so the deterministic fallback in build_taste_profile() can take over.
+
+def persist_synthesized_profile(synthesized: dict) → None
+  Write synthesized dict to profile_data.json under _synthesized key. Preserves underlying CT
+  rows (list/notes/consumed/purchases). Busts profile cache after write.
+
+def clear_synthesized_profile() → None
+  Remove _synthesized from profile_data.json (no-op if absent). Called before a fresh
+  synthesis attempt so a failed Claude call doesn't leave stale data behind.
 
 def build_taste_profile_pydantic(profile_data: dict) → TasteProfile
   Calls build_taste_profile() and maps result to TasteProfile Pydantic model.

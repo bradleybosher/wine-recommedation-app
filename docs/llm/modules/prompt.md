@@ -19,6 +19,8 @@ Construct the system prompt for Claude. Embed taste profile, relevant cellar bot
 - `profile_source`: One of `"cellartracker"` (default), `"seed_bottles"`, `"manual"`. When `"seed_bottles"`, a one-line caveat is prepended to the taste-profile block instructing the model to treat signals as directional, not authoritative.
 - `bottle_count`: int (default 3) — injected into the `CONSTRAINTS` block as "Return exactly N ranked recommendations."
 - `budget_ceiling`: str (default "") — when non-empty, injected into `CONSTRAINTS` as "Budget ceiling per bottle: X — exclude wines above this price."
+- `taste_markers`: `dict | None` — `{acidity, tannin, body, oak}` 1-5 integer scores from the synthesized/seed profile. When present, rendered as a one-line numeric block (`Taste markers (1-5 preference scale): Acidity 5/5, Tannin 3/5, ...`) directly under the prose taste profile so Claude can cite specific axes in its reasoning.
+- `palate_persona`: `str | None` — 2-3 sentence sommelier persona from `synthesize_palate_from_notes()`. When present, quoted verbatim under a `**PALATE PERSONA**` header inserted *above* the `PRIORITY — Owner taste profile` block. Claude is instructed to cite these signals in `fits` tags.
 
 **Outputs**: Complete system prompt string (1000+ words) with embedded JSON schema.
 
@@ -60,7 +62,7 @@ Examples: `"high — hits your preference for grower Champagne with mineral comp
 
 ## Fits Field (enforced in prompt)
 
-Optional per-recommendation `fits: string[]` — 2–3 short tags (each ≤ 8 words) that ground the pick in a concrete signal from the taste profile. The prompt requires each tag to cite a real signal: a top region/varietal/producer, a preferred descriptor, an avoided style, or a derived taste-marker level (acidity/tannin/body/oak). Generic phrases ("Great with food", "Crowd pleaser") are forbidden. The model is instructed to omit the field entirely (not return an empty array) when no clean signal applies.
+Optional per-recommendation `fits: string[]` — 2–3 short tags (each ≤ 8 words) that ground the pick in a concrete signal from the taste profile. The prompt requires each tag to cite a real signal: a top region/varietal/producer, a preferred descriptor, an avoided style, a numeric taste marker (e.g. "Acidity 5/5"), or a phrase quoted/paraphrased from the `PALATE PERSONA` block. Generic phrases ("Great with food", "Crowd pleaser") are forbidden. The model is instructed to omit the field entirely (not return an empty array) when no clean signal applies.
 
 ## Wheel, Bars, Drink Notes (enforced in prompt)
 

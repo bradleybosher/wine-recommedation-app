@@ -26,6 +26,7 @@ from models import RecommendationResponse
 from parser import OCRError, parse_wine_list
 from profile import (
     build_enriched_profile_text,
+    build_taste_profile,
     build_taste_profile_pydantic,
     extract_profile_preference_terms,
     load_profile_data,
@@ -187,6 +188,9 @@ async def recommend(
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
     meal_hints = meal_to_wine_hints(parse_meal_description(effective_meal))
+    structured_profile = build_taste_profile(load_profile_data())
+    taste_markers_dict = structured_profile.get("taste_markers") if isinstance(structured_profile.get("taste_markers"), dict) else None
+    palate_persona_text = structured_profile.get("palate_persona") if isinstance(structured_profile.get("palate_persona"), str) else None
     system = build_system_prompt(
         relevant,
         cellar_summary=cellar_summary,
@@ -195,6 +199,8 @@ async def recommend(
         profile_source=taste_profile.profile_source,
         bottle_count=bottle_count,
         budget_ceiling=ceiling,
+        taste_markers=taste_markers_dict,
+        palate_persona=palate_persona_text,
     )
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])

@@ -23,11 +23,14 @@ from profile import (
     build_taste_profile,
     build_taste_profile_pydantic,
     bust_profile_cache,
+    clear_synthesized_profile,
     derive_taste_markers,
     enrich_profile_with_anthropic,
     ingest_export,
     load_profile_data,
+    persist_synthesized_profile,
     save_profile_export,
+    synthesize_palate_from_notes,
 )
 from seed_profile import infer_profile_from_seeds, persist_seed_profile
 
@@ -35,6 +38,7 @@ router = APIRouter()
 logger = logging.getLogger("sommelier.api")
 
 _SEED_INFERENCE_ERRORS = (anthropic.APIError, RuntimeError, ValueError)
+_SYNTHESIS_ERRORS = _SEED_INFERENCE_ERRORS
 
 
 def _clear_profile_overrides() -> None:
@@ -69,14 +73,32 @@ async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
 
     save_profile_export(raw)
     _clear_profile_overrides()
+    clear_synthesized_profile()
     bust_cache()
 
     profile_data = load_profile_data()
+    synthesis_status = "skipped"
+    try:
+        synthesized = synthesize_palate_from_notes(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
+        if synthesized:
+            persist_synthesized_profile(synthesized)
+            profile_data = load_profile_data()
+            synthesis_status = f"synthesized (confidence: {synthesized.get('inference_confidence', 'unknown')})"
+    except _SYNTHESIS_ERRORS as exc:
+        logger.exception("upload_profile_synthesis_failed err=%s", type(exc).__name__)
+        synthesis_status = "failed (deterministic fallback active)"
+    except Exception as exc:
+        logger.exception("upload_profile_synthesis_unexpected err=%s", type(exc).__name__)
+        synthesis_status = "failed (deterministic fallback active)"
+
     taste_profile = build_taste_profile_pydantic(profile_data)
 
     return UploadProfileResponse(
         export_type=export_type,
-        message=f"Profile loaded: {len(rows)} rows from '{export_type}' export. Response cache cleared.",
+        message=(
+            f"Profile loaded: {len(rows)} rows from '{export_type}' export. "
+            f"Palate synthesis: {synthesis_status}. Response cache cleared."
+        ),
         taste_profile=taste_profile,
     )
 
@@ -136,6 +158,7 @@ def profile_summary() -> ProfileSummaryResponse:
     profile_data = build_taste_profile(load_profile_data())
 
     is_seed_derived = profile_data.get("profile_source") == "seed_bottles"
+    is_synthesized = profile_data.get("profile_source") == "cellartracker_synthesized"
 
     # An explicit taste_markers dict (seed inference OR user override on a CT profile)
     # wins verbatim. Otherwise fall back to heuristic derivation from descriptors.
@@ -161,7 +184,7 @@ def profile_summary() -> ProfileSummaryResponse:
 
     style_summary: Optional[str] = None
     override_summary = (profile_data.get("style_summary") or "").strip() if isinstance(profile_data.get("style_summary"), str) else ""
-    if is_seed_derived or override_summary:
+    if is_seed_derived or is_synthesized or override_summary:
         style_summary = override_summary or None
     else:
         try:
@@ -189,7 +212,7 @@ def profile_summary() -> ProfileSummaryResponse:
         taste_markers=taste_markers,
         cellar_stats=cellar_stats,
         profile_source=profile_data.get("profile_source", "cellartracker"),
-        inference_confidence=profile_data.get("inference_confidence") if is_seed_derived else None,
+        inference_confidence=profile_data.get("inference_confidence") if (is_seed_derived or is_synthesized) else None,
         seed_bottle_count=profile_data.get("seed_bottle_count") if is_seed_derived else None,
     )
 

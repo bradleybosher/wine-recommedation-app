@@ -11,20 +11,27 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 Profile source (one of):
   (a) CellarTracker TSV (inventory)       → inventory.json
       CellarTracker TSV (tasting history) → profile_data.json
+      → /upload-profile triggers synthesize_palate_from_notes (single Claude call
+         on raw notes grouped by score tier) → profile_data.json["_synthesized"]
+         (rich palate: multi-word descriptors, taste_markers 1-5, palate_persona,
+          style_summary, inference_confidence; falls back to deterministic
+          frequency tokens if synthesis fails)
   (b) 3-7 named seed bottles → /seed-profile → Claude (infer) → profile_data.json["_inferred"]
 → optional manual edits via PATCH /profile → profile_data.json["_overrides"]
-  (layered on top of derived/inferred profile by build_taste_profile;
+  (layered on top of synthesized/inferred/derived profile by build_taste_profile;
+   short-circuit precedence: _synthesized > _inferred > deterministic;
    cleared whenever /upload-profile or /seed-profile replaces the underlying state)
-→ wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived)
+→ wine list upload (PDF/photo) → parser.py → Claude (enrich profile; skipped if seed-derived or synthesized)
 → Claude (recommend) → top-N recommendations (default 3; configurable via bottle_count)
-  (per-wine confidence capped at "medium" for seed-derived; color derived server-side post-validation)
+  (system prompt surfaces taste_markers numerically and quotes palate_persona verbatim;
+   per-wine confidence capped at "medium" for seed-derived; color derived server-side post-validation)
 → auto-saved to flights table (cellar.db) → retrievable via GET /history for historical review
 ```
 **Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug,history}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite — response/parse cache + permanent flight history), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal
-- Profile enriched via preliminary Claude call (`profile.build_enriched_profile_text()`) before main call
+- For CellarTracker uploads the palate is synthesized at upload time by `profile.synthesize_palate_from_notes()` (one Claude call on raw notes); the per-recommendation `build_enriched_profile_text()` short-circuits when a synthesized profile is present, so the recommendation prompt sees rich multi-word descriptors, taste_markers, and a `palate_persona` paragraph
 - Per-wine reasoning; list quality assessment; structured JSON output via Pydantic
 - Per-wine enrichment fields (coords, grape, bars, wheel, nose, palate, pairs, critic) returned by Claude; `color` (WineColor palette) derived server-side post-validation — never in Claude tool schema
 - `source_mode="cellar"` skips wine list entirely; Claude recommends from profile knowledge alone

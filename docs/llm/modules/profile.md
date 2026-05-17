@@ -50,11 +50,14 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Return type detected
 
 **build_taste_profile(profile_data)** → dict:
-  - **Short-circuit**: if `profile_data["_inferred"]` exists (seed-bottle pathway),
-    return that dict directly — it was synthesized by
-    `seed_profile.infer_profile_from_seeds()` and is already shaped like this
-    function's normal output.
-  - Otherwise:
+  - **Short-circuit order** (first match wins):
+    1. `profile_data["_synthesized"]` — LLM-synthesized CT palate produced by
+       `synthesize_palate_from_notes()` at upload time. Same shape as the
+       seed-bottle inferred profile, plus `palate_persona`.
+    2. `profile_data["_inferred"]` — seed-bottle profile from
+       `seed_profile.infer_profile_from_seeds()`.
+    3. Fallback: deterministic frequency-token derivation (below).
+  - Fallback derivation:
   - Extract top 10 varietals from consumed wines (from Varietal / MasterVarietal)
   - Extract top 8 regions/subregions/appellations
   - Extract top 10 producers from all exports
@@ -100,6 +103,9 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Returned in `UploadProfileResponse.taste_profile` so the frontend gets a typed profile immediately on upload
 
 **enrich_profile_with_anthropic(raw, anthropic_api_key, anthropic_model)** → dict:
+  - **Legacy fallback path**: only invoked when no `_synthesized` profile exists.
+    The newer `synthesize_palate_from_notes()` subsumes this with richer context
+    (raw notes vs. frequency tokens).
   - Takes raw dict from `build_taste_profile()`, calls Anthropic Claude via tool use for LLM enrichment
   - Prompt asks model to synthesise frequency tokens into multi-word style phrases + a `style_summary` sentence
   - Uses `enrich_taste_profile` tool with forced `tool_choice` — returns parsed dict directly (no JSON parsing)
@@ -107,9 +113,44 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Returns `raw` unchanged on any error (fully safe fallback)
   - `enrich_profile_with_ollama` is kept as an alias for backwards compatibility
 
+**synthesize_palate_from_notes(profile_data, anthropic_api_key, anthropic_model)** → dict | None:
+  - **Primary LLM palate path for CellarTracker uploads.** Single Anthropic
+    tool-use call (`synthesize_palate_profile`) that takes raw tasting notes
+    grouped by score tier (high/mid/low, capped at 50 per tier) plus the
+    deterministic structured signals (top varietals/regions/producers,
+    highly_rated, avg_spend) and synthesizes a rich palate profile.
+  - Returns dict shaped like seed-bottle inferred profile + extras:
+    `preferred_descriptors` (multi-word phrases), `avoided_styles`,
+    `style_summary`, `taste_markers` ({acidity, tannin, body, oak} 1-5),
+    `palate_persona` (2-3 sentence sommelier persona naming signature styles),
+    `inference_confidence`, `profile_source="cellartracker_synthesized"`,
+    `note_count`.
+  - Returns `None` when no notes are present (skip — fall back to deterministic).
+  - **Raises** `anthropic.APIError` or `RuntimeError` on Claude-side failure —
+    callers must catch and let the deterministic path take over.
+  - Score-tier bucketing reuses the scale-detection heuristic from
+    `_infer_avoided_styles`: max>10 → 100pt scale (high≥93, low≤85);
+    otherwise 10pt scale (high≥9.0, low≤7.5).
+  - Marks `inference_confidence="low"` and instructs Claude to be conservative
+    when fewer than 10 notes are available.
+
+**persist_synthesized_profile(synthesized)** → None:
+  - Writes the synthesized dict to `profile_data.json` under the `_synthesized`
+    key. Unlike `persist_seed_profile`, preserves the underlying CT rows
+    (list/notes/consumed/purchases) — those are the synthesis source data.
+  - Busts the profile cache after write.
+
+**clear_synthesized_profile()** → None:
+  - Removes `_synthesized` from `profile_data.json` (no-op if absent).
+  - Called before a fresh synthesis attempt at `/upload-profile` so a failed
+    Claude call doesn't leave stale synthesized data behind.
+
 **build_enriched_profile_text(anthropic_api_key, anthropic_model)** → str:
   - Orchestrates the full enrichment pipeline: load → build_taste_profile → enrich_profile_with_anthropic → format paragraph
   - Calls `enrich_profile_with_anthropic()` and prepends `style_summary` (if non-empty) to the paragraph
+  - **Short-circuits** the enrichment call when `profile_source` is
+    `"seed_bottles"` or `"cellartracker_synthesized"` — those profiles already
+    contain enriched fields and don't need a second LLM pass.
   - Fallback to `OWNER_PROFILE` if no data or enrichment empty
   - **This is the function called from main.py** — not `build_enriched_profile_text_basic()`
 
