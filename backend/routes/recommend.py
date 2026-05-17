@@ -201,13 +201,15 @@ async def recommend(
         budget_ceiling=ceiling,
         taste_markers=taste_markers_dict,
         palate_persona=palate_persona_text,
+        source_mode=source_mode,
     )
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])
 
     try:
         recommendation = get_recommendation(
-            wine_list_text, effective_meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL
+            wine_list_text, effective_meal, system, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
+            source_mode=source_mode,
         )
         try:
             scoring_result = score_recommendation(

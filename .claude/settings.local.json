@@ -21,7 +21,8 @@
       "Bash(cat *)",
       "Bash(grep *)",
       "Bash(kill *)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import prompt; import recommender; print\\('OK'\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

@@ -35,14 +35,22 @@ def build_system_prompt(
     budget_ceiling: str = "",
     taste_markers: dict | None = None,
     palate_persona: str | None = None,
+    source_mode: str = "winelist",
 ) -> str:
     import logging
     logger = logging.getLogger(__name__)
 
     cellar_section = ""
     if relevant_bottles:
-        bottle_list = "\n".join(f"  - {format_bottle(b)}" for b in relevant_bottles[:20])
-        cellar_section = f"""
+        if source_mode == "cellar":
+            bottle_list = "\n".join(f"  - {format_bottle(b)}" for b in relevant_bottles)
+            cellar_section = f"""
+**CELLAR INVENTORY** (your recommendation pool — select ONLY from these bottles):
+{bottle_list}
+"""
+        else:
+            bottle_list = "\n".join(f"  - {format_bottle(b)}" for b in relevant_bottles[:20])
+            cellar_section = f"""
 The user has the following relevant bottles in their cellar:
 {bottle_list}
 
@@ -88,6 +96,58 @@ or if a bottle is worth ordering specifically because they don't have it.
 
     meal_section = f"### TONIGHT'S MEAL\n{meal_hints}\n" if meal_hints else ""
 
+    if source_mode == "cellar":
+        mode_intro = (
+            "Your primary job is to match bottles from the owner's cellar to the owner's "
+            "taste profile (70% weight). The meal context is secondary guidance only (30% weight) — "
+            "do not let it override profile fit."
+        )
+        hard_constraint = (
+            "**HARD CONSTRAINT**: ALL recommendations must be bottles from the CELLAR INVENTORY "
+            "listed below ONLY. Do NOT recommend any wine that does not appear in that list — "
+            "do not hallucinate or invent bottles."
+        )
+        cellar_cross_ref = ""
+        reasoning_notes = (
+            "Notes for reasoning field (follow this structure exactly):\n"
+            "1. PROFILE FIT: Explain why this specific bottle matches the taste profile. "
+            "Name the key signals from the profile that drove the pick "
+            "(e.g., \"Delivers the mineral-driven acidity you consistently reach for\").\n"
+            "2. CONTRAST (where relevant): Follow with \"Unlike [an avoided style from the profile], "
+            "no [unwanted trait].\" Only include if it adds genuine distinction.\n"
+            "3. FOOD CONTEXT (secondary): Briefly note meal synergy only if it adds insight beyond the profile match.\n"
+            "4. DRINK WINDOW: Note whether the bottle is ready to drink now, needs more time, or is approaching its peak."
+        )
+    else:
+        mode_intro = (
+            "Your primary job is to match wines from the list to the owner's taste profile "
+            "(70% weight). The meal context is secondary guidance only (30% weight) — "
+            "do not let it override profile fit."
+        )
+        hard_constraint = (
+            "**HARD CONSTRAINT**: ALL recommendations must be wines from the provided restaurant "
+            "wine list ONLY. Do NOT recommend wines from the owner's cellar, even if they are a "
+            "perfect profile match."
+        )
+        cellar_cross_ref = (
+            "If a wine from the owner's cellar appears on the restaurant list, only recommend it "
+            "if it offers significantly better value than alternatives with equal profile fit.\n"
+        )
+        reasoning_notes = (
+            "Notes for reasoning field (follow this structure exactly):\n"
+            "1. PERSONAL COMPARISON: If a bottle from the cellar list is a genuine stylistic match, "
+            "open with \"Like your [Producer + Wine name], but [how this wine differs or excels].\" "
+            "ONLY use this opener when you can name a specific bottle from the cellar list — "
+            "do NOT use it if there is no close match. If there is no close cellar match, skip this "
+            "opener entirely and instead open by referencing a named style or preference from the "
+            "taste profile directly (e.g., \"Delivers the mineral-driven acidity you consistently reach for\").\n"
+            "2. CONTRAST (where relevant): Follow with \"Unlike [an avoided bottle/style from the profile], "
+            "no [unwanted trait].\" Only include if it adds genuine distinction.\n"
+            "3. FOOD CONTEXT (secondary): Briefly note meal synergy only if it adds insight beyond the profile match.\n"
+            "4. CELLAR NOTE: If outclassed by something they own, say so; if worth ordering despite owning "
+            "something similar, explain why."
+        )
+
     constraints: list[str] = [f"Return exactly {bottle_count} ranked recommendations."]
     if budget_ceiling:
         constraints.append(f"Budget ceiling per bottle: {budget_ceiling} — exclude wines above this price.")
@@ -123,12 +183,9 @@ or if a bottle is worth ordering specifically because they don't have it.
   "profile_match_summary": "string (1 sentence)"
 }"""
 
-    prompt = f"""You are a precise, opinionated sommelier. Your primary job is to match wines from the list
-to the owner's taste profile (70% weight). The meal context is secondary guidance only (30% weight) —
-do not let it override profile fit.
+    prompt = f"""You are a precise, opinionated sommelier. {mode_intro}
 
-**HARD CONSTRAINT**: ALL recommendations must be wines from the provided restaurant wine list ONLY.
-Do NOT recommend wines from the owner's cellar, even if they are a perfect profile match.
+{hard_constraint}
 
 **CONSTRAINTS**:
 {constraint_section}
@@ -138,16 +195,10 @@ Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, n
 {palate_persona_section}PRIORITY — Owner taste profile (match this first):
 {taste_profile}
 {taste_markers_section}{character_line}{cellar_section}
-If a wine from the owner's cellar appears on the restaurant list, only recommend it if it offers
-significantly better value than alternatives with equal profile fit.
-{meal_section}Return your response as valid JSON matching this schema exactly:
+{cellar_cross_ref}{meal_section}Return your response as valid JSON matching this schema exactly:
 {schema}
 
-Notes for reasoning field (follow this structure exactly):
-1. PERSONAL COMPARISON: If a bottle from the cellar list is a genuine stylistic match, open with "Like your [Producer + Wine name], but [how this wine differs or excels]." ONLY use this opener when you can name a specific bottle from the cellar list — do NOT use it if there is no close match. If there is no close cellar match, skip this opener entirely and instead open by referencing a named style or preference from the taste profile directly (e.g., "Delivers the mineral-driven acidity you consistently reach for").
-2. CONTRAST (where relevant): Follow with "Unlike [an avoided bottle/style from the profile], no [unwanted trait]." Only include if it adds genuine distinction.
-3. FOOD CONTEXT (secondary): Briefly note meal synergy only if it adds insight beyond the profile match.
-4. CELLAR NOTE: If outclassed by something they own, say so; if worth ordering despite owning something similar, explain why.
+{reasoning_notes}
 
 Notes for confidence field:
 - Format exactly as: "[high|medium|low] — [single clause reason]"

@@ -74,7 +74,7 @@ def _derive_color(wine: WineRecommendation) -> WineColor:
 # no JSON parsing or repair logic required.
 _RECOMMENDATION_TOOL: dict = {
     "name": "provide_recommendations",
-    "description": "Provide ranked wine recommendations from the restaurant wine list.",
+    "description": "Provide ranked wine recommendations.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -287,6 +287,7 @@ def get_recommendation(
     anthropic_api_key: str,
     anthropic_model: str,
     image_b64: Optional[str] = None,
+    source_mode: str = "winelist",
 ) -> RecommendationResponse:
     """Get wine recommendation from Anthropic Claude.
 
@@ -296,20 +297,32 @@ def get_recommendation(
         HTTPException: On API failure or all attempts exhausted.
     """
     meal_line = f"Tonight's meal: {meal}" if meal else ""
-    user_prompt = (
-        f"{meal_line}\n\n"
-        "Task: survey every wine on the restaurant wine list below from top to bottom, "
-        "score each against the taste profile in the system prompt, then select and rank the top 3. "
-        "Recommend ONLY wines that appear on the restaurant wine list — do not hallucinate or substitute. "
-        "Return only the JSON response — no preamble."
-    ).strip()
-    text_payload = (
-        user_prompt if image_b64
-        else (
-            f"Restaurant wine list (select your top 3 recommendations from this list):\n{wine_list_text}\n\n{user_prompt}"
-            if wine_list_text else user_prompt
+
+    if source_mode == "cellar":
+        user_prompt = (
+            f"{meal_line}\n\n"
+            "Task: survey every bottle in the CELLAR INVENTORY listed in the system prompt, "
+            "score each against the taste profile, then select and rank the top bottles. "
+            "Recommend ONLY bottles that appear in the CELLAR INVENTORY — "
+            "do not hallucinate or invent wines. "
+            "Return only the JSON response — no preamble."
+        ).strip()
+        text_payload = user_prompt
+    else:
+        user_prompt = (
+            f"{meal_line}\n\n"
+            "Task: survey every wine on the restaurant wine list below from top to bottom, "
+            "score each against the taste profile in the system prompt, then select and rank the top 3. "
+            "Recommend ONLY wines that appear on the restaurant wine list — do not hallucinate or substitute. "
+            "Return only the JSON response — no preamble."
+        ).strip()
+        text_payload = (
+            user_prompt if image_b64
+            else (
+                f"Restaurant wine list (select your top 3 recommendations from this list):\n{wine_list_text}\n\n{user_prompt}"
+                if wine_list_text else user_prompt
+            )
         )
-    )
 
     last_err: Exception = RuntimeError("no attempts made")
 
