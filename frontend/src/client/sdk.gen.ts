@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchFeedbackHistoryFlightIdFeedbackPatchData, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostErrors, ClearCacheDebugCacheClearPostResponses, CreateProfileProfilesPostData, CreateProfileProfilesPostErrors, CreateProfileProfilesPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, DeleteProfileProfilesProfileIdDeleteData, DeleteProfileProfilesProfileIdDeleteErrors, DeleteProfileProfilesProfileIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetErrors, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, ListProfilesProfilesGetData, ListProfilesProfilesGetErrors, ListProfilesProfilesGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchFeedbackHistoryFlightIdFeedbackPatchData, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetErrors, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RegisterAuthRegisterPostData, RegisterAuthRegisterPostErrors, RegisterAuthRegisterPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostErrors, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetErrors, StatusOverviewDebugStatusGetResponses, UpdateProfileProfilesProfileIdPatchData, UpdateProfileProfilesProfileIdPatchErrors, UpdateProfileProfilesProfileIdPatchResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,6 +19,69 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * Register
+ */
+export const registerAuthRegisterPost = <ThrowOnError extends boolean = false>(options: Options<RegisterAuthRegisterPostData, ThrowOnError>) => (options.client ?? client).post<RegisterAuthRegisterPostResponses, RegisterAuthRegisterPostErrors, ThrowOnError>({
+    url: '/auth/register',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Login
+ */
+export const loginAuthLoginPost = <ThrowOnError extends boolean = false>(options: Options<LoginAuthLoginPostData, ThrowOnError>) => (options.client ?? client).post<LoginAuthLoginPostResponses, LoginAuthLoginPostErrors, ThrowOnError>({
+    url: '/auth/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Me
+ */
+export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<MeAuthMeGetData, ThrowOnError>) => (options?.client ?? client).get<MeAuthMeGetResponses, MeAuthMeGetErrors, ThrowOnError>({ url: '/auth/me', ...options });
+
+/**
+ * List Profiles
+ */
+export const listProfilesProfilesGet = <ThrowOnError extends boolean = false>(options?: Options<ListProfilesProfilesGetData, ThrowOnError>) => (options?.client ?? client).get<ListProfilesProfilesGetResponses, ListProfilesProfilesGetErrors, ThrowOnError>({ url: '/profiles', ...options });
+
+/**
+ * Create Profile
+ */
+export const createProfileProfilesPost = <ThrowOnError extends boolean = false>(options: Options<CreateProfileProfilesPostData, ThrowOnError>) => (options.client ?? client).post<CreateProfileProfilesPostResponses, CreateProfileProfilesPostErrors, ThrowOnError>({
+    url: '/profiles',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete Profile
+ */
+export const deleteProfileProfilesProfileIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteProfileProfilesProfileIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteProfileProfilesProfileIdDeleteResponses, DeleteProfileProfilesProfileIdDeleteErrors, ThrowOnError>({ url: '/profiles/{profile_id}', ...options });
+
+/**
+ * Update Profile
+ */
+export const updateProfileProfilesProfileIdPatch = <ThrowOnError extends boolean = false>(options: Options<UpdateProfileProfilesProfileIdPatchData, ThrowOnError>) => (options.client ?? client).patch<UpdateProfileProfilesProfileIdPatchResponses, UpdateProfileProfilesProfileIdPatchErrors, ThrowOnError>({
+    url: '/profiles/{profile_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Health Check
  *
  * Basic health check endpoint.
@@ -30,7 +93,7 @@ export const healthCheckDebugHealthGet = <ThrowOnError extends boolean = false>(
  *
  * Comprehensive status overview including system and service metrics.
  */
-export const statusOverviewDebugStatusGet = <ThrowOnError extends boolean = false>(options?: Options<StatusOverviewDebugStatusGetData, ThrowOnError>) => (options?.client ?? client).get<StatusOverviewDebugStatusGetResponses, unknown, ThrowOnError>({ url: '/debug/status', ...options });
+export const statusOverviewDebugStatusGet = <ThrowOnError extends boolean = false>(options?: Options<StatusOverviewDebugStatusGetData, ThrowOnError>) => (options?.client ?? client).get<StatusOverviewDebugStatusGetResponses, StatusOverviewDebugStatusGetErrors, ThrowOnError>({ url: '/debug/status', ...options });
 
 /**
  * Cache Stats
@@ -42,9 +105,9 @@ export const cacheStatsDebugCacheStatsGet = <ThrowOnError extends boolean = fals
 /**
  * Clear Cache
  *
- * Clear all cached responses.
+ * Clear all cached responses. Authenticated; affects shared response_cache + parse_cache.
  */
-export const clearCacheDebugCacheClearPost = <ThrowOnError extends boolean = false>(options?: Options<ClearCacheDebugCacheClearPostData, ThrowOnError>) => (options?.client ?? client).post<ClearCacheDebugCacheClearPostResponses, unknown, ThrowOnError>({ url: '/debug/cache/clear', ...options });
+export const clearCacheDebugCacheClearPost = <ThrowOnError extends boolean = false>(options?: Options<ClearCacheDebugCacheClearPostData, ThrowOnError>) => (options?.client ?? client).post<ClearCacheDebugCacheClearPostResponses, ClearCacheDebugCacheClearPostErrors, ThrowOnError>({ url: '/debug/cache/clear', ...options });
 
 /**
  * Get Config
@@ -91,21 +154,21 @@ export const getVersionDebugVersionGet = <ThrowOnError extends boolean = false>(
 /**
  * List History
  *
- * List all past flights, newest first.
+ * List past flights for the active profile, newest first.
  */
 export const listHistoryHistoryGet = <ThrowOnError extends boolean = false>(options?: Options<ListHistoryHistoryGetData, ThrowOnError>) => (options?.client ?? client).get<ListHistoryHistoryGetResponses, ListHistoryHistoryGetErrors, ThrowOnError>({ url: '/history', ...options });
 
 /**
  * Delete History
  *
- * Delete a flight by ID.
+ * Delete a flight by ID, scoped to the active profile.
  */
 export const deleteHistoryHistoryFlightIdDelete = <ThrowOnError extends boolean = false>(options: Options<DeleteHistoryHistoryFlightIdDeleteData, ThrowOnError>) => (options.client ?? client).delete<DeleteHistoryHistoryFlightIdDeleteResponses, DeleteHistoryHistoryFlightIdDeleteErrors, ThrowOnError>({ url: '/history/{flight_id}', ...options });
 
 /**
  * Get History
  *
- * Retrieve a single flight by ID with full recommendation data.
+ * Retrieve a single flight by ID for the active profile with full recommendation data.
  */
 export const getHistoryHistoryFlightIdGet = <ThrowOnError extends boolean = false>(options: Options<GetHistoryHistoryFlightIdGetData, ThrowOnError>) => (options.client ?? client).get<GetHistoryHistoryFlightIdGetResponses, GetHistoryHistoryFlightIdGetErrors, ThrowOnError>({ url: '/history/{flight_id}', ...options });
 
@@ -139,7 +202,7 @@ export const uploadInventoryUploadInventoryPost = <ThrowOnError extends boolean 
 /**
  * Get Inventory
  */
-export const getInventoryInventoryGet = <ThrowOnError extends boolean = false>(options?: Options<GetInventoryInventoryGetData, ThrowOnError>) => (options?.client ?? client).get<GetInventoryInventoryGetResponses, unknown, ThrowOnError>({ url: '/inventory', ...options });
+export const getInventoryInventoryGet = <ThrowOnError extends boolean = false>(options?: Options<GetInventoryInventoryGetData, ThrowOnError>) => (options?.client ?? client).get<GetInventoryInventoryGetResponses, GetInventoryInventoryGetErrors, ThrowOnError>({ url: '/inventory', ...options });
 
 /**
  * Upload Profile
@@ -178,12 +241,12 @@ export const seedProfileSeedProfilePost = <ThrowOnError extends boolean = false>
  *
  * Returns 404 if no backup exists.
  */
-export const revertProfileProfileRevertPost = <ThrowOnError extends boolean = false>(options?: Options<RevertProfileProfileRevertPostData, ThrowOnError>) => (options?.client ?? client).post<RevertProfileProfileRevertPostResponses, unknown, ThrowOnError>({ url: '/profile/revert', ...options });
+export const revertProfileProfileRevertPost = <ThrowOnError extends boolean = false>(options?: Options<RevertProfileProfileRevertPostData, ThrowOnError>) => (options?.client ?? client).post<RevertProfileProfileRevertPostResponses, RevertProfileProfileRevertPostErrors, ThrowOnError>({ url: '/profile/revert', ...options });
 
 /**
  * Profile Summary
  */
-export const profileSummaryProfileSummaryGet = <ThrowOnError extends boolean = false>(options?: Options<ProfileSummaryProfileSummaryGetData, ThrowOnError>) => (options?.client ?? client).get<ProfileSummaryProfileSummaryGetResponses, unknown, ThrowOnError>({ url: '/profile-summary', ...options });
+export const profileSummaryProfileSummaryGet = <ThrowOnError extends boolean = false>(options?: Options<ProfileSummaryProfileSummaryGetData, ThrowOnError>) => (options?.client ?? client).get<ProfileSummaryProfileSummaryGetResponses, ProfileSummaryProfileSummaryGetErrors, ThrowOnError>({ url: '/profile-summary', ...options });
 
 /**
  * Patch Profile

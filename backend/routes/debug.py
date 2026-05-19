@@ -10,11 +10,13 @@ import time
 from pathlib import Path
 from typing import Dict, Any
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from cache import bust_cache, _conn
+from dependencies import get_current_profile, get_current_user
 from inventory import load_inventory
+from models import Profile, User
 from profile import load_profile_data
 
 router = APIRouter(prefix="/debug", tags=["debug"])
@@ -75,19 +77,19 @@ async def health_check() -> Dict[str, Any]:
 
 
 @router.get("/status")
-async def status_overview() -> Dict[str, Any]:
+async def status_overview(profile: Profile = Depends(get_current_profile)) -> Dict[str, Any]:
     """Comprehensive status overview including system and service metrics."""
     # Get inventory stats
-    inv = load_inventory()
+    inv = load_inventory(profile.id)
     inventory_stats = {
         "has_inventory": bool(inv),
         "bottle_count": len(inv.get("bottles", [])) if inv else 0,
         "age_hours": inv.get("age_hours") if inv else None,
         "stale": inv.get("stale", False) if inv else False
     }
-    
+
     # Get profile stats
-    profile_data = load_profile_data()
+    profile_data = load_profile_data(profile.id)
     profile_stats = {
         "has_profile": bool(profile_data),
         "profile_keys": list(profile_data.keys()) if profile_data else []
@@ -124,8 +126,8 @@ async def cache_stats() -> Dict[str, Any]:
 
 
 @router.post("/cache/clear")
-async def clear_cache() -> Dict[str, Any]:
-    """Clear all cached responses."""
+async def clear_cache(user: User = Depends(get_current_user)) -> Dict[str, Any]:
+    """Clear all cached responses. Authenticated; affects shared response_cache + parse_cache."""
     bust_cache()
     return {
         "status": "cache_cleared",

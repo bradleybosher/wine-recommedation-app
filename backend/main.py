@@ -12,27 +12,40 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cache import init_db, purge_expired
+from cache import init_db, migrate_legacy_data, purge_expired
 from wine_reviews import seed_wine_reviews
 from logging_setup import configure_logging
 from middleware import install as install_middleware
+from routes.auth import router as auth_router
 from routes.debug import router as debug_router
 from routes.history import router as history_router
 from routes.inventory import router as inventory_router
 from routes.profile import router as profile_router
+from routes.profiles import router as profiles_router
 from routes.recommend import router as recommend_router
 
 configure_logging()
 logger = logging.getLogger("sommelier.api")
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["X-Profile-Id"],
+)
 install_middleware(app)
 
 init_db()
+migrated = migrate_legacy_data()
+if migrated:
+    logger.info("legacy_data_migrated orphan_profile_id=%s", migrated)
 logger.info("cache_purge_on_startup expired_entries=%d", purge_expired())
 seed_wine_reviews()
 
+app.include_router(auth_router)
+app.include_router(profiles_router)
 app.include_router(debug_router)
 app.include_router(history_router)
 app.include_router(inventory_router)

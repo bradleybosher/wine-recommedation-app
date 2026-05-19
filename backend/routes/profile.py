@@ -1,17 +1,18 @@
 """Profile routes: upload CellarTracker export, infer from seed bottles,
 revert from backup, patch user edits, and summarise current taste profile."""
-import json
 import logging
 from typing import Optional
 
 import anthropic
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from bootstrap import ANTHROPIC_API_KEY, ANTHROPIC_MODEL, MAX_UPLOAD_BYTES
 from cache import bust_cache
+from dependencies import get_current_profile
 from inventory import load_inventory
 from models import (
     CellarStats,
+    Profile,
     ProfilePatchRequest,
     ProfileSummaryResponse,
     SeedProfileRequest,
@@ -19,7 +20,6 @@ from models import (
     UploadProfileResponse,
 )
 from profile import (
-    PROFILE_DATA_PATH,
     build_taste_profile,
     build_taste_profile_pydantic,
     bust_profile_cache,
@@ -29,8 +29,10 @@ from profile import (
     ingest_export,
     load_profile_data,
     persist_synthesized_profile,
+    restore_profile_backup,
     save_profile_export,
     synthesize_palate_from_notes,
+    write_profile_data,
 )
 from seed_profile import infer_profile_from_seeds, persist_seed_profile
 
@@ -41,22 +43,24 @@ _SEED_INFERENCE_ERRORS = (anthropic.APIError, RuntimeError, ValueError)
 _SYNTHESIS_ERRORS = _SEED_INFERENCE_ERRORS
 
 
-def _clear_profile_overrides() -> None:
-    """Remove any user-edit overrides from profile_data.json.
+def _clear_profile_overrides(profile_id: str) -> None:
+    """Remove any user-edit overrides from profile_data.json for ``profile_id``.
 
     Called after /upload-profile or /seed-profile fully replaces the underlying
     profile state — manual edits to the previous profile no longer apply.
     """
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     if "_overrides" not in data:
         return
     data.pop("_overrides", None)
-    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    bust_profile_cache()
+    write_profile_data(profile_id, data)
 
 
 @router.post("/upload-profile")
-async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
+async def upload_profile(
+    file: UploadFile = File(...),
+    profile: Profile = Depends(get_current_profile),
+) -> UploadProfileResponse:
     raw = await file.read()
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large. Maximum size is 20 MB.")
@@ -71,18 +75,18 @@ async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
     if len(rows) == 0:
         raise HTTPException(status_code=400, detail="File appears empty or contains no wine data")
 
-    save_profile_export(raw)
-    _clear_profile_overrides()
-    clear_synthesized_profile()
+    save_profile_export(profile.id, raw)
+    _clear_profile_overrides(profile.id)
+    clear_synthesized_profile(profile.id)
     bust_cache()
 
-    profile_data = load_profile_data()
+    profile_data = load_profile_data(profile.id)
     synthesis_status = "skipped"
     try:
-        synthesized = synthesize_palate_from_notes(profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
+        synthesized = synthesize_palate_from_notes(profile.id, profile_data, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
         if synthesized:
-            persist_synthesized_profile(synthesized)
-            profile_data = load_profile_data()
+            persist_synthesized_profile(profile.id, synthesized)
+            profile_data = load_profile_data(profile.id)
             synthesis_status = f"synthesized (confidence: {synthesized.get('inference_confidence', 'unknown')})"
     except _SYNTHESIS_ERRORS as exc:
         logger.exception("upload_profile_synthesis_failed err=%s", type(exc).__name__)
@@ -104,7 +108,10 @@ async def upload_profile(file: UploadFile = File(...)) -> UploadProfileResponse:
 
 
 @router.post("/seed-profile")
-async def seed_profile(req: SeedProfileRequest) -> UploadProfileResponse:
+async def seed_profile(
+    req: SeedProfileRequest,
+    profile: Profile = Depends(get_current_profile),
+) -> UploadProfileResponse:
     """Infer a taste profile from 3-7 loved (and 0-3 disliked) seed wines.
 
     Alternative to /upload-profile for users without a CellarTracker account.
@@ -119,11 +126,11 @@ async def seed_profile(req: SeedProfileRequest) -> UploadProfileResponse:
             detail=f"Seed-profile inference failed: {type(exc).__name__}",
         )
 
-    persist_seed_profile(inferred)
-    _clear_profile_overrides()
+    persist_seed_profile(profile.id, inferred)
+    _clear_profile_overrides(profile.id)
     bust_cache()
 
-    profile_data = load_profile_data()
+    profile_data = load_profile_data(profile.id)
     taste_profile = build_taste_profile_pydantic(profile_data)
 
     return UploadProfileResponse(
@@ -137,25 +144,21 @@ async def seed_profile(req: SeedProfileRequest) -> UploadProfileResponse:
 
 
 @router.post("/profile/revert")
-async def revert_profile() -> dict:
+async def revert_profile(profile: Profile = Depends(get_current_profile)) -> dict:
     """Restore profile_data.json from the last backup created by /seed-profile.
 
     Returns 404 if no backup exists.
     """
-    backup_path = PROFILE_DATA_PATH.with_suffix(".backup.json")
-    if not backup_path.is_file():
+    if not restore_profile_backup(profile.id):
         raise HTTPException(status_code=404, detail="No profile backup found. Nothing to revert.")
-    backup_text = backup_path.read_text(encoding="utf-8")
-    PROFILE_DATA_PATH.write_text(backup_text, encoding="utf-8")
-    bust_profile_cache()
     bust_cache()
-    logger.info("profile_revert: restored from %s", backup_path)
+    logger.info("profile_revert: restored backup for profile_id=%s", profile.id)
     return {"message": "Profile reverted to backup successfully. Response cache cleared."}
 
 
 @router.get("/profile-summary")
-def profile_summary() -> ProfileSummaryResponse:
-    profile_data = build_taste_profile(load_profile_data())
+def profile_summary(profile: Profile = Depends(get_current_profile)) -> ProfileSummaryResponse:
+    profile_data = build_taste_profile(load_profile_data(profile.id))
 
     is_seed_derived = profile_data.get("profile_source") == "seed_bottles"
     is_synthesized = profile_data.get("profile_source") == "cellartracker_synthesized"
@@ -169,7 +172,7 @@ def profile_summary() -> ProfileSummaryResponse:
         markers_dict = derive_taste_markers(profile_data.get("preferred_descriptors", []))
         taste_markers = TasteMarkers(**markers_dict)
 
-    inv = load_inventory() or {}
+    inv = load_inventory(profile.id) or {}
     raw_bottles = inv.get("bottles", [])
     vintages = [
         int(b["vintage"]) for b in raw_bottles
@@ -218,7 +221,10 @@ def profile_summary() -> ProfileSummaryResponse:
 
 
 @router.patch("/profile")
-def patch_profile(req: ProfilePatchRequest) -> ProfileSummaryResponse:
+def patch_profile(
+    req: ProfilePatchRequest,
+    profile: Profile = Depends(get_current_profile),
+) -> ProfileSummaryResponse:
     """Merge user-edit fields into ``profile_data.json["_overrides"]``.
 
     The override block is layered on top of the derived/inferred profile by
@@ -229,14 +235,13 @@ def patch_profile(req: ProfilePatchRequest) -> ProfileSummaryResponse:
     if not patch_dict:
         raise HTTPException(status_code=400, detail="No fields to patch.")
 
-    data = load_profile_data()
+    data = load_profile_data(profile.id)
     overrides = dict(data.get("_overrides") or {})
     overrides.update(patch_dict)
     data["_overrides"] = overrides
 
-    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    bust_profile_cache()
+    write_profile_data(profile.id, data)
     bust_cache()
-    logger.info("profile_patch: updated keys=%s", list(patch_dict.keys()))
+    logger.info("profile_patch: profile_id=%s updated keys=%s", profile.id, list(patch_dict.keys()))
 
-    return profile_summary()
+    return profile_summary(profile)

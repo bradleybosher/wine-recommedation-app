@@ -2,19 +2,19 @@
 
 ## Responsibility
 
-<<<<<<< HEAD
-Load/save user's wine cellar inventory (CellarTracker TSV export); pre-filter restaurant wine lists to remove non-wine lines; score and rank cellar bottles against restaurant style signals and owner taste preferences.
-=======
-Load/save user's wine cellar inventory (CellarTracker TSV export), filter by quantity and style keywords, compute cellar age.
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+Load/save user's wine cellar inventory (CellarTracker TSV export); pre-filter restaurant wine lists to remove non-wine lines; score and rank cellar bottles against restaurant style signals and owner taste preferences. All per-profile inventory files live under `backend/profiles/{profile_id}/inventory.json`.
+
+## Constants
+
+**PROFILES_DIR: Path** — Base directory for per-profile data; resolves to `backend/profiles/`.
 
 ## Dependencies
 
 - `csv`, `io` (TSV parsing)
-<<<<<<< HEAD
-- `json`, `time` (caching to `inventory.json`)
+- `json`, `time` (caching to per-profile `inventory.json`)
 - `datetime` (drinking window comparison)
 - `unicodedata`, `re` (accent folding, regex patterns)
+- `pathlib.Path` (file resolution)
 - `models.TasteProfile` (type hint only — profile not used in filtering logic)
 
 ## Inputs/Outputs
@@ -23,13 +23,12 @@ Load/save user's wine cellar inventory (CellarTracker TSV export), filter by qua
 - CellarTracker TSV bytes (exported via the CT app)
 - Raw restaurant wine list text (from `parser.py`)
 - Owner taste preferences dict (from `profile.build_taste_profile()`)
+- profile_id: str (for file path resolution)
 
 **Outputs**:
 - Parsed inventory: `list[dict]` (one dict per bottle, keys = CellarTracker header names)
 - Filtered wine list: `str` (non-wine lines removed)
 - Relevant bottles: `list[dict]` (scored and ranked subset of inventory)
-
----
 
 ## Constants
 
@@ -58,19 +57,26 @@ Load/save user's wine cellar inventory (CellarTracker TSV export), filter by qua
 - Return decoded string; lossy UTF-8 fallback if all fail
 - Used by both `inventory.py` and `profile.py`
 
+**`_inventory_path(profile_id: str) → Path`**
+- Helper that resolves to PROFILES_DIR / profile_id / inventory.json
+- Used internally by load_inventory and save_inventory
+
 **`parse_ct_csv(csv_text: str) → list[dict]`**
 - Delimiter: tab (CT exports TSV, not CSV)
 - Filter: keep only rows where `Quantity > 0`
 - Return list of dicts (keys = header names, values = strings)
 
-**`save_inventory(csv_text: str) → list[dict]`**
-- Parse CSV, write to `inventory.json`: `{"bottles": [...], "saved_at": timestamp}`
+**`save_inventory(profile_id: str, csv_text: str) → list[dict]`**
+- Parse CSV, write to PROFILES_DIR / profile_id / inventory.json: `{"bottles": [...], "saved_at": timestamp}`
+- Creates directory if absent
 - Return bottles list
+- **Signature change**: now requires `profile_id` as first positional argument
 
-**`load_inventory() → dict | None`**
-- Load `inventory.json`; return `None` if missing
+**`load_inventory(profile_id: str) → dict | None`**
+- Load PROFILES_DIR / profile_id / inventory.json; return `None` if missing
 - Calculate `age_hours = (now - saved_at) / 3600`
 - Return `{"bottles": [...], "age_hours": float, "stale": age_hours > 168}`
+- **Signature change**: now requires `profile_id` as first positional argument
 
 ### Text Normalisation
 
@@ -123,29 +129,27 @@ Returns filtered text — one entry per line, blank lines removed. Falls back to
 ### Cellar Bottle Scoring
 
 **`_score_bottle(bottle: dict, restaurant_terms: list[str], profile_prefs: dict, current_year: int) → float`**
+- Scoring weights:
+  | Signal | Score |
+  |---|---|
+  | Profile `preferred` term match | +1.5 per term |
+  | `restaurant_terms` match | +1.0 per term |
+  | Drinking window open (`BeginConsume ≤ now ≤ EndConsume`) | +0.5 |
+  | Too young (`now < BeginConsume`) | −0.3 |
+  | `avoided` style matched | `float("-inf")` (hard exclusion) |
+- Fields searched: `Varietal`, `Appellation`, `Wine`, `Producer`, `Region`, `SubRegion` — all accent-folded.
 
-Scoring weights:
-| Signal | Score |
-|---|---|
-| Profile `preferred` term match | +1.5 per term |
-| `restaurant_terms` match | +1.0 per term |
-| Drinking window open (`BeginConsume ≤ now ≤ EndConsume`) | +0.5 |
-| Too young (`now < BeginConsume`) | −0.3 |
-| `avoided` style matched | `float("-inf")` (hard exclusion) |
-
-Fields searched: `Varietal`, `Appellation`, `Wine`, `Producer`, `Region`, `SubRegion` — all accent-folded.
-
-**`get_relevant_bottles(bottles, restaurant_terms, profile_prefs, override_terms=None, limit=30) → list[dict]`**
+**`get_relevant_bottles(bottles: list[dict], restaurant_terms: list[str], profile_prefs: dict, override_terms: list[str] | None = None, limit: int = 30) → list[dict]`**
 - Score every bottle with `_score_bottle()`
 - Drop hard-excluded bottles (`score == float("-inf")`)
 - Sort by score descending
 - Return top `limit` bottles (default 30)
 - `override_terms`: when provided, expanded via `_STYLE_MAP` and used in place of `restaurant_terms`
-
----
+- Profile_id-agnostic; operates on lists only
 
 ## Patterns & Gotchas
 
+- **Per-profile inventory**: Inventory files now live under PROFILES_DIR / profile_id /. The `_inventory_path()` helper abstracts this structure.
 - **Quantity parsing**: `Quantity` is a string field; parsed as `float`. `"2.5"` and `"1"` both work. Rows with Quantity ≤ 0 or empty are silently dropped.
 - **Profile not used in `filter_wine_list()`**: The `_profile` parameter is accepted for signature compatibility but intentionally ignored — ranking against preferences is the LLM's job, not the pre-filter's.
 - **Food override requires no vintage**: A line with both a vintage year and a food keyword (e.g., `"2019 Duck Confit Pinot Noir"`) is NOT dropped — the vintage signal dominates.
@@ -153,6 +157,7 @@ Fields searched: `Varietal`, `Appellation`, `Wine`, `Producer`, `Region`, `SubRe
 - **Cellar staleness**: `age > 168 hours` (7 days). No auto-refresh; user must re-upload.
 - **Accent folding**: Handles Latin-based regions (French, Italian, Spanish). Will not work correctly for Cyrillic or CJK wine regions.
 - **`_STYLE_MAP` is for override_terms only**: The primary filtering path uses `restaurant_terms` directly from `extract_terms_from_wine_list_text()`.
+- **Profile_id-agnostic scoring**: `_score_bottle()` and `get_relevant_bottles()` operate on lists only; they do not know about profile_id or file paths. This keeps the scoring logic reusable.
 
 ## Known Issues / TODOs
 
@@ -163,80 +168,8 @@ Fields searched: `Varietal`, `Appellation`, `Wine`, `Producer`, `Region`, `SubRe
 
 ## Testing
 
-1. Upload CellarTracker TSV with Quantity > 0 rows; verify `load_inventory()` returns correct `age_hours` and `stale` flag.
-2. Call `filter_wine_list()` on a wine list containing spirit/beer/food/price lines; verify only wine lines survive.
-3. Call `get_relevant_bottles()` with profile prefs containing avoided styles; verify those bottles return `float("-inf")` and are excluded from output.
-4. Verify `extract_terms_from_wine_list_text()` returns multi-word terms before single-word terms from the same text.
-=======
-- `json`, `time` (caching to inventory.json)
-- `unicodedata` (accent folding for matching)
-
-## Inputs/Outputs
-
-**Inputs**: CellarTracker TSV bytes (exported via CT app).
-
-**Outputs**: 
-- Parsed inventory: list of dicts (one per wine bottle)
-- Inventory metadata: age_hours, stale flag
-
-## Key Functions
-
-**decode_cellartracker_upload(raw)** → str:
-  - Try UTF-8, UTF-8-sig, cp1252, latin-1 encodings in order
-  - Return decoded string or lossy fallback (UTF-8 with replace)
-  - Used by both inventory and profile modules
-
-**parse_ct_csv(csv_text)** → [dict]:
-  - Delimiter: tab (TSV, not CSV)
-  - Filter: keep only rows where Quantity > 0
-  - Return list of dicts (keys = header names, values = string fields)
-
-**save_inventory(csv_text)** → [dict]:
-  - Parse CSV
-  - Write to inventory.json: {"bottles": [...], "saved_at": timestamp}
-  - Return bottles list
-
-**load_inventory()** → Optional[dict]:
-  - Load inventory.json
-  - Calculate age_hours = (now - saved_at) / 3600
-  - Return {"bottles": [...], "age_hours": float, "stale": age_hours > 168}
-  - None if file missing
-
-**get_relevant_bottles(bottles, style_terms)** → [dict]:
-  - Map style keywords (Burgundy → ["pinot noir", "burgundy", "gevrey", ...])
-  - Flatten to list of keywords
-  - For each bottle: accent-fold Varietal, Appellation, Wine, Producer
-  - Keep bottles matching any keyword
-  - Return full bottle list if no keywords
-  - Return filtered list otherwise
-
-**_fold_for_match(text)** → str:
-  - Lowercase + casefold
-  - NFD normalize (decompose accents)
-  - Strip combining marks (category Mn)
-  - Result: "Côte-Rôtie" → "cote-rotie"
-  - Handles Latin-based wine regions; won't work for Cyrillic/CJK
-
-## Patterns & Gotchas
-
-- **Quantity parsing**: String field, parsed as float. Strings like "2.5" or "1" both supported.
-- **Quantity filtering**: ≤ 0 silently dropped (Quantity=0 or Quantity="" becomes no match).
-- **Style map**: Hardcoded mapping (8 top regions/styles). Extensible but not dynamic.
-- **Accent folding**: Case-insensitive substring match after accent normalization.
-- **Cellar staleness**: age > 168 hours (7 days). No auto-refresh; user must re-upload.
-- **Empty cellar**: Returns full bottle list if no style_terms provided (fallback behavior).
-
-## Known Issues / TODOs
-
-- Style map hardcoded (Burgundy, Chablis, etc.); could be stored externally.
-- Accent folding only handles Latin base (French, Italian, Spanish). Fails on Georgian (Cyrillic) wine regions.
-- Quantity zero silently drops; no warning to user.
-- CellarTracker encoding sometimes cp1252 with BOM; decode_cellartracker_upload handles it but logs no warning.
-
-## Testing
-
-1. Upload CellarTracker list export (TSV with Quantity > 0).
-2. Verify bottles loaded and age_hours calculated.
-3. Call get_relevant_bottles with style_terms (e.g., ["burgundy"]).
-4. Verify relevant bottles filtered correctly (case-insensitive, accent-tolerant).
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
+1. Upload CellarTracker TSV with Quantity > 0 rows for profile_id; verify `load_inventory(profile_id)` returns correct `age_hours` and `stale` flag.
+2. Verify files written to correct profile directory under PROFILES_DIR.
+3. Call `filter_wine_list()` on a wine list containing spirit/beer/food/price lines; verify only wine lines survive.
+4. Call `get_relevant_bottles()` with profile prefs containing avoided styles; verify those bottles return `float("-inf")` and are excluded from output.
+5. Verify `extract_terms_from_wine_list_text()` returns multi-word terms before single-word terms from the same text.

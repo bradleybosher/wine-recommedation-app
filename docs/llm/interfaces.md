@@ -46,6 +46,29 @@ def enrich_critics(recommendation: RecommendationResponse) → None
 ANTHROPIC_API_KEY: str        # raises ValueError at import if unset
 ANTHROPIC_MODEL: str          # defaults to "claude-sonnet-4-6"
 MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
+JWT_SECRET: str               # raises ValueError at import if unset
+JWT_ALGORITHM: str = "HS256"  # default algorithm for token signing
+JWT_EXPIRY_DAYS: int = 7      # token expiration duration
+PROFILES_DIR: Path            # directory for per-profile data storage
+ORPHAN_PROFILE_ID: str        # profile ID for legacy/unclaimed profiles
+```
+
+### auth.py
+
+```python
+def hash_password(plaintext: str) → str
+  Hash a plaintext password using bcrypt. Returns hashed password string.
+
+def verify_password(plaintext: str, password_hash: str) → bool
+  Compare plaintext password against bcrypt hash. Returns True if valid, False otherwise.
+
+def create_access_token(user_id: str) → str
+  Generate JWT access token for user_id. Token expires after JWT_EXPIRY_DAYS.
+  Uses JWT_SECRET and JWT_ALGORITHM from bootstrap. Returns token string.
+
+def decode_access_token(token: str) → str
+  Decode and validate JWT token. Raises TokenError on invalid/expired token.
+  Returns decoded user_id string.
 ```
 
 ### logging_setup.py
@@ -63,6 +86,24 @@ def install(app: FastAPI) → None
   Register the log_requests HTTP middleware (request_id, elapsed_ms, X-Request-ID header)
   + http_exception_handler (preserves intentional status codes) + unhandled_exception_handler
   (catch-all → 500 {"detail": "Internal server error", "error_type": ...}).
+```
+
+### dependencies.py
+
+```python
+def get_current_user(authorization: Optional[str] = Header(default=None)) → User
+  Extract and validate JWT token from Authorization: Bearer <token> header.
+  Raises HTTPException(401) if token missing, invalid, or expired.
+  Returns User object with id and email.
+
+def get_current_profile(
+  x_profile_id: Optional[str] = Header(default=None, alias="X-Profile-Id"),
+  user: User = Depends(get_current_user)
+) → Profile
+  Validate X-Profile-Id header against current user's profiles.
+  Raises HTTPException(403) if profile not owned by user or not found.
+  Falls back to user's default profile if header absent.
+  Returns Profile object with id, user_id, name, is_default.
 ```
 
 ### rate_limit.py
@@ -85,45 +126,65 @@ def cellar_character_from_terms(terms: list[str]) → str
   Returns "" when given no terms.
 ```
 
+### routes/auth.py
+
+```python
+@router.post("/auth/register")
+async def register(req: RegisterRequest) → TokenResponse
+  Create new user account with email and password. Hashes password with bcrypt.
+  400 if email already exists. Returns access token, token_type, user object, and user's profiles.
+
+@router.post("/auth/login")
+async def login(req: LoginRequest) → TokenResponse
+  Authenticate user by email and password. 401 if credentials invalid.
+  Returns access token, token_type, user object, and user's profiles.
+
+@router.get("/auth/me")
+def auth_me(user: User = Depends(get_current_user)) → AuthMeResponse
+  Return authenticated user and all their profiles. Requires valid Authorization header.
+  Returns AuthMeResponse with user object and list of Profile objects.
+```
+
 ### routes/inventory.py
 
 ```python
 @router.post("/upload-inventory")
-async def upload_inventory(file: UploadFile) → UploadInventoryResponse
-  Save CellarTracker TSV export. 413 if > MAX_UPLOAD_BYTES. Busts response cache.
+async def upload_inventory(file: UploadFile, profile: Profile = Depends(get_current_profile)) → UploadInventoryResponse
+  Save CellarTracker TSV export to profile-specific location. 413 if > MAX_UPLOAD_BYTES.
+  Busts response cache for this profile.
 
 @router.get("/inventory")
-def get_inventory() → InventoryResponse
-  Load saved inventory with age_hours and stale flag.
+def get_inventory(profile: Profile = Depends(get_current_profile)) → InventoryResponse
+  Load saved inventory for current profile with age_hours and stale flag.
 ```
 
 ### routes/profile.py
 
 ```python
 @router.post("/upload-profile")
-async def upload_profile(file: UploadFile) → UploadProfileResponse
+async def upload_profile(file: UploadFile, profile: Profile = Depends(get_current_profile)) → UploadProfileResponse
   Detect export type via profile.ingest_export. 400 on parse failure or empty file,
   413 on oversize. Clears any prior _overrides and _synthesized, then attempts
-  synthesize_palate_from_notes() and persists the result under _synthesized on success.
+  synthesize_palate_from_notes(profile.id, ...) and persists the result under _synthesized on success.
   Synthesis failure (Anthropic error etc.) is logged and tolerated — the deterministic
   fallback in build_taste_profile() keeps the upload working. The status string
   ("synthesized (confidence: ...)" | "failed (deterministic fallback active)" | "skipped")
   is appended to the response message. Returns type detected + derived TasteProfile.
 
 @router.post("/seed-profile")
-async def seed_profile(req: SeedProfileRequest) → UploadProfileResponse
+async def seed_profile(req: SeedProfileRequest, profile: Profile = Depends(get_current_profile)) → UploadProfileResponse
   Infer a profile from 3–7 loved (and 0–3 disliked) wines via one Anthropic tool-use call.
-  Catches (anthropic.APIError, RuntimeError, ValueError) → 502. Backs up profile_data.json,
+  Catches (anthropic.APIError, RuntimeError, ValueError) → 502. Backs up profile data for profile.id,
   then overwrites it. Clears any prior _overrides. Returns taste_profile with
   profile_source="seed_bottles" and inference_confidence in {high, medium, low}.
 
 @router.post("/profile/revert")
-async def revert_profile() → dict
-  Restore profile_data.json from profile_data.backup.json. 404 if no backup.
+async def revert_profile(profile: Profile = Depends(get_current_profile)) → dict
+  Restore profile data from backup for profile.id. 404 if no backup.
   Busts response + profile cache. Returns {"message": "Profile reverted..."}.
 
 @router.patch("/profile")
-def patch_profile(req: ProfilePatchRequest) → ProfileSummaryResponse
+def patch_profile(req: ProfilePatchRequest, profile: Profile = Depends(get_current_profile)) → ProfileSummaryResponse
   Merge non-None fields from req into profile_data["_overrides"], then return a fresh
   ProfileSummaryResponse. 400 if no fields supplied. Editable fields: top_varietals,
   top_regions, preferred_descriptors, avoided_styles, avg_spend, style_summary,
@@ -131,13 +192,42 @@ def patch_profile(req: ProfilePatchRequest) → ProfileSummaryResponse
   build_taste_profile() and are cleared whenever /upload-profile or /seed-profile runs.
 
 @router.get("/profile-summary")
-def profile_summary() → ProfileSummaryResponse
-  Build taste profile, taste markers, and cellar stats. An explicit taste_markers dict
-  on the merged profile (seed/synthesized inference or user override) wins; otherwise
-  markers are derived from descriptors. style_summary comes from a user override if
+def profile_summary(profile: Profile = Depends(get_current_profile)) → ProfileSummaryResponse
+  Build taste profile, taste markers, and cellar stats for current profile. An explicit
+  taste_markers dict on the merged profile (seed/synthesized inference or user override) wins;
+  otherwise markers are derived from descriptors. style_summary comes from a user override if
   present, or the seed-derived/synthesized profile when available, otherwise from
   enrich_profile_with_anthropic (failure-tolerant — falls back to None).
   inference_confidence is surfaced for both seed_bottles and cellartracker_synthesized.
+```
+
+### routes/profiles.py
+
+```python
+@router.get("/profiles")
+def list_profiles(user: User = Depends(get_current_user)) → list[Profile]
+  Return all profiles owned by current user. Requires valid Authorization header.
+  Returns list of Profile objects sorted by creation time.
+
+@router.post("/profiles")
+async def create_profile(req: ProfileCreateRequest, user: User = Depends(get_current_user)) → Profile
+  Create a new empty profile for the current user with the given name.
+  201 on success. Returns newly created Profile object.
+
+@router.patch("/profiles/{profile_id}")
+async def update_profile(
+  profile_id: str,
+  req: ProfileUpdateRequest,
+  user: User = Depends(get_current_user)
+) → Profile
+  Update profile name and/or is_default flag. 403 if profile not owned by user.
+  404 if profile not found. When setting is_default=True, unsets default on other user profiles.
+  Returns updated Profile object.
+
+@router.delete("/profiles/{profile_id}")
+async def delete_profile(profile_id: str, user: User = Depends(get_current_user)) → dict
+  Delete profile by ID. 403 if not owned by user. 404 if not found.
+  409 if this is the user's only profile. Returns {"id": profile_id, "deleted": True}.
 ```
 
 ### routes/recommend.py
@@ -146,6 +236,7 @@ def profile_summary() → ProfileSummaryResponse
 @router.post("/recommend")
 async def recommend(
   request: Request,
+  profile: Profile = Depends(get_current_profile),
   # Legacy
   meal: str = Form(default=""), style_terms: str = Form(default=""),
   # New Preferences (Phase 5)
@@ -160,7 +251,7 @@ async def recommend(
   Composes effective_meal from occasion+menu (or legacy meal) and effective_style from
   cellar_leans+temperament (or legacy style_terms).
   Rate-limit (429) → TEST_MODE short-circuit → source_mode validation → 413 size check →
-  response-cache lookup (key includes bottle_count + ceiling) → parse wine list (skipped when
+  response-cache lookup (key includes bottle_count + ceiling + profile.id) → parse wine list (skipped when
   source_mode="cellar") → enriched profile (non-fatal) → cellar context → meal hints →
   system prompt (with bottle_count, budget_ceiling) → get_recommendation (502 on failure) →
   score + log event (non-blocking) → cache + return.
@@ -176,12 +267,12 @@ def infer_profile_from_seeds(req: SeedProfileRequest, anthropic_api_key: str, an
   avoided_styles, avg_spend, style_summary, taste_markers, inference_confidence,
   profile_source="seed_bottles", seed_bottle_count).
 
-def persist_seed_profile(inferred: dict) → None
-  Backs up the existing profile_data.json to profile_data.backup.json (if it exists).
-  Then overwrites profile_data.json with {"_inferred": inferred}, clearing any legacy CT keys.
+def persist_seed_profile(profile_id: str, inferred: dict) → None
+  Backs up the existing profile data to backup file (if it exists).
+  Then overwrites profile data with {"_inferred": inferred}, clearing any legacy CT keys.
 
-def load_inferred_profile() → dict | None
-  Return the inferred profile if present.
+def load_inferred_profile(profile_id: str) → dict | None
+  Return the inferred profile if present for the given profile_id.
 ```
 
 ### models.py
@@ -190,6 +281,43 @@ def load_inferred_profile() → dict | None
 class Bottle(BaseModel):
   All CellarTracker fields (iWine, Type, Color, ..., EndConsume). Optional fields.
   ConfigDict: alias_generator=to_camel, populate_by_name=True.
+
+class User(BaseModel):
+  id: str
+  email: str
+  created_at: datetime
+
+class Profile(BaseModel):
+  id: str
+  user_id: str
+  name: str
+  is_default: bool
+  created_at: datetime
+
+class RegisterRequest(BaseModel):
+  email: str
+  password: str
+
+class LoginRequest(BaseModel):
+  email: str
+  password: str
+
+class TokenResponse(BaseModel):
+  access_token: str
+  token_type: str = "bearer"
+  user: User
+  profiles: list[Profile]
+
+class AuthMeResponse(BaseModel):
+  user: User
+  profiles: list[Profile]
+
+class ProfileCreateRequest(BaseModel):
+  name: str
+
+class ProfileUpdateRequest(BaseModel):
+  name: Optional[str] = None
+  is_default: Optional[bool] = None
 
 class TasteProfile(BaseModel):
   preferred_styles, preferred_regions, preferred_grapes, avoided_styles: List[str]
@@ -356,18 +484,26 @@ def ingest_export(raw: bytes) → Tuple[str, List[Dict[str, str]]]
   Decode bytes, parse TSV, validate minimal CellarTracker column set, detect export type.
   Return (type, rows). Raises ValueError if file format is unrecognized (missing all expected CT columns).
 
-def bust_profile_cache() → None
-  Invalidate the module-level profile cache (_profile_cache = None). Called after any write to
-  profile_data.json (save_profile_export, persist_seed_profile, /profile/revert endpoint).
-  Ensures the next load_profile_data() call reads the updated file instead of returning stale data.
+def write_profile_data(profile_id: str, data: dict) → None
+  Write profile data dict to profile_id's JSON file in PROFILES_DIR. Busts profile cache.
 
-def save_profile_export(raw: bytes) → str
-  Ingest, merge into profile_data.json. Busts profile cache after write. Return export type.
+def backup_profile_data(profile_id: str) → bool
+  Backup profile_id's current data file to .backup file. Returns True if successful, False if no file to back up.
 
-def load_profile_data() → Dict
-  Load profile_data.json or {} with mtime-based module-level caching.
+def restore_profile_backup(profile_id: str) → bool
+  Restore profile_id's data from .backup file. Returns True if successful, False if no backup exists.
+
+def bust_profile_cache(profile_id: str) → None
+  Invalidate the module-level profile cache for profile_id. Called after any write to profile data.
+  Ensures the next load_profile_data(profile_id) call reads the updated file instead of returning stale data.
+
+def save_profile_export(profile_id: str, raw: bytes) → str
+  Ingest, merge into profile data for profile_id. Busts profile cache after write. Return export type.
+
+def load_profile_data(profile_id: str) → Dict
+  Load profile_id's data JSON or {} with mtime-based caching per profile_id.
   On cache hit (mtime unchanged), returns cached dict. On cache miss or file change, reads from disk.
-  Gracefully handles missing/corrupt files. Cache busted by bust_profile_cache().
+  Gracefully handles missing/corrupt files. Cache busted by bust_profile_cache(profile_id).
 
 def build_taste_profile(profile_data: dict) → Dict
   Short-circuit order: (1) profile_data["_synthesized"] (LLM-synthesized CT palate);
@@ -378,12 +514,12 @@ def build_taste_profile(profile_data: dict) → Dict
   preferred_descriptors, avoided_styles, avg_spend (plus taste_markers, palate_persona,
   style_summary, inference_confidence, profile_source when sourced from _synthesized or _inferred).
 
-def build_enriched_profile_text_basic() → str
+def build_enriched_profile_text_basic(profile_id: str) → str
   Format taste profile as prose paragraph for system prompt (non-enriched version).
   Fallback to OWNER_PROFILE constant if no profile data.
   Called by prompt.py as fallback when enrichment is not available.
 
-def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) → str
+def build_enriched_profile_text(profile_id: str, anthropic_api_key: str, anthropic_model: str) → str
   Like build_enriched_profile_text_basic() but calls enrich_profile_with_anthropic() first.
   Prepends style_summary sentence if enrichment succeeded.
   This is the function called from main.py (not build_enriched_profile_text_basic).
@@ -396,7 +532,7 @@ def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_m
   Returns raw unchanged on any error (fully safe fallback).
   enrich_profile_with_ollama is kept as a backward-compat alias.
 
-def synthesize_palate_from_notes(profile_data: dict, anthropic_api_key: str, anthropic_model: str) → dict | None
+def synthesize_palate_from_notes(profile_id: str, profile_data: dict, anthropic_api_key: str, anthropic_model: str) → dict | None
   Primary LLM palate path for CellarTracker uploads. Single Anthropic tool-use call
   (synthesize_palate_profile tool) fed raw tasting notes grouped by score tier (high/mid/low,
   capped 50 per tier) plus the deterministic structured signals.
@@ -405,12 +541,12 @@ def synthesize_palate_from_notes(profile_data: dict, anthropic_api_key: str, ant
   Returns None when no notes present. Raises anthropic.APIError / RuntimeError on failure —
   caller must catch so the deterministic fallback in build_taste_profile() can take over.
 
-def persist_synthesized_profile(synthesized: dict) → None
-  Write synthesized dict to profile_data.json under _synthesized key. Preserves underlying CT
+def persist_synthesized_profile(profile_id: str, synthesized: dict) → None
+  Write synthesized dict to profile_id's data under _synthesized key. Preserves underlying CT
   rows (list/notes/consumed/purchases). Busts profile cache after write.
 
-def clear_synthesized_profile() → None
-  Remove _synthesized from profile_data.json (no-op if absent). Called before a fresh
+def clear_synthesized_profile(profile_id: str) → None
+  Remove _synthesized from profile_id's data (no-op if absent). Called before a fresh
   synthesis attempt so a failed Claude call doesn't leave stale data behind.
 
 def build_taste_profile_pydantic(profile_data: dict) → TasteProfile
@@ -436,11 +572,11 @@ def decode_cellartracker_upload(raw: bytes) → str
 def parse_ct_csv(csv_text: str) → List[Dict]
   Parse TSV, filter rows where Quantity > 0. Return list of dicts.
 
-def save_inventory(csv_text: str) → List[Dict]
-  Parse, write to inventory.json with timestamp. Return bottles list.
+def save_inventory(profile_id: str, csv_text: str) → List[Dict]
+  Parse, write to inventory.json for profile_id with timestamp. Return bottles list.
 
-def load_inventory() → Optional[Dict]
-  Load inventory.json. Return dict with bottles, age_hours, stale. None if missing.
+def load_inventory(profile_id: str) → Optional[Dict]
+  Load inventory.json for profile_id. Return dict with bottles, age_hours, stale. None if missing.
 
 def extract_terms_from_wine_list_text(text: str) → List[str]
   Scan raw restaurant wine list text for known style/varietal/region keywords.
@@ -472,7 +608,7 @@ def get_relevant_bottles(
 
 ```python
 def init_db() → None
-  Create response_cache and parse_cache tables if not exist.
+  Create all tables (response_cache, parse_cache, users, profiles, flights) if not exist.
 
 def make_parse_key(pdf_bytes: bytes) → str
   SHA256(pdf_bytes) only — independent of meal, inventory, profile. Key for parse cache.
@@ -483,8 +619,8 @@ def get_parse_cached(pdf_hash: str) → Optional[str]
 def set_parse_cached(pdf_hash: str, wine_list_text: str) → None
   INSERT OR REPLACE into parse_cache.
 
-def make_key(image_bytes: bytes, meal: str, inventory_hash: str, profile_hash: str) → str
-  SHA256(image + meal + inventory_hash + profile_hash). Key for response cache.
+def make_key(image_bytes: bytes, meal: str, inventory_hash: str, profile_hash: str, profile_id: str) → str
+  SHA256(image + meal + inventory_hash + profile_hash + profile_id). Key for response cache.
 
 def inventory_hash(bottles: list[dict]) → str
   MD5(JSON-sorted bottles).
@@ -498,13 +634,55 @@ def set_cached(key: str, response: str) → None
 def bust_cache() → None
   DELETE all entries from response_cache and parse_cache.
 
-def save_flight(occasion: str, menu: str, cellar_leans: str, temperament: str,
+def create_user(email: str, password_hash: str) → str
+  INSERT new user into users table. Returns user_id (UUID).
+
+def get_user_by_email(email: str) → Optional[dict]
+  SELECT user by email. Returns dict with id, email, password_hash, created_at, or None.
+
+def get_user_by_id(user_id: str) → Optional[dict]
+  SELECT user by id. Returns dict with id, email, password_hash, created_at, or None.
+
+def count_users() → int
+  Return total number of users in database.
+
+def create_profile(user_id: str, name: str, is_default: bool = False) → str
+  INSERT new profile for user. Returns profile_id (UUID).
+
+def list_profiles_for_user(user_id: str) → list[dict]
+  SELECT all profiles for user. Each dict: id, user_id, name, is_default, created_at.
+
+def get_profile(profile_id: str) → Optional[dict]
+  SELECT profile by id. Returns dict with id, user_id, name, is_default, created_at, or None.
+
+def update_profile(profile_id: str, name: Optional[str] = None, is_default: Optional[bool] = None) → bool
+  UPDATE profile fields. Returns True if updated, False if not found.
+
+def set_default_profile(user_id: str, profile_id: str) → bool
+  Set profile_id as default for user, unset default on other user profiles.
+  Returns True if successful, False if profile not owned by user.
+
+def delete_profile(profile_id: str) → bool
+  DELETE profile by id. Returns True if deleted, False if not found.
+
+def get_orphan_profile() → Optional[str]
+  Return the ORPHAN_PROFILE_ID if it exists, None otherwise.
+
+def claim_orphan_profile(user_id: str) → Optional[str]
+  If orphan profile exists, update its user_id and set is_default=True for user.
+  Returns profile_id on success, None if no orphan profile or already claimed.
+
+def migrate_legacy_data() → Optional[str]
+  Migrate legacy single-profile data to multi-profile structure. Returns profile_id of migrated profile,
+  or None if no legacy data or already migrated.
+
+def save_flight(profile_id: str, occasion: str, menu: str, cellar_leans: str, temperament: str,
                 ceiling: str, bottle_count: int, source_mode: str,
                 wine_list_hash: str, profile_hash: str, response) → str
-  INSERT completed recommendation into flights table. Returns UUID4 hex flight_id.
+  INSERT completed recommendation into flights table for profile_id. Returns UUID4 hex flight_id.
 
-def list_flights(limit: int = 50, offset: int = 0) → list[dict]
-  SELECT newest-first from flights. Each dict: id, created_at, occasion, menu, top_wine_name, bottle_count.
+def list_flights(profile_id: str, limit: int = 50, offset: int = 0) → list[dict]
+  SELECT newest-first from flights for profile_id. Each dict: id, created_at, occasion, menu, top_wine_name, bottle_count.
 
 def get_flight(flight_id: str) → Optional[dict]
   SELECT full flight row by id including response_json, or None if not found.

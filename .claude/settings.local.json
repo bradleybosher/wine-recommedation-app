@@ -29,7 +29,11 @@
       "WebSearch",
       "Bash(netstat -ano)",
       "Bash(findstr \":8000\")",
-      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import models; import cache; from routes import history, recommend; print\\('all imports OK'\\)\")"
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0, 'backend'\\); import models; import cache; from routes import history, recommend; print\\('all imports OK'\\)\")",
+      "Bash(dir \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\backend\")",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -m pip install \"passlib[bcrypt]>=1.7.4\" \"PyJWT>=2.8.0\" \"email-validator>=2.1.0\")",
+      "Bash(npx playwright *)",
+      "Read(//tmp/**)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

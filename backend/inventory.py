@@ -8,13 +8,19 @@ import time
 import unicodedata
 from pathlib import Path
 
+from bootstrap import PROFILES_DIR
 from models import TasteProfile
 
 logger = logging.getLogger("sommelier.inventory")
 
-_SOM_DIR = Path(__file__).resolve().parent
-CACHE_PATH = _SOM_DIR / "inventory.json"
 CACHE_TTL  = 60 * 60 * 24 * 7  # 1 week — you trigger refresh manually
+
+
+def _inventory_path(profile_id: str) -> Path:
+    """Resolve the inventory.json path for a given profile_id and ensure parent dir exists."""
+    path = PROFILES_DIR / profile_id / "inventory.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def decode_cellartracker_upload(raw: bytes) -> str:
@@ -40,18 +46,20 @@ def parse_ct_csv(csv_text: str) -> list[dict]:
     reader = csv.DictReader(io.StringIO(csv_text), delimiter="\t")
     return [row for row in reader if _quantity_positive(row)]
 
-def save_inventory(csv_text: str) -> list[dict]:
+def save_inventory(profile_id: str, csv_text: str) -> list[dict]:
     bottles = parse_ct_csv(csv_text)
-    CACHE_PATH.write_text(json.dumps({
+    path = _inventory_path(profile_id)
+    path.write_text(json.dumps({
         "bottles": bottles,
         "saved_at": time.time()
     }))
     return bottles
 
-def load_inventory() -> dict | None:
-    if not CACHE_PATH.exists():
+def load_inventory(profile_id: str) -> dict | None:
+    path = _inventory_path(profile_id)
+    if not path.exists():
         return None
-    data = json.loads(CACHE_PATH.read_text())
+    data = json.loads(path.read_text())
     age_hours = (time.time() - data["saved_at"]) / 3600
     return {
         "bottles": data["bottles"],

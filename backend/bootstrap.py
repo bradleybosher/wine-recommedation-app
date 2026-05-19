@@ -20,3 +20,18 @@ if not ANTHROPIC_API_KEY:
 MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024  # 20 MB
 
 TEST_MODE: bool = os.getenv("TEST_MODE", "false").lower() == "true"
+
+JWT_SECRET: str = os.getenv("JWT_SECRET", "")
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRY_DAYS: int = int(os.getenv("JWT_EXPIRY_DAYS", "7"))
+
+if not JWT_SECRET:
+    raise ValueError(
+        "JWT_SECRET environment variable is not set. Generate one with "
+        "`python -c \"import secrets; print(secrets.token_hex(32))\"` and add it to backend/.env"
+    )
+
+PROFILES_DIR: Path = _BACKEND_DIR / "profiles"
+PROFILES_DIR.mkdir(exist_ok=True)
+
+ORPHAN_PROFILE_ID: str = "00000000-0000-0000-0000-000000000001"

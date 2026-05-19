@@ -15,14 +15,34 @@ import hashlib
 import anthropic
 import logging
 
+from bootstrap import PROFILES_DIR
 from inventory import decode_cellartracker_upload
 from models import TasteProfile
 
-_SOM_DIR = Path(__file__).resolve().parent
-PROFILE_DATA_PATH = _SOM_DIR / "profile_data.json"
+# Module-level cache: dict[profile_id, (mtime, data)] to avoid re-reading profile_data.json on every request
+_profile_cache: dict[str, tuple[float, dict]] = {}
 
-# Module-level cache: (mtime, data) tuple to avoid re-reading profile_data.json on every request
-_profile_cache: tuple[float, dict] | None = None
+
+def _profile_path(profile_id: str) -> Path:
+    """Resolve the profile_data.json path for a given profile_id.
+
+    Ensures the parent directory exists.
+    Returns: PROFILES_DIR / profile_id / "profile_data.json"
+    """
+    profile_dir = PROFILES_DIR / profile_id
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    return profile_dir / "profile_data.json"
+
+
+def _backup_path(profile_id: str) -> Path:
+    """Resolve the profile_data.backup.json path for a given profile_id.
+
+    Ensures the parent directory exists.
+    Returns: PROFILES_DIR / profile_id / "profile_data.backup.json"
+    """
+    profile_dir = PROFILES_DIR / profile_id
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    return profile_dir / "profile_data.backup.json"
 
 
 def _normalize_row(row: dict) -> dict[str, str]:
@@ -91,27 +111,59 @@ def ingest_export(raw: bytes) -> tuple[str, list[dict[str, str]]]:
     return export_type, rows
 
 
-def bust_profile_cache() -> None:
-    """Invalidate the module-level profile data cache.
+def bust_profile_cache(profile_id: str) -> None:
+    """Invalidate the module-level profile data cache for a specific profile.
 
     Call this after writing to profile_data.json to ensure the next load_profile_data() call
     reads the updated file instead of returning stale cached data.
     """
     global _profile_cache
-    _profile_cache = None
+    _profile_cache.pop(profile_id, None)
 
 
-def save_profile_export(raw: bytes) -> str:
+def write_profile_data(profile_id: str, data: dict) -> None:
+    """Write a profile_data dict to disk and bust the in-memory cache."""
+    profile_path = _profile_path(profile_id)
+    profile_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache(profile_id)
+
+
+def backup_profile_data(profile_id: str) -> bool:
+    """Copy the live profile_data.json to its sibling backup file.
+
+    Returns True if a backup was written, False if there was nothing to back up.
+    """
+    profile_path = _profile_path(profile_id)
+    if not profile_path.is_file():
+        return False
+    backup_path = _backup_path(profile_id)
+    backup_path.write_text(profile_path.read_text(encoding="utf-8"), encoding="utf-8")
+    return True
+
+
+def restore_profile_backup(profile_id: str) -> bool:
+    """Restore profile_data.json from its backup. Busts cache. Returns False if no backup."""
+    backup_path = _backup_path(profile_id)
+    if not backup_path.is_file():
+        return False
+    profile_path = _profile_path(profile_id)
+    profile_path.write_text(backup_path.read_text(encoding="utf-8"), encoding="utf-8")
+    bust_profile_cache(profile_id)
+    return True
+
+
+def save_profile_export(profile_id: str, raw: bytes) -> str:
     """Ingest export, merge into profile_data.json (replace rows for this type). Returns export type."""
     export_type, rows = ingest_export(raw)
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     data[export_type] = rows
-    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    bust_profile_cache()  # Invalidate cache after write
+    profile_path = _profile_path(profile_id)
+    profile_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache(profile_id)  # Invalidate cache after write
     return export_type
 
 
-def load_profile_data() -> dict:
+def load_profile_data(profile_id: str) -> dict:
     """Load full profile_data.json or {} if missing/unreadable.
 
     Uses module-level cache (_profile_cache) to avoid re-reading the file on every request.
@@ -119,25 +171,27 @@ def load_profile_data() -> dict:
     """
     global _profile_cache
 
+    profile_path = _profile_path(profile_id)
+
     # Determine current mtime
-    mtime = PROFILE_DATA_PATH.stat().st_mtime if PROFILE_DATA_PATH.exists() else 0.0
+    mtime = profile_path.stat().st_mtime if profile_path.exists() else 0.0
 
     # Return cached data if mtime hasn't changed
-    if _profile_cache is not None and _profile_cache[0] == mtime:
-        return _profile_cache[1]
+    if profile_id in _profile_cache and _profile_cache[profile_id][0] == mtime:
+        return _profile_cache[profile_id][1]
 
     # Load from file
-    if not PROFILE_DATA_PATH.is_file():
+    if not profile_path.is_file():
         data = {}
     else:
         try:
-            raw = json.loads(PROFILE_DATA_PATH.read_text(encoding="utf-8"))
+            raw = json.loads(profile_path.read_text(encoding="utf-8"))
             data = raw if isinstance(raw, dict) else {}
         except (OSError, json.JSONDecodeError):
             data = {}
 
     # Cache and return
-    _profile_cache = (mtime, data)
+    _profile_cache[profile_id] = (mtime, data)
     return data
 
 
@@ -362,6 +416,7 @@ def _format_note_block(label: str, entries: list[dict], cap: int) -> str:
 
 
 def synthesize_palate_from_notes(
+    profile_id: str,
     profile_data: dict,
     anthropic_api_key: str,
     anthropic_model: str,
@@ -551,7 +606,7 @@ def synthesize_palate_from_notes(
     return synthesized
 
 
-def persist_synthesized_profile(synthesized: dict) -> None:
+def persist_synthesized_profile(profile_id: str, synthesized: dict) -> None:
     """Merge the synthesized palate dict into profile_data.json under ``_synthesized``.
 
     Unlike persist_seed_profile, this preserves the underlying CellarTracker rows
@@ -559,26 +614,28 @@ def persist_synthesized_profile(synthesized: dict) -> None:
     from. Busts the profile cache after write so subsequent loads see the update.
     """
     logger = logging.getLogger("sommelier.profile")
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     data[SYNTHESIZED_KEY] = synthesized
-    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    bust_profile_cache()
-    logger.info("persist_synthesized_profile: wrote synthesized palate to %s", PROFILE_DATA_PATH)
+    profile_path = _profile_path(profile_id)
+    profile_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache(profile_id)
+    logger.info("persist_synthesized_profile: wrote synthesized palate to %s", profile_path)
 
 
-def clear_synthesized_profile() -> None:
+def clear_synthesized_profile(profile_id: str) -> None:
     """Remove any prior synthesized palate from profile_data.json.
 
     Called before a fresh synthesis attempt so a failed Claude call doesn't leave
     stale synthesized data behind (the deterministic fallback in build_taste_profile()
     can then take over until the next successful synthesis).
     """
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     if SYNTHESIZED_KEY not in data:
         return
     data.pop(SYNTHESIZED_KEY, None)
-    PROFILE_DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    bust_profile_cache()
+    profile_path = _profile_path(profile_id)
+    profile_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    bust_profile_cache(profile_id)
 
 
 def build_taste_profile(profile_data: dict) -> dict:
@@ -812,13 +869,14 @@ def extract_profile_preference_terms(profile_data: dict) -> dict:
     return {"preferred": preferred, "avoided": []}
 
 
-def build_enriched_profile_text_basic() -> str:
+def build_enriched_profile_text_basic(profile_id: str) -> str:
     """Build taste profile text from loaded profile data or return owner default (non-enriched version)."""
-    if not PROFILE_DATA_PATH.is_file():
+    profile_path = _profile_path(profile_id)
+    if not profile_path.is_file():
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
 
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     if _profile_data_empty(data):
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
@@ -942,16 +1000,17 @@ def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_m
 enrich_profile_with_ollama = enrich_profile_with_anthropic
 
 
-def build_enriched_profile_text(anthropic_api_key: str, anthropic_model: str) -> str:
+def build_enriched_profile_text(profile_id: str, anthropic_api_key: str, anthropic_model: str) -> str:
     """Like build_enriched_profile_text_basic() but enriches derived terms via Anthropic Claude."""
     logger = logging.getLogger(__name__)
 
-    if not PROFILE_DATA_PATH.is_file():
+    profile_path = _profile_path(profile_id)
+    if not profile_path.is_file():
         logger.info("build_enriched_profile_text: profile_data.json not found, returning OWNER_PROFILE")
         from prompt import OWNER_PROFILE
         return OWNER_PROFILE
 
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     if _profile_data_empty(data):
         logger.info("build_enriched_profile_text: profile_data.json is empty, returning OWNER_PROFILE")
         from prompt import OWNER_PROFILE

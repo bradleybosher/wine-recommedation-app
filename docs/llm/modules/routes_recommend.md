@@ -4,9 +4,19 @@
 
 The `POST /recommend` endpoint — the app's primary workflow. Wine list upload + meal context → top-N recommendations (default 3).
 
+## Authentication
+
+The endpoint requires:
+- **Bearer JWT** in the `Authorization` header (JWT token issued at registration/login)
+- **`X-Profile-Id`** header specifying the active profile UUID
+
+Per-request flow: `Depends(get_current_profile)` extracts the user_id from the JWT and loads the profile by ID. The profile object is then passed to the endpoint handler.
+
 ## Endpoint
 
 **`POST /recommend`** → `RecommendationResponse`
+
+Requires Bearer JWT + `X-Profile-Id` header. Extracts `profile` via `Depends(get_current_profile)`.
 
 ### Form Fields
 
@@ -37,28 +47,28 @@ File/test:
 1. `rate_limit.check_rate_limit(client_ip)` — 429 if exceeded.
 2. **Test-mode short-circuit:** if `bootstrap.TEST_MODE` is true and `test_fixture` is non-empty, drain the upload (if present), look up `test_fixtures.FIXTURES[test_fixture]`, and return it directly. Unknown fixture name → 400 with the list of valid names.
 3. Determine `use_wine_list = source_mode != "cellar" and wine_list is not None`. If `source_mode != "cellar"` and no file uploaded → 422.
-4. Load inventory + compute profile hash (`md5` of sorted JSON).
+4. Load inventory via `inventory.load_inventory(profile.id)` + compute profile hash (`md5` of sorted JSON).
 5. Read `wine_list` bytes (when `use_wine_list`); 413 if over `MAX_UPLOAD_BYTES`.
 6. Build cache key from bytes + `effective_meal|bottle_count|ceiling` + inventory hash + profile hash; return cached response if present and valid.
 7. **Wine list parsing** (when `use_wine_list` only):
    - Try `cache.get_parse_cached(parse_key)`, otherwise call `parser.parse_wine_list(...)`. On `parser.OCRError` raise 422.
    - Strip invisible Unicode (`_INVISIBLE_RE`), trim blanks, filter via `inventory.filter_wine_list(text, taste_profile)`.
-8. **Enriched profile**: Try `profile.build_enriched_profile_text(...)`. On any error fall back to standard profile (non-fatal).
+8. **Enriched profile**: Try `profile.build_enriched_profile_text(profile.id, ...)`. On any error fall back to standard profile (non-fatal).
 9. Compute `cellar_summary` (top 5 terms) and `relevant` bottles (top 10 terms, possibly overridden by `effective_style`) via `cellar_terms.*` + `inventory.get_relevant_bottles`.
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
-11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`. Also passes `taste_markers` and `palate_persona` extracted from `build_taste_profile(load_profile_data())` so the prompt can render the numeric markers block and quote the persona verbatim (both populated by `_synthesized` or `_inferred` profiles; absent for legacy CT-only).
+11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`. Also passes `taste_markers` and `palate_persona` extracted from `build_taste_profile(load_profile_data(profile.id))` so the prompt can render the numeric markers block and quote the persona verbatim (both populated by `_synthesized` or `_inferred` profiles; absent for legacy CT-only).
 12. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
 13. **Per-wine grounding** (winelist mode only): after recommendations are returned, iterate and set `rec.verified_on_list = scorer._is_grounded(rec.wine_name, wine_list_text)` on each wine.
 14. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response.
-15. `save_flight(...)` — best-effort; captures the returned `flight_id`. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
-14. On `HTTPException`: log error event, re-raise.
-15. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
+15. `save_flight(profile_id=profile.id, ...)` — best-effort; captures the returned `flight_id` and scopes the flight record to the active profile. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
+16. On `HTTPException`: log error event, re-raise.
+17. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
 
 ## Dependencies
 
 - `bootstrap.ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `MAX_UPLOAD_BYTES`, `TEST_MODE`
 - `test_fixtures.FIXTURES` — canned `RecommendationResponse` map used in test mode
-- `cache.{get_cached, get_parse_cached, inventory_hash, make_key, make_parse_key, set_cached, set_parse_cached}`
+- `cache.{get_cached, get_parse_cached, inventory_hash, make_key, make_parse_key, set_cached, set_parse_cached, save_flight}`
 - `cellar_terms.cellar_character_from_terms`, `inventory_terms_by_frequency`
 - `inventory.{filter_wine_list, get_relevant_bottles, load_inventory}`
 - `logging_utils.log_recommendation_event`
@@ -69,6 +79,7 @@ File/test:
 - `prompt.build_system_prompt`
 - `rate_limit.check_rate_limit`
 - `recommender.get_recommendation`
+- `routes.auth.get_current_profile` — dependency injector for authenticated profile resolution
 - `scorer._is_grounded`, `scorer.score_recommendation`
 
 ## Patterns & Gotchas

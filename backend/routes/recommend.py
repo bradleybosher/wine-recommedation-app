@@ -5,7 +5,7 @@ import logging
 import re
 
 import anthropic
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from bootstrap import ANTHROPIC_API_KEY, ANTHROPIC_MODEL, MAX_UPLOAD_BYTES, TEST_MODE
 from cache import (
@@ -19,10 +19,11 @@ from cache import (
     set_parse_cached,
 )
 from cellar_terms import cellar_character_from_terms, inventory_terms_by_frequency
+from dependencies import get_current_profile
 from inventory import filter_wine_list, get_relevant_bottles, load_inventory
 from logging_utils import log_recommendation_event
 from meal_parser import meal_to_wine_hints, parse_meal_description
-from models import RecommendationResponse
+from models import Profile, RecommendationResponse
 from parser import OCRError, parse_wine_list
 from profile import (
     build_enriched_profile_text,
@@ -61,6 +62,7 @@ async def recommend(
     # File upload — optional when source_mode='cellar'
     wine_list: UploadFile = File(default=None),
     test_fixture: str = Form(default=""),
+    profile: Profile = Depends(get_current_profile),
 ) -> RecommendationResponse:
     """Recommend wines based on uploaded list and meal context."""
     client_ip = request.client.host if request.client else "unknown"
@@ -87,10 +89,10 @@ async def recommend(
     if not use_wine_list and source_mode != "cellar":
         raise HTTPException(status_code=422, detail="A wine list file is required unless source_mode is 'cellar'.")
 
-    inv = load_inventory()
+    inv = load_inventory(profile.id)
     bottles = inv["bottles"] if inv else []
     profile_hash = hashlib.md5(
-        json.dumps(load_profile_data(), sort_keys=True).encode()
+        json.dumps(load_profile_data(profile.id), sort_keys=True).encode()
     ).hexdigest()
 
     raw_bytes = b""
@@ -129,7 +131,7 @@ async def recommend(
             set_parse_cached(parse_key, wine_list_text)
 
         wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
-        taste_profile = build_taste_profile_pydantic(load_profile_data())
+        taste_profile = build_taste_profile_pydantic(load_profile_data(profile.id))
 
         wine_list_text = _INVISIBLE_RE.sub("", wine_list_text)
         wine_list_text = "\n".join(
@@ -144,7 +146,7 @@ async def recommend(
         after = len(wine_list_text.splitlines())
         logger.debug("wine_list_filter before=%d lines, after=%d lines", before, after)
     else:
-        taste_profile = build_taste_profile_pydantic(load_profile_data())
+        taste_profile = build_taste_profile_pydantic(load_profile_data(profile.id))
         logger.info("recommend: source_mode=cellar, skipping wine list parsing")
 
     enriched_profile = None
@@ -153,7 +155,7 @@ async def recommend(
             "recommend: attempting to build enriched profile with anthropic_model=%s",
             ANTHROPIC_MODEL,
         )
-        enriched_profile = build_enriched_profile_text(ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
+        enriched_profile = build_enriched_profile_text(profile.id, ANTHROPIC_API_KEY, ANTHROPIC_MODEL)
         if not enriched_profile or len(enriched_profile) < 20:
             logger.warning(
                 "recommend: enriched profile is empty or too short (len=%d), falling back to standard profile",
@@ -185,11 +187,11 @@ async def recommend(
         "override" if override_terms else "derived",
         terms,
     )
-    profile_prefs = extract_profile_preference_terms(load_profile_data())
+    profile_prefs = extract_profile_preference_terms(load_profile_data(profile.id))
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
     meal_hints = meal_to_wine_hints(parse_meal_description(effective_meal))
-    structured_profile = build_taste_profile(load_profile_data())
+    structured_profile = build_taste_profile(load_profile_data(profile.id))
     taste_markers_dict = structured_profile.get("taste_markers") if isinstance(structured_profile.get("taste_markers"), dict) else None
     palate_persona_text = structured_profile.get("palate_persona") if isinstance(structured_profile.get("palate_persona"), str) else None
     system = build_system_prompt(
@@ -241,6 +243,7 @@ async def recommend(
                 wine_list_hash=wine_list_hash,
                 profile_hash=profile_hash,
                 response=recommendation,
+                profile_id=profile.id,
             )
         except Exception as hist_err:
             logger.warning("auto_save_flight_failed: %s", hist_err)

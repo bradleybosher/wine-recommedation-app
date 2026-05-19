@@ -23,6 +23,11 @@ export default defineConfig({
       '/refresh-palate-portrait': 'http://localhost:8000',
       '/style-affinities': 'http://localhost:8000',
       '/refresh-style-affinities': 'http://localhost:8000',
+      '/auth': 'http://localhost:8000',
+      '/profiles': 'http://localhost:8000',
+      '/profile': 'http://localhost:8000',
+      '/seed-profile': 'http://localhost:8000',
+      '/history': 'http://localhost:8000',
       '/debug': {
         target: 'http://localhost:8000',
         changeOrigin: true,

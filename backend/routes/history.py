@@ -2,28 +2,42 @@
 import json
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from cache import delete_flight, get_flight, list_flights, update_flight_feedback
-from models import FlightFeedback, FlightRecord, FlightSummary, RecommendationResponse
+from dependencies import get_current_profile
+from models import FlightFeedback, FlightRecord, FlightSummary, Profile, RecommendationResponse
 
 router = APIRouter()
 logger = logging.getLogger("sommelier.api")
 
 
+def _enforce_flight_ownership(flight: dict, profile: Profile) -> None:
+    if flight.get("profile_id") != profile.id:
+        raise HTTPException(status_code=404, detail=f"Flight {flight['id']} not found")
+
+
 @router.get("/history")
-async def list_history(limit: int = 50, offset: int = 0) -> list[FlightSummary]:
-    """List all past flights, newest first."""
-    rows = list_flights(limit=limit, offset=offset)
+async def list_history(
+    limit: int = 50,
+    offset: int = 0,
+    profile: Profile = Depends(get_current_profile),
+) -> list[FlightSummary]:
+    """List past flights for the active profile, newest first."""
+    rows = list_flights(profile_id=profile.id, limit=limit, offset=offset)
     return [FlightSummary(**row) for row in rows]
 
 
 @router.get("/history/{flight_id}")
-async def get_history(flight_id: str) -> FlightRecord:
-    """Retrieve a single flight by ID with full recommendation data."""
+async def get_history(
+    flight_id: str,
+    profile: Profile = Depends(get_current_profile),
+) -> FlightRecord:
+    """Retrieve a single flight by ID for the active profile with full recommendation data."""
     flight = get_flight(flight_id)
     if not flight:
         raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
+    _enforce_flight_ownership(flight, profile)
 
     try:
         blob = json.loads(flight["response_json"])
@@ -47,8 +61,16 @@ async def get_history(flight_id: str) -> FlightRecord:
 
 
 @router.patch("/history/{flight_id}/feedback")
-async def patch_feedback(flight_id: str, body: FlightFeedback) -> dict:
+async def patch_feedback(
+    flight_id: str,
+    body: FlightFeedback,
+    profile: Profile = Depends(get_current_profile),
+) -> dict:
     """Record a one-tap feedback chip for a saved flight."""
+    flight = get_flight(flight_id)
+    if not flight:
+        raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
+    _enforce_flight_ownership(flight, profile)
     updated = update_flight_feedback(flight_id, body)
     if not updated:
         raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
@@ -56,8 +78,15 @@ async def patch_feedback(flight_id: str, body: FlightFeedback) -> dict:
 
 
 @router.delete("/history/{flight_id}")
-async def delete_history(flight_id: str) -> dict:
-    """Delete a flight by ID."""
+async def delete_history(
+    flight_id: str,
+    profile: Profile = Depends(get_current_profile),
+) -> dict:
+    """Delete a flight by ID, scoped to the active profile."""
+    flight = get_flight(flight_id)
+    if not flight:
+        raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")
+    _enforce_flight_ownership(flight, profile)
     success = delete_flight(flight_id)
     if not success:
         raise HTTPException(status_code=404, detail=f"Flight {flight_id} not found")

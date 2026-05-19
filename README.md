@@ -78,6 +78,11 @@ pip install -r requirements.txt
 
 # Copy and edit .env
 cp .env.example .env
+
+# Generate and set JWT_SECRET (required for auth)
+python -c "import secrets; print(secrets.token_hex(32))"
+# Copy the output and add to .env as: JWT_SECRET=<value>
+
 # Set ANTHROPIC_API_KEY in .env
 
 # Run the API
@@ -85,6 +90,8 @@ python -m uvicorn main:app --reload
 ```
 
 The API will be available at `http://127.0.0.1:8000`. Check the OpenAPI docs at `/docs`.
+
+**Important:** The backend now requires `JWT_SECRET` to be set in `.env`. If missing, the app will fail to start with a clear error message.
 
 ### 2. Frontend Setup
 
@@ -103,32 +110,59 @@ Open http://127.0.0.1:5173 in your browser.
 
 ## Usage Walkthrough
 
-### 1. Choose Your Pathway
-On first launch, pick how you want to build a taste profile:
-- **I use CellarTracker** — upload your cellar + tasting-history TSV exports (highest fidelity).
-- **Name a few wines I love** — type 3–7 wines you have loved (and optionally a few you disliked). No exports required. Claude infers your palate via a single tool-use call.
+### 1. Register or Login
 
-### 2a. CellarTracker pathway — Upload Wine Inventory
+**First time?** Click **Register** on the login page.
+- Enter an email and password.
+- You'll be logged in automatically and directed to create your first taste profile.
+- If you have an existing wine list and profile from an earlier pre-auth deployment, they'll be automatically migrated to your new account.
+
+**Returning user?** Click **Login** and enter your credentials.
+
+### 2. Choose Your Profile & Pathway
+
+Once logged in, you're in the **Profiles** view. Click **Create Profile** to add a new taste profile, or select an existing one.
+
+For each profile, you can build a taste palate in two ways:
+- **CellarTracker pathway** (highest fidelity) — upload your cellar + tasting-history TSV exports
+- **Seed-bottle pathway** (60 seconds) — name 3–7 wines you love (and optionally a few you dislike); Claude infers your palate.
+
+### 3a. CellarTracker pathway — Upload Wine Inventory
+
+- Go to your active profile's **Inventory** tab.
 - Upload a CellarTracker TSV export (export from cellartracker.com → Downloads → List), or skip.
 - The app parses your cellar and extracts style preferences.
 
-### 2b. CellarTracker pathway — Upload Taste Profile (Optional)
-- Upload a CellarTracker **"Notes"** export to add tasting notes
-- Wines with low ratings inform the `avoided_styles` field
-- You can skip this; recommendations work with inventory alone
+### 3b. CellarTracker pathway — Upload Taste Profile (Optional)
 
-### 2c. Seed-bottle pathway — Name Your Wines
+- Still in the **Inventory** tab, optionally upload a CellarTracker **"Notes"** export to add tasting notes.
+- Wines with low ratings inform the `avoided_styles` field.
+- You can skip this; recommendations work with inventory alone.
+
+### 3c. Seed-bottle pathway — Name Your Wines
+
+- In the **Palette** tab, click **Seed from bottles**.
 - Enter producer, wine, and (optional) vintage for 3–7 loved bottles.
 - Add up to 3 disliked bottles to sharpen the signal.
-- Submit; the inferred profile renders inline with style descriptors, grapes, regions, and a confidence tag. The profile is marked `seed_bottles` and per-recommendation confidence is capped at `medium`.
+- Submit; the inferred profile renders inline with style descriptors, grapes, regions, and a confidence tag.
+- The profile is marked `seed_bottles` and per-recommendation confidence is capped at `medium`.
 
-### 3. Get Recommendations
-- Choose a restaurant wine list (PDF, JPEG, PNG, or similar)
-- Describe your meal (e.g., "Pan-seared duck breast with cherry gastrique")
-- Optionally override style preferences (e.g., "mineral whites, grower champagne")
-- Click **"Get Recommendations"**
-- Receive a ranked top-3 with specific reasoning tied to your profile
-- Use the **Refine** chips above the results to re-rank against a different lens (budget, adventurousness, food-first, crowd-pleaser) without re-uploading the list
+### 4. Get Recommendations
+
+Once your profile is set up:
+- Go to the **Flight** tab (or **Get Recommendations** from the home page).
+- Choose a restaurant wine list (PDF, JPEG, PNG, or similar).
+- Describe your meal (e.g., "Pan-seared duck breast with cherry gastrique").
+- Optionally override style preferences (e.g., "mineral whites, grower champagne").
+- Click **"Get Recommendations"**.
+- Receive a ranked top-3 with specific reasoning tied to your profile.
+- Use the **Refine** chips above the results to re-rank against a different lens (budget, adventurousness, food-first, crowd-pleaser) without re-uploading the list.
+
+### 5. Manage Your Profiles
+
+- Click the **Profiles** link in the header to switch between taste profiles or create new ones.
+- Each profile has its own inventory, taste data, and recommendation history.
+- Logout with the logout button in the header.
 
 ---
 
@@ -173,9 +207,12 @@ Cache response in SQLite → return to frontend
 | `middleware.py` | Request-logging middleware + exception handlers (request ID, elapsed_ms) |
 | `rate_limit.py` | IP-based 10-req/60s limiter for `/recommend` |
 | `cellar_terms.py` | Frequency-ranked cellar terms + character phrase helpers |
-| `routes/inventory.py` | `/upload-inventory`, `/inventory` |
-| `routes/profile.py` | `/upload-profile`, `/seed-profile`, `/profile/revert`, `/profile-summary` |
-| `routes/recommend.py` | `/recommend` pipeline |
+| `routes/auth.py` | `/auth/register`, `/auth/login`, JWT validation & profile dependency |
+| `routes/profiles.py` | `/profiles` (list/create), `/profiles/{id}` (get/update/delete) |
+| `routes/inventory.py` | `/upload-inventory`, `/inventory` (requires auth + profile) |
+| `routes/profile.py` | `/upload-profile`, `/seed-profile`, `/profile/revert`, `/profile-summary`, `/profile` PATCH (requires auth + profile) |
+| `routes/recommend.py` | `/recommend` pipeline (requires auth + profile) |
+| `routes/history.py` | `/history` (list/detail/feedback/delete) (requires auth + profile) |
 | `routes/debug.py` | Diagnostics endpoints (health, status, logs, cache) |
 | `parser.py` | PDF/text/image dispatch; PyMuPDF + Claude Haiku vision |
 | `models.py` | Pydantic schemas (camelCase JSON mapping) |
@@ -192,9 +229,40 @@ Cache response in SQLite → return to frontend
 
 ---
 
+## Authentication
+
+**Registration & Login**
+
+The app now uses JWT bearer token authentication. Account registration is open — no invite required.
+
+1. **Register a new account** — `POST /auth/register` with `email` and `password`. Returns a JWT bearer token and creates a default `default` profile automatically.
+2. **Login** — `POST /auth/login` with `email` and `password`. Returns a JWT bearer token.
+3. **Multiple profiles** — Use `POST /profiles` to create additional named taste profiles (e.g., "Whites", "Under $50"). Each profile maintains its own inventory, taste data, and flight history.
+4. **Switching profiles** — The frontend passes the active profile ID via the `X-Profile-Id` header (or select it from `/profiles` to list your profiles).
+
+**JWT Bearer Tokens**
+
+All authenticated endpoints require:
+- `Authorization: Bearer <jwt>` header (obtained at registration/login)
+- `X-Profile-Id` header specifying the active profile UUID
+
+The first registered account on a fresh deployment automatically inherits any pre-existing profile data (single legacy `profile_data.json` and `inventory.json`). Subsequent users start with empty profiles.
+
+**Setup**
+
+Generate a JWT secret for production use:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Add it to `.env` as:
+```
+JWT_SECRET=<generated-value>
+```
+
 ## Design Principles
 
-- **Stateless First:** No user accounts, logins, or persistent sessions (v1)
+- **Multi-Account, Single-Tenant Architecture:** User accounts with JWT tokens; each user can create multiple named taste profiles scoped to their account. Pre-auth profile data migrated on first login.
 - **Fail Loudly:** Parse errors surface to the user rather than passing garbage to the LLM
 - **Schema-Driven:** Pydantic models define the contract; endpoints validate strictly
 - **Portfolio-Legible:** Code is readable to a technical hiring audience; no clever abstractions that obscure intent
@@ -207,9 +275,20 @@ Cache response in SQLite → return to frontend
 Create a `.env` file in the `backend/` directory (or copy from `.env.example`):
 
 ```
+JWT_SECRET=<32+ hex chars>                # Required — generate with: python -c "import secrets; print(secrets.token_hex(32))"
 ANTHROPIC_API_KEY=sk-ant-...              # Required — Anthropic API key
 ANTHROPIC_MODEL=claude-sonnet-4-6        # Model to use (default: claude-sonnet-4-6)
 ```
+
+**Authentication Setup**
+
+The app uses JWT bearer tokens for authentication. Generate a secure secret:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Copy the output and add it to `.env` as `JWT_SECRET=<value>`. If `JWT_SECRET` is not set, the backend will refuse to start.
 
 ---
 
@@ -261,11 +340,13 @@ The debug panel shows:
 
 ---
 
-## Future Ideas (v2+)
+## Future Ideas (v3+)
 
 - Vivino OAuth import as a profile source
 - Food pairing as a first-class input (e.g., "duck + cherry gastrique" → style recommendations)
 - Restaurant wine list caching + historical price tracking
+- Team/cellar sharing — invite other users to view/edit a profile
+- Analytics dashboard — flavor trends, recommendation accuracy, spending patterns across flights
 
 ---
 

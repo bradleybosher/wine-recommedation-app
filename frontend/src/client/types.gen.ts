@@ -5,6 +5,17 @@ export type ClientOptions = {
 };
 
 /**
+ * AuthMeResponse
+ */
+export type AuthMeResponse = {
+    user: User;
+    /**
+     * Profiles
+     */
+    profiles?: Array<Profile>;
+};
+
+/**
  * Body_recommend_recommend_post
  */
 export type BodyRecommendRecommendPost = {
@@ -393,6 +404,58 @@ export type InventoryResponse = {
 };
 
 /**
+ * LoginRequest
+ */
+export type LoginRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
+ * Profile
+ *
+ * A named palate profile owned by a user.
+ */
+export type Profile = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Userid
+     */
+    userId?: string | null;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean;
+    /**
+     * Createdat
+     */
+    createdAt: number;
+};
+
+/**
+ * ProfileCreateRequest
+ */
+export type ProfileCreateRequest = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
  * ProfilePatchRequest
  *
  * Partial edit payload for PATCH /profile.
@@ -483,6 +546,20 @@ export type ProfileSummaryResponse = {
 };
 
 /**
+ * ProfileUpdateRequest
+ */
+export type ProfileUpdateRequest = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Isdefault
+     */
+    isDefault?: boolean | null;
+};
+
+/**
  * RecommendationResponse
  */
 export type RecommendationResponse = {
@@ -502,6 +579,20 @@ export type RecommendationResponse = {
      * Flightid
      */
     flightId?: string | null;
+};
+
+/**
+ * RegisterRequest
+ */
+export type RegisterRequest = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
 };
 
 /**
@@ -647,6 +738,22 @@ export type TasteProfile = {
 };
 
 /**
+ * TokenResponse
+ */
+export type TokenResponse = {
+    /**
+     * Accesstoken
+     */
+    accessToken: string;
+    /**
+     * Tokentype
+     */
+    tokenType?: string;
+    user: User;
+    profile: Profile;
+};
+
+/**
  * UploadInventoryResponse
  */
 export type UploadInventoryResponse = {
@@ -673,6 +780,26 @@ export type UploadProfileResponse = {
      */
     message: string;
     tasteProfile?: TasteProfile | null;
+};
+
+/**
+ * User
+ *
+ * Public-facing user model. Password hash is never serialized.
+ */
+export type User = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Createdat
+     */
+    createdAt: number;
 };
 
 /**
@@ -810,6 +937,227 @@ export type WineRecommendation = {
     verifiedOnList?: boolean | null;
 };
 
+export type RegisterAuthRegisterPostData = {
+    body: RegisterRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/register';
+};
+
+export type RegisterAuthRegisterPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RegisterAuthRegisterPostError = RegisterAuthRegisterPostErrors[keyof RegisterAuthRegisterPostErrors];
+
+export type RegisterAuthRegisterPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: TokenResponse;
+};
+
+export type RegisterAuthRegisterPostResponse = RegisterAuthRegisterPostResponses[keyof RegisterAuthRegisterPostResponses];
+
+export type LoginAuthLoginPostData = {
+    body: LoginRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/login';
+};
+
+export type LoginAuthLoginPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginAuthLoginPostError = LoginAuthLoginPostErrors[keyof LoginAuthLoginPostErrors];
+
+export type LoginAuthLoginPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: TokenResponse;
+};
+
+export type LoginAuthLoginPostResponse = LoginAuthLoginPostResponses[keyof LoginAuthLoginPostResponses];
+
+export type MeAuthMeGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/auth/me';
+};
+
+export type MeAuthMeGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type MeAuthMeGetError = MeAuthMeGetErrors[keyof MeAuthMeGetErrors];
+
+export type MeAuthMeGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: AuthMeResponse;
+};
+
+export type MeAuthMeGetResponse = MeAuthMeGetResponses[keyof MeAuthMeGetResponses];
+
+export type ListProfilesProfilesGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/profiles';
+};
+
+export type ListProfilesProfilesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ListProfilesProfilesGetError = ListProfilesProfilesGetErrors[keyof ListProfilesProfilesGetErrors];
+
+export type ListProfilesProfilesGetResponses = {
+    /**
+     * Response List Profiles Profiles Get
+     *
+     * Successful Response
+     */
+    200: Array<Profile>;
+};
+
+export type ListProfilesProfilesGetResponse = ListProfilesProfilesGetResponses[keyof ListProfilesProfilesGetResponses];
+
+export type CreateProfileProfilesPostData = {
+    body: ProfileCreateRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/profiles';
+};
+
+export type CreateProfileProfilesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateProfileProfilesPostError = CreateProfileProfilesPostErrors[keyof CreateProfileProfilesPostErrors];
+
+export type CreateProfileProfilesPostResponses = {
+    /**
+     * Successful Response
+     */
+    201: Profile;
+};
+
+export type CreateProfileProfilesPostResponse = CreateProfileProfilesPostResponses[keyof CreateProfileProfilesPostResponses];
+
+export type DeleteProfileProfilesProfileIdDeleteData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/profiles/{profile_id}';
+};
+
+export type DeleteProfileProfilesProfileIdDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteProfileProfilesProfileIdDeleteError = DeleteProfileProfilesProfileIdDeleteErrors[keyof DeleteProfileProfilesProfileIdDeleteErrors];
+
+export type DeleteProfileProfilesProfileIdDeleteResponses = {
+    /**
+     * Response Delete Profile Profiles  Profile Id  Delete
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type DeleteProfileProfilesProfileIdDeleteResponse = DeleteProfileProfilesProfileIdDeleteResponses[keyof DeleteProfileProfilesProfileIdDeleteResponses];
+
+export type UpdateProfileProfilesProfileIdPatchData = {
+    body: ProfileUpdateRequest;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path: {
+        /**
+         * Profile Id
+         */
+        profile_id: string;
+    };
+    query?: never;
+    url: '/profiles/{profile_id}';
+};
+
+export type UpdateProfileProfilesProfileIdPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateProfileProfilesProfileIdPatchError = UpdateProfileProfilesProfileIdPatchErrors[keyof UpdateProfileProfilesProfileIdPatchErrors];
+
+export type UpdateProfileProfilesProfileIdPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: Profile;
+};
+
+export type UpdateProfileProfilesProfileIdPatchResponse = UpdateProfileProfilesProfileIdPatchResponses[keyof UpdateProfileProfilesProfileIdPatchResponses];
+
 export type HealthCheckDebugHealthGetData = {
     body?: never;
     path?: never;
@@ -832,10 +1180,29 @@ export type HealthCheckDebugHealthGetResponse = HealthCheckDebugHealthGetRespons
 
 export type StatusOverviewDebugStatusGetData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/debug/status';
 };
+
+export type StatusOverviewDebugStatusGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StatusOverviewDebugStatusGetError = StatusOverviewDebugStatusGetErrors[keyof StatusOverviewDebugStatusGetErrors];
 
 export type StatusOverviewDebugStatusGetResponses = {
     /**
@@ -872,10 +1239,25 @@ export type CacheStatsDebugCacheStatsGetResponse = CacheStatsDebugCacheStatsGetR
 
 export type ClearCacheDebugCacheClearPostData = {
     body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/debug/cache/clear';
 };
+
+export type ClearCacheDebugCacheClearPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ClearCacheDebugCacheClearPostError = ClearCacheDebugCacheClearPostErrors[keyof ClearCacheDebugCacheClearPostErrors];
 
 export type ClearCacheDebugCacheClearPostResponses = {
     /**
@@ -1026,6 +1408,16 @@ export type GetVersionDebugVersionGetResponse = GetVersionDebugVersionGetRespons
 
 export type ListHistoryHistoryGetData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: {
         /**
@@ -1062,6 +1454,16 @@ export type ListHistoryHistoryGetResponse = ListHistoryHistoryGetResponses[keyof
 
 export type DeleteHistoryHistoryFlightIdDeleteData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path: {
         /**
          * Flight Id
@@ -1096,6 +1498,16 @@ export type DeleteHistoryHistoryFlightIdDeleteResponse = DeleteHistoryHistoryFli
 
 export type GetHistoryHistoryFlightIdGetData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path: {
         /**
          * Flight Id
@@ -1126,6 +1538,16 @@ export type GetHistoryHistoryFlightIdGetResponse = GetHistoryHistoryFlightIdGetR
 
 export type PatchFeedbackHistoryFlightIdFeedbackPatchData = {
     body: FlightFeedback;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path: {
         /**
          * Flight Id
@@ -1160,6 +1582,16 @@ export type PatchFeedbackHistoryFlightIdFeedbackPatchResponse = PatchFeedbackHis
 
 export type UploadInventoryUploadInventoryPostData = {
     body: BodyUploadInventoryUploadInventoryPost;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/upload-inventory';
@@ -1185,10 +1617,29 @@ export type UploadInventoryUploadInventoryPostResponse = UploadInventoryUploadIn
 
 export type GetInventoryInventoryGetData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/inventory';
 };
+
+export type GetInventoryInventoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetInventoryInventoryGetError = GetInventoryInventoryGetErrors[keyof GetInventoryInventoryGetErrors];
 
 export type GetInventoryInventoryGetResponses = {
     /**
@@ -1201,6 +1652,16 @@ export type GetInventoryInventoryGetResponse = GetInventoryInventoryGetResponses
 
 export type UploadProfileUploadProfilePostData = {
     body: BodyUploadProfileUploadProfilePost;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/upload-profile';
@@ -1226,6 +1687,16 @@ export type UploadProfileUploadProfilePostResponse = UploadProfileUploadProfileP
 
 export type SeedProfileSeedProfilePostData = {
     body: SeedProfileRequest;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/seed-profile';
@@ -1251,10 +1722,29 @@ export type SeedProfileSeedProfilePostResponse = SeedProfileSeedProfilePostRespo
 
 export type RevertProfileProfileRevertPostData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/profile/revert';
 };
+
+export type RevertProfileProfileRevertPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RevertProfileProfileRevertPostError = RevertProfileProfileRevertPostErrors[keyof RevertProfileProfileRevertPostErrors];
 
 export type RevertProfileProfileRevertPostResponses = {
     /**
@@ -1271,10 +1761,29 @@ export type RevertProfileProfileRevertPostResponse = RevertProfileProfileRevertP
 
 export type ProfileSummaryProfileSummaryGetData = {
     body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/profile-summary';
 };
+
+export type ProfileSummaryProfileSummaryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ProfileSummaryProfileSummaryGetError = ProfileSummaryProfileSummaryGetErrors[keyof ProfileSummaryProfileSummaryGetErrors];
 
 export type ProfileSummaryProfileSummaryGetResponses = {
     /**
@@ -1287,6 +1796,16 @@ export type ProfileSummaryProfileSummaryGetResponse = ProfileSummaryProfileSumma
 
 export type PatchProfileProfilePatchData = {
     body: ProfilePatchRequest;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/profile';
@@ -1312,6 +1831,16 @@ export type PatchProfileProfilePatchResponse = PatchProfileProfilePatchResponses
 
 export type RecommendRecommendPostData = {
     body?: BodyRecommendRecommendPost;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
     path?: never;
     query?: never;
     url: '/recommend';

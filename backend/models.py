@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Optional, List, Dict, Any, Literal
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -364,3 +364,71 @@ class MealProfile(BaseModel):
         alias_generator=to_camel,
         populate_by_name=True,
     )
+
+
+# ---------------------------------------------------------------------------
+# Auth & Profiles
+# ---------------------------------------------------------------------------
+
+
+class User(BaseModel):
+    """Public-facing user model. Password hash is never serialized."""
+    id: str
+    email: EmailStr
+    created_at: float
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class Profile(BaseModel):
+    """A named palate profile owned by a user."""
+    id: str
+    user_id: Optional[str] = None  # NULL while orphan; populated once claimed
+    name: str
+    is_default: bool = False
+    created_at: float
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: User
+    profile: Profile  # the active profile (claimed orphan on first register, else new empty)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class AuthMeResponse(BaseModel):
+    user: User
+    profiles: List[Profile] = Field(default_factory=list)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class ProfileCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=64)
+    is_default: Optional[bool] = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

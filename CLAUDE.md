@@ -8,9 +8,31 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 
 ## Data Flow
 ```
-Profile source (one of):
-  (a) CellarTracker TSV (inventory)       → inventory.json
-      CellarTracker TSV (tasting history) → profile_data.json
+Auth (JWT bearer; passlib bcrypt + PyJWT, HS256, 7-day expiry):
+  /auth/register {email, password} → claims orphan default profile if any,
+                                     else creates a fresh empty default profile
+  /auth/login    {email, password} → token + default (or only) profile
+  /auth/me                          → user + all owned profiles
+  Every other endpoint:  Authorization: Bearer <jwt>  +  X-Profile-Id: <uuid>
+  (dependencies.py: get_current_user reads JWT; get_current_profile reads header,
+   validates ownership against the JWT user)
+
+Per-profile data (each named palate has its own dir/files/flights):
+  backend/profiles/{profile_id}/profile_data.json   ← palate state
+  backend/profiles/{profile_id}/inventory.json      ← cellar
+  cellar.db: flights.profile_id scopes history per profile
+             users + profiles tables hold accounts and named palates
+             response_cache + parse_cache remain global (content-addressed)
+
+Legacy migration (idempotent, runs once at startup):
+  backend/profile_data.json + inventory.json + flights(profile_id NULL)
+  → backend/profiles/{ORPHAN_PROFILE_ID}/{profile_data,inventory}.json
+  → flights.profile_id = ORPHAN_PROFILE_ID
+  → orphan row inserted with user_id=NULL; first /auth/register claims it
+
+Profile source (one of, per profile):
+  (a) CellarTracker TSV (inventory)       → profiles/{pid}/inventory.json
+      CellarTracker TSV (tasting history) → profiles/{pid}/profile_data.json
       → /upload-profile triggers synthesize_palate_from_notes (single Claude call
          on raw notes grouped by score tier) → profile_data.json["_synthesized"]
          (rich palate: multi-word descriptors, taste_markers 1-5, palate_persona,
@@ -25,9 +47,9 @@ Profile source (one of):
 → Claude (recommend) → top-N recommendations (default 3; configurable via bottle_count)
   (system prompt surfaces taste_markers numerically and quotes palate_persona verbatim;
    per-wine confidence capped at "medium" for seed-derived; color derived server-side post-validation)
-→ auto-saved to flights table (cellar.db) → retrievable via GET /history for historical review
+→ auto-saved to flights table with profile_id (cellar.db) → retrievable via GET /history scoped to active profile
 ```
-**Modules:** `main.py` (composition root — env, logging, middleware, router includes), `bootstrap.py` (.env + constants), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{inventory,profile,recommend,debug,history}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic), `recommender.py` (LLM), `inventory.py` (cellar), `profile.py` (taste), `seed_profile.py` (seed-bottle onboarding), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite — response/parse cache + permanent flight history), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
+**Modules:** `main.py` (composition root — env, logging, middleware, router includes, legacy migration), `bootstrap.py` (.env + constants — JWT_SECRET, PROFILES_DIR, ORPHAN_PROFILE_ID), `auth.py` (password hashing + JWT utilities; FastAPI-free), `dependencies.py` (get_current_user, get_current_profile FastAPI deps), `logging_setup.py`, `middleware.py` (request log + exception handlers), `rate_limit.py`, `cellar_terms.py` (cellar character helpers), `routes/{auth,profiles,inventory,profile,recommend,debug,history}.py` (HTTP endpoints), `parser.py` (PDF/OCR), `models.py` (Pydantic — incl. User/Profile/TokenResponse), `recommender.py` (LLM), `inventory.py` (cellar; profile_id-keyed), `profile.py` (taste; profile_id-keyed), `seed_profile.py` (seed-bottle onboarding; profile_id-keyed), `prompt.py` (prompt), `scorer.py` (scoring), `cache.py` (SQLite — users/profiles/flights + global response/parse cache + legacy migration helper), `test_fixtures.py` (canned `RecommendationResponse` fixtures for TEST_MODE) — all in `backend/`
 
 ## Recommendation Logic
 - Full wine list + enriched taste profile in one prompt; reason on **style fit**, not region/varietal
@@ -57,7 +79,14 @@ For every file modified, update the corresponding docs:
 5. Is `README.md` still accurate for users?
 
 ## Principles
-- Fail loudly; schema-driven (Pydantic is the contract); no auth; SQLite + JSON for local persistence; portfolio-legible
+- Fail loudly; schema-driven (Pydantic is the contract); JWT auth (single-tenant learning project, open self-registration); per-profile SQLite + JSON persistence; portfolio-legible
+
+## Authentication & Profiles
+- **Auth**: JWT bearer tokens (HS256). Open registration at `POST /auth/register`. Login at `POST /auth/login`. `GET /auth/me` returns the user + their profiles.
+- **Profile selection**: every authenticated endpoint (except `/auth/*`, `/profiles/*`, `/debug/health`, `/debug/ping`) requires an `X-Profile-Id` header. The backend validates that the profile is owned by the current user.
+- **Storage layout**: `backend/profiles/{profile_id}/profile_data.json` and `backend/profiles/{profile_id}/inventory.json`. SQLite tables `users`, `profiles`, and `flights` (latter scoped via `profile_id` column).
+- **Frontend wiring**: `frontend/src/state/authStore.tsx` (`useAuth`) and `frontend/src/state/profileStore.tsx` (`useProfiles`). The SDK auto-injects `Authorization` + `X-Profile-Id` headers via `client/configure.ts` interceptors. `AuthGuard` redirects unauthenticated routes to `/login`; `ProfileSwitcher` in the global header (`AuthenticatedHeader`) toggles the active profile.
+- **Required env**: `JWT_SECRET` (fail-loud at bootstrap). Generate with `python -c "import secrets; print(secrets.token_hex(32))"`. Optional: `JWT_ALGORITHM` (default `HS256`), `JWT_EXPIRY_DAYS` (default 7).
 
 ## Test Mode
 - Set `TEST_MODE=true` in `backend/.env` to enable. While active, `/recommend` accepts an optional `test_fixture` form field; supplying one of `happy | sparse | long_reasoning | low_confidence | two_wines` short-circuits the route to a canned response in `backend/test_fixtures.py` — no Anthropic calls are made. Unknown name → 400. Default is `TEST_MODE=false`; the field is ignored unless the flag is on.

@@ -149,31 +149,26 @@ def infer_profile_from_seeds(
     return inferred
 
 
-def persist_seed_profile(inferred: dict) -> None:
+def persist_seed_profile(profile_id: str, inferred: dict) -> None:
     """Replace profile_data.json with a fresh dict containing only the inferred profile.
 
     Wipes any legacy CT keys (list/notes/consumed/purchases) so the seed-bottle
     pathway never silently mixes sources. Backs up the existing profile before overwriting.
     Busts the profile cache after write to ensure subsequent loads read the new data.
     """
-    from profile import PROFILE_DATA_PATH, bust_profile_cache  # local import to avoid module-import cycle
+    from profile import backup_profile_data, write_profile_data  # local import to avoid module-import cycle
 
-    # Back up existing profile before overwriting
-    if PROFILE_DATA_PATH.is_file():
-        backup_path = PROFILE_DATA_PATH.with_suffix(".backup.json")
-        backup_path.write_text(PROFILE_DATA_PATH.read_text(encoding="utf-8"), encoding="utf-8")
-        logger.info("persist_seed_profile: backed up existing profile to %s", backup_path)
+    if backup_profile_data(profile_id):
+        logger.info("persist_seed_profile: backed up existing profile for profile_id=%s", profile_id)
 
-    payload = {INFERRED_KEY: inferred}
-    PROFILE_DATA_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    bust_profile_cache()
-    logger.info("persist_seed_profile: wrote inferred profile to %s", PROFILE_DATA_PATH)
+    write_profile_data(profile_id, {INFERRED_KEY: inferred})
+    logger.info("persist_seed_profile: wrote inferred profile for profile_id=%s", profile_id)
 
 
-def load_inferred_profile() -> Optional[dict]:
+def load_inferred_profile(profile_id: str) -> Optional[dict]:
     """Return the inferred seed profile if present, else None."""
     from profile import load_profile_data
-    data = load_profile_data()
+    data = load_profile_data(profile_id)
     inferred = data.get(INFERRED_KEY)
     if isinstance(inferred, dict) and inferred:
         return inferred

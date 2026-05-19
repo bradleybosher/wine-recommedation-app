@@ -15,23 +15,27 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ### Backend Python Modules
 
-- [main.py](modules/main.md) — Composition root: env bootstrap, logging, middleware, router includes
+- [auth.py](modules/auth.md) — Password hashing + JWT signing/decoding utilities (FastAPI-free)
 - [bootstrap.py](modules/bootstrap.md) — Loads .env; exposes ANTHROPIC_API_KEY/MODEL, MAX_UPLOAD_BYTES
-- [logging_setup.py](modules/logging_setup.md) — Configures the `sommelier` logger tree
-- [middleware.py](modules/middleware.md) — Request-logging middleware + exception handlers
-- [rate_limit.py](modules/rate_limit.md) — IP-based 10-req/60s limiter for /recommend
 - [cellar_terms.py](modules/cellar_terms.md) — Frequency-ranked cellar terms + character phrase
+- [cache.py](modules/cache.md) — SQLite response caching
+- [dependencies.py](modules/dependencies.md) — FastAPI deps: get_current_user, get_current_profile
+- [inventory.py](modules/inventory.md) — Cellar loading/saving, relevance filtering
+- [logging_setup.py](modules/logging_setup.md) — Configures the `sommelier` logger tree
+- [main.py](modules/main.md) — Composition root: env bootstrap, logging, middleware, router includes
+- [meal_parser.py](modules/meal_parser.md) — Meal description parsing, MealProfile dataclass, pairing hints
+- [middleware.py](modules/middleware.md) — Request-logging middleware + exception handlers
+- [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
+- [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
+- [profile.py](modules/profile.md) — CellarTracker parsing, taste profile building, Ollama enrichment
+- [prompt.py](modules/prompt.md) — System prompt construction, schema definition, OWNER_PROFILE constant
+- [rate_limit.py](modules/rate_limit.md) — IP-based 10-req/60s limiter for /recommend
+- [recommender.py](modules/recommender.md) — LLM calls, structured output schema, retry logic, JSON parsing, validation
+- [routes/auth.py](modules/routes_auth.md) — /auth/register, /auth/login, /auth/me
 - [routes/inventory.py](modules/routes_inventory.md) — /upload-inventory, /inventory
 - [routes/profile.py](modules/routes_profile.md) — /upload-profile, /seed-profile, /profile/revert, /profile-summary
+- [routes/profiles.py](modules/routes_profiles.md) — /profiles CRUD (list/create/rename/delete/set-default)
 - [routes/recommend.py](modules/routes_recommend.md) — /recommend pipeline
-- [recommender.py](modules/recommender.md) — LLM calls, structured output schema, retry logic, JSON parsing, validation
-- [prompt.py](modules/prompt.md) — System prompt construction, schema definition, OWNER_PROFILE constant
-- [profile.py](modules/profile.md) — CellarTracker parsing, taste profile building, Ollama enrichment
-- [meal_parser.py](modules/meal_parser.md) — Meal description parsing, MealProfile dataclass, pairing hints
-- [inventory.py](modules/inventory.md) — Cellar loading/saving, relevance filtering
-- [cache.py](modules/cache.md) — SQLite response caching
-- [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
-- [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
 - [test_fixtures.py](modules/test_fixtures.md) — Canned `RecommendationResponse` fixtures used when `TEST_MODE=true` short-circuits `/recommend`
 - scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
 - logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md
@@ -66,13 +70,13 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ## Document Statistics
 
-- **Total files**: 15 (4 core + 9 modules + 1 index + 1 backlog) — scorer.py and logging_utils.py documented inline in interfaces.md
+- **Total files**: 19 (4 core + 13 modules + 1 index + 1 backlog) — scorer.py and logging_utils.py documented inline in interfaces.md
 - **Estimated total tokens**: ~7,500 (manageable in most LLM contexts)
 - **Typical focused task**: 1,500–2,000 tokens (architecture + glossary + 2–3 modules)
 
 ## Key Design Principles (Quick Summary)
 
-1. **Stateless**: No user accounts; JSON files + SQLite cache only.
+1. **Authenticated**: JWT bearer tokens; per-user persistence keyed by profile_id.
 2. **Fail loudly**: Parse errors, LLM errors, validation failures all surface to user.
 3. **Schema-driven**: Pydantic models are contracts; validation at boundaries.
 4. **Portfolio-legible**: Code prioritizes readability; minimal abstractions.
@@ -80,7 +84,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ## Technology Stack (One-Line Summary)
 
-**Backend**: FastAPI + Pydantic v2 + Ollama (local LLM, used twice: profile enrichment + recommendation) + SQLite (cache) + PyMuPDF (PDF) + pytesseract/PIL (OCR)
+**Backend**: FastAPI + Pydantic v2 + Anthropic Claude API + passlib + PyJWT + SQLite + PyMuPDF (PDF) + pytesseract/PIL (OCR)
 **Frontend**: React 19 + TypeScript + Tailwind CSS v4 + Vite + @hey-api/openapi-ts (SDK generation)
 
 ## Common Tasks & Estimated Tokens
