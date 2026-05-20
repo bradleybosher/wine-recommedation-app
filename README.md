@@ -25,6 +25,9 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **Post-Flight Feedback Chips:** Rate the flight ("Too bold", "Over budget", "Off profile", "Perfect") with one tap; feedback is saved to the flight record and surfaces a nudge to refine your palate on the Profile page
 - **One-Tap Profile Deepening:** If the top-ranked wine's grape isn't yet in your profile, a callout prompts you to add it with a single tap — keeping your profile in sync with what you're actually enjoying
 - **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis
+- **Palate Drift Insights:** After 3+ recommendation flights, `GET /profile/insights` surfaces grapes and regions Claude keeps recommending that aren't in your stated profile — statistical analysis of flight history, no LLM call
+- **Retrieval-Augmented Pre-filtering:** For large wine lists (> 40 lines), each line is scored against your taste profile before the recommendation prompt is built — keeps token use bounded without an extra API call
+- **LLM Telemetry:** Every Anthropic call is logged to `logs/llm_calls.jsonl` (model, token counts, latency, stop reason) and exposed via `GET /debug/stats`
 - **Vinothèque Editorial UI:** React 19 + Tailwind CSS v4 + react-router-dom; old-world paper/serif editorial design system; four-screen flow (Preferences → Flight → Detail → Compare); works on desktop and tablet
 
 ---

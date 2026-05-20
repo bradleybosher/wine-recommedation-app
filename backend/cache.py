@@ -1,4 +1,4 @@
-import logging, shutil, sqlite3, hashlib, json, time, uuid
+import logging, secrets, shutil, sqlite3, hashlib, json, time, uuid
 from pathlib import Path
 from typing import Optional
 
@@ -74,6 +74,14 @@ def init_db():
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_flights_profile_id ON flights(profile_id)")
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                token      TEXT PRIMARY KEY,
+                user_id    TEXT NOT NULL,
+                expires_at REAL NOT NULL,
+                used       INTEGER NOT NULL DEFAULT 0
+            )
+        """)
 
 def make_parse_key(pdf_bytes: bytes) -> str:
     return hashlib.sha256(pdf_bytes).hexdigest()
@@ -278,6 +286,42 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
 def count_users() -> int:
     with _conn() as c:
         return c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+
+
+def update_user_password(user_id: str, password_hash: str) -> None:
+    with _conn() as c:
+        c.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash, user_id))
+
+
+# ---------------------------------------------------------------------------
+# Password reset tokens
+# ---------------------------------------------------------------------------
+
+def create_reset_token(user_id: str, expires_in_seconds: int = 1800) -> str:
+    token = secrets.token_urlsafe(32)
+    expires_at = time.time() + expires_in_seconds
+    with _conn() as c:
+        c.execute(
+            "INSERT INTO password_reset_tokens (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)",
+            (token, user_id, expires_at),
+        )
+    return token
+
+
+def get_reset_token(token: str) -> Optional[dict]:
+    with _conn() as c:
+        row = c.execute(
+            "SELECT token, user_id, expires_at, used FROM password_reset_tokens WHERE token = ?",
+            (token,),
+        ).fetchone()
+    if not row:
+        return None
+    return {"token": row[0], "user_id": row[1], "expires_at": row[2], "used": bool(row[3])}
+
+
+def mark_reset_token_used(token: str) -> None:
+    with _conn() as c:
+        c.execute("UPDATE password_reset_tokens SET used = 1 WHERE token = ?", (token,))
 
 
 # ---------------------------------------------------------------------------

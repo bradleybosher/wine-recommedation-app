@@ -117,13 +117,62 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
 
 ---
 
+---
+
+### POST /auth/forgot-password
+
+**Request**:
+```json
+{ "email": "user@example.com" }
+```
+
+**Response** (200 OK — always, even if email unknown):
+```json
+{ "message": "If that email is registered, a reset link has been logged to the server console." }
+```
+
+**Behaviour**:
+- Normalises email. If user found, generates a single-use token (30-min expiry) via `cache.create_reset_token` and logs the reset URL at INFO level: `[PASSWORD RESET] <APP_BASE_URL>/reset-password?token=<token>`.
+- Always returns 200 regardless of whether the email exists (prevents email enumeration).
+- No email is sent; token appears only in server logs.
+
+---
+
+### POST /auth/reset-password
+
+**Request**:
+```json
+{ "token": "<reset_token>", "newPassword": "newpass123" }
+```
+
+**Response** (200 OK):
+```json
+{ "message": "Password updated. You can now log in." }
+```
+
+**Errors**:
+
+| Scenario | Status | Detail |
+|---|---|---|
+| Token not found | 400 | "Invalid reset token." |
+| Token already used | 400 | "Reset token has already been used." |
+| Token expired (>30 min) | 400 | "Reset token has expired." |
+
+**Behaviour**:
+- Fetches token row, validates not-used and not-expired.
+- Re-hashes new password via `auth.hash_password`, updates user row via `cache.update_user_password`.
+- Marks token used via `cache.mark_reset_token_used` (single-use enforcement).
+
+---
+
 ## Dependencies
 
 - `fastapi` — `APIRouter`, `HTTPException`, `Header`, `Depends`
 - `auth` — `hash_password`, `create_access_token`, `verify_password`
-- `cache` — Database functions: `get_user_by_email`, `create_user`, `claim_orphan_profile`, `create_profile`, `list_user_profiles`, `get_user`
+- `bootstrap` — `APP_BASE_URL`
+- `cache` — `get_user_by_email`, `create_user`, `claim_orphan_profile`, `create_profile`, `list_profiles_for_user`, `get_user_by_id`, `create_reset_token`, `get_reset_token`, `mark_reset_token_used`, `update_user_password`
 - `dependencies` — `get_current_user` (for /auth/me)
-- `models` — `TokenResponse`, `User`, `Profile`, `AuthMeResponse`
+- `models` — `TokenResponse`, `User`, `Profile`, `AuthMeResponse`, `ForgotPasswordRequest`, `ResetPasswordRequest`, `MessageResponse`
 
 ## Patterns & Gotchas
 

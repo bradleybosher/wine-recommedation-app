@@ -84,7 +84,20 @@ export default function Login() {
           </div>
 
           <div style={{ marginBottom: space.lg }}>
-            <label style={labelStyle} htmlFor="login-password">Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+              <label style={labelStyle} htmlFor="login-password">Password</label>
+              <Link
+                to="/forgot-password"
+                style={{
+                  fontFamily: "'EB Garamond', serif",
+                  fontStyle: 'italic',
+                  fontSize: typeScale.label,
+                  color: INK_SOFT,
+                }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="login-password"
               type="password"

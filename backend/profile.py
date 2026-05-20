@@ -16,6 +16,7 @@ import anthropic
 import logging
 
 from bootstrap import PROFILES_DIR
+from llm_client import call_claude
 from inventory import decode_cellartracker_upload
 from models import TasteProfile
 
@@ -578,7 +579,9 @@ def synthesize_palate_from_notes(
     )
 
     client = anthropic.Anthropic(api_key=anthropic_api_key)
-    response = client.messages.create(
+    response = call_claude(
+        "synthesize_palate",
+        client,
         model=anthropic_model,
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt_text}],
@@ -956,7 +959,9 @@ def enrich_profile_with_anthropic(raw: dict, anthropic_api_key: str, anthropic_m
 
     try:
         client = anthropic.Anthropic(api_key=anthropic_api_key)
-        response = client.messages.create(
+        response = call_claude(
+            "enrich_profile",
+            client,
             model=anthropic_model,
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt_text}],

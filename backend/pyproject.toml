@@ -1,3 +1,10 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "replay: uses a recorded Claude response fixture; no API key required",
+    "live: calls the real Claude API; requires ANTHROPIC_API_KEY",
+]
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.backends.legacy:build"

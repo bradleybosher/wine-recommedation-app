@@ -12,12 +12,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 import cache
 from auth import create_access_token, hash_password, verify_password
+from bootstrap import APP_BASE_URL
 from dependencies import get_current_user
 from models import (
     AuthMeResponse,
+    ForgotPasswordRequest,
     LoginRequest,
+    MessageResponse,
     Profile,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenResponse,
     User,
 )
@@ -82,3 +86,31 @@ def me(user: User = Depends(get_current_user)) -> AuthMeResponse:
         user=user,
         profiles=[Profile.model_validate(p) for p in profiles],
     )
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest) -> MessageResponse:
+    email = payload.email.lower().strip()
+    user_row = cache.get_user_by_email(email)
+    if user_row:
+        token = cache.create_reset_token(user_row["id"])
+        reset_url = f"{APP_BASE_URL}/reset-password?token={token}"
+        logger.info("[PASSWORD RESET] %s", reset_url)
+    return MessageResponse(
+        message="If that email is registered, a reset link has been logged to the server console."
+    )
+
+
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
+    import time as _time
+    row = cache.get_reset_token(payload.token)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset token.")
+    if row["used"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset token has already been used.")
+    if _time.time() > row["expires_at"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Reset token has expired.")
+    cache.update_user_password(row["user_id"], hash_password(payload.new_password))
+    cache.mark_reset_token_used(payload.token)
+    return MessageResponse(message="Password updated. You can now log in.")

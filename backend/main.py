@@ -23,6 +23,7 @@ from routes.inventory import router as inventory_router
 from routes.profile import router as profile_router
 from routes.profiles import router as profiles_router
 from routes.recommend import router as recommend_router
+from routes.insights import router as insights_router
 
 configure_logging()
 logger = logging.getLogger("sommelier.api")
@@ -51,3 +52,4 @@ app.include_router(history_router)
 app.include_router(inventory_router)
 app.include_router(profile_router)
 app.include_router(recommend_router)
+app.include_router(insights_router)

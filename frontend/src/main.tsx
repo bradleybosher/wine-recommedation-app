@@ -17,7 +17,10 @@ const Profile = lazy(() => import('./pages/Profile'))
 const History = lazy(() => import('./pages/History'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const Profiles = lazy(() => import('./pages/Profiles'))
+const DebugStats = lazy(() => import('./pages/DebugStats'))
 
 type RootedElement = HTMLElement & { __reactRoot?: ReactDOM.Root }
 
@@ -57,6 +60,22 @@ root.render(
                   </Suspense>
                 }
               />
+              <Route
+                path="/forgot-password"
+                element={
+                  <Suspense fallback={null}>
+                    <ForgotPassword />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <Suspense fallback={null}>
+                    <ResetPassword />
+                  </Suspense>
+                }
+              />
               <Route path="/profiles" element={guarded(<Profiles />)} />
               <Route path="/preferences" element={guarded(<Preferences />)} />
               <Route path="/flight" element={guarded(<Flight />)} />
@@ -64,6 +83,7 @@ root.render(
               <Route path="/compare" element={guarded(<Compare />)} />
               <Route path="/profile" element={guarded(<Profile />)} />
               <Route path="/history" element={guarded(<History />)} />
+              <Route path="/llm-stats" element={guarded(<DebugStats />)} />
               <Route path="/*" element={guarded(<App />)} />
             </Routes>
           </RecommendationProvider>

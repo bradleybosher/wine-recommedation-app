@@ -13,7 +13,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from inventory import decode_cellartracker_upload
-from retry_utils import call_with_retry
+from llm_client import call_claude
 
 logger = logging.getLogger("sommelier.parser")
 
@@ -150,21 +150,22 @@ def _call_haiku_vision(image_bytes: bytes) -> WineListExtraction:
     """Send prepared JPEG bytes to Haiku and return structured extraction."""
     image_data = base64.standard_b64encode(image_bytes).decode()
 
-    response = call_with_retry(
-        lambda: anthropic.Anthropic(api_key=_ANTHROPIC_API_KEY).messages.create(
-            model=_VISION_MODEL,
-            max_tokens=8000,
-            tools=[_RECORD_WINE_LIST_TOOL],
-            tool_choice={"type": "tool", "name": "record_wine_list"},
-            system=[{"type": "text", "text": OCR_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_data}},
-                    {"type": "text", "text": "Extract all wines from this wine list."},
-                ],
-            }],
-        ),
+    client = anthropic.Anthropic(api_key=_ANTHROPIC_API_KEY)
+    response = call_claude(
+        "vision_parse",
+        client,
+        model=_VISION_MODEL,
+        max_tokens=8000,
+        tools=[_RECORD_WINE_LIST_TOOL],
+        tool_choice={"type": "tool", "name": "record_wine_list"},
+        system=[{"type": "text", "text": OCR_SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_data}},
+                {"type": "text", "text": "Extract all wines from this wine list."},
+            ],
+        }],
         retryable_on=(anthropic.APIConnectionError, anthropic.RateLimitError),
     )
 

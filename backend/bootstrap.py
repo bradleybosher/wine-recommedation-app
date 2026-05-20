@@ -31,6 +31,8 @@ if not JWT_SECRET:
         "`python -c \"import secrets; print(secrets.token_hex(32))\"` and add it to backend/.env"
     )
 
+APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
+
 PROFILES_DIR: Path = _BACKEND_DIR / "profiles"
 PROFILES_DIR.mkdir(exist_ok=True)
 

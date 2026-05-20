@@ -224,6 +224,66 @@ async def ping() -> Dict[str, str]:
     return {"message": "pong", "timestamp": time.time()}
 
 
+@router.get("/stats")
+async def llm_stats(user: User = Depends(get_current_user)) -> Dict[str, Any]:
+    """Aggregate LLM telemetry: P50/P90 latency per purpose, token totals, estimated cost."""
+    log_path = Path(__file__).resolve().parent.parent / "logs" / "llm_calls.jsonl"
+    if not log_path.exists():
+        return {"error": "No LLM call log found yet. Run a recommendation first.", "rows": 0}
+
+    rows: list[dict] = []
+    with open(log_path, "r", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if line:
+                try:
+                    rows.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+
+    if not rows:
+        return {"rows": 0}
+
+    # Group by purpose
+    from collections import defaultdict
+    by_purpose: dict[str, list[dict]] = defaultdict(list)
+    for r in rows:
+        by_purpose[r.get("purpose", "unknown")].append(r)
+
+    now = time.time()
+    day_secs = 86400
+    today_rows = [r for r in rows if now - r.get("ts", 0) < day_secs]
+
+    def percentile(values: list[float], p: int) -> float:
+        if not values:
+            return 0.0
+        sorted_vals = sorted(values)
+        idx = max(0, int(len(sorted_vals) * p / 100) - 1)
+        return round(sorted_vals[idx], 1)
+
+    purposes_stats: dict[str, dict] = {}
+    for purpose, entries in by_purpose.items():
+        latencies = [e["ms"] for e in entries if "ms" in e]
+        purposes_stats[purpose] = {
+            "calls": len(entries),
+            "p50_ms": percentile(latencies, 50),
+            "p90_ms": percentile(latencies, 90),
+            "total_in_tokens": sum(e.get("in_tokens", 0) for e in entries),
+            "total_out_tokens": sum(e.get("out_tokens", 0) for e in entries),
+            "total_cost_usd": round(sum(e.get("cost_usd", 0) for e in entries), 4),
+        }
+
+    return {
+        "rows": len(rows),
+        "today_calls": len(today_rows),
+        "today_cost_usd": round(sum(r.get("cost_usd", 0) for r in today_rows), 4),
+        "today_in_tokens": sum(r.get("in_tokens", 0) for r in today_rows),
+        "today_out_tokens": sum(r.get("out_tokens", 0) for r in today_rows),
+        "all_time_cost_usd": round(sum(r.get("cost_usd", 0) for r in rows), 4),
+        "by_purpose": purposes_stats,
+    }
+
+
 @router.get("/version")
 async def get_version() -> Dict[str, Any]:
     """Get API version information."""

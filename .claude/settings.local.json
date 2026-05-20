@@ -33,7 +33,10 @@
       "Bash(dir \"C:\\\\Users\\\\Brad\\\\Desktop\\\\wine-recommendation-app\\\\backend\")",
       "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -m pip install \"passlib[bcrypt]>=1.7.4\" \"PyJWT>=2.8.0\" \"email-validator>=2.1.0\")",
       "Bash(npx playwright *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(.\\\\.venv\\\\Scripts\\\\python.exe -m pytest tests/llm_evals/ -m replay -v)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -c \"import sqlite3; conn = sqlite3.connect\\('cellar.db'\\); rows = conn.execute\\('SELECT id, email, created_at FROM users'\\).fetchall\\(\\); [print\\(r\\) for r in rows]; conn.close\\(\\)\")",
+      "Bash(cmd /c sync_types.bat)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

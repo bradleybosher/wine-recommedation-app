@@ -19,6 +19,7 @@ from typing import Optional
 
 import anthropic
 
+from llm_client import call_claude
 from models import SeedBottle, SeedProfileRequest
 
 logger = logging.getLogger(__name__)
@@ -124,7 +125,9 @@ def infer_profile_from_seeds(
     }
 
     client = anthropic.Anthropic(api_key=anthropic_api_key)
-    response = client.messages.create(
+    response = call_claude(
+        "seed_profile",
+        client,
         model=anthropic_model,
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt_text}],

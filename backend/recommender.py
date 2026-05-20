@@ -3,6 +3,7 @@
 import json
 import logging
 import logging.handlers
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +11,7 @@ import anthropic
 from fastapi import HTTPException
 from pydantic import ValidationError
 
+from llm_client import call_claude
 from models import RecommendationResponse, WineColor, WineRecommendation
 
 logger = logging.getLogger("sommelier.recommender")
@@ -228,6 +230,26 @@ def _attempt_recommendation(
     Raises ValueError on schema validation failures (retriable).
     Raises HTTPException on API errors (not retriable).
     """
+    # Dev/test replay: if RECORDED_RESPONSES_DIR is set, serve a fixture JSON
+    # instead of calling Claude. Useful for UI development without API spend.
+    # Place one or more fixture files in the directory; the first alphabetically is served.
+    _replay_dir_env = os.getenv("RECORDED_RESPONSES_DIR")
+    if _replay_dir_env:
+        _rdir = Path(_replay_dir_env)
+        _fixtures = sorted(_rdir.glob("*.json"))
+        if _fixtures:
+            with _fixtures[0].open(encoding="utf-8") as _fh:
+                _data = json.load(_fh)
+            try:
+                _replay_rec = RecommendationResponse(**_data)
+            except ValidationError as _exc:
+                raise ValueError(f"Replay fixture schema invalid: {_exc}") from _exc
+            for _wine in _replay_rec.recommendations:
+                if _wine.color is None:
+                    _wine.color = _derive_color(_wine)
+            logger.info("replay_mode_active fixture=%s", _fixtures[0].name)
+            return _replay_rec
+
     client = anthropic.Anthropic(api_key=anthropic_api_key)
 
     content: list = []
@@ -239,7 +261,9 @@ def _attempt_recommendation(
     content.append({"type": "text", "text": text_payload})
 
     try:
-        response = client.messages.create(
+        response = call_claude(
+            "recommend",
+            client,
             model=anthropic_model,
             max_tokens=4096,
             system=system_prompt,

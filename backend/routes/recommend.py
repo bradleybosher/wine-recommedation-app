@@ -25,6 +25,7 @@ from logging_utils import log_recommendation_event
 from meal_parser import meal_to_wine_hints, parse_meal_description
 from models import Profile, RecommendationResponse
 from parser import OCRError, parse_wine_list
+from retrieval import rank_wine_list
 from profile import (
     build_enriched_profile_text,
     build_taste_profile,
@@ -85,6 +86,7 @@ async def recommend(
         return fixture
 
     use_wine_list = source_mode != "cellar" and wine_list is not None
+    override_terms = [t.strip() for t in effective_style.split(",") if t.strip()]
 
     if not use_wine_list and source_mode != "cellar":
         raise HTTPException(status_code=422, detail="A wine list file is required unless source_mode is 'cellar'.")
@@ -145,6 +147,8 @@ async def recommend(
         )
         after = len(wine_list_text.splitlines())
         logger.debug("wine_list_filter before=%d lines, after=%d lines", before, after)
+
+        wine_list_text = rank_wine_list(wine_list_text, taste_profile, override_terms=override_terms)
     else:
         taste_profile = build_taste_profile_pydantic(load_profile_data(profile.id))
         logger.info("recommend: source_mode=cellar, skipping wine list parsing")
@@ -180,7 +184,6 @@ async def recommend(
 
     top5_terms = inventory_terms_by_frequency(bottles, limit=5)
     cellar_summary = cellar_character_from_terms(top5_terms)
-    override_terms = [t.strip() for t in effective_style.split(",") if t.strip()]
     terms = override_terms if override_terms else inventory_terms_by_frequency(bottles, limit=10)
     logger.info(
         "recommend_terms source=%s terms=%s",

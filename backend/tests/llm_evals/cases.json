@@ -1,0 +1,312 @@
+{
+  "_comment": "Golden eval set for the wine recommendation pipeline. 'replay' cases run without an API key using recorded fixtures; 'live' cases call Claude and require ANTHROPIC_API_KEY.",
+  "cases": [
+    {
+      "id": "red_profile_small_list",
+      "description": "Italian-red profile vs 8-wine Tuscan/Piedmont list — expect 3 grounded red picks, all ≥ high-medium confidence",
+      "mark": "replay",
+      "replay_file": "red_profile_small_list.json",
+      "source_mode": "winelist",
+      "meal": "Bistecca alla Fiorentina with roasted rosemary potatoes",
+      "cap_confidence": false,
+      "wine_list_text": "Barolo Cannubi — Marchesi di Barolo 2018 — $145\nBrunello di Montalcino — Castello Banfi 2017 — $115\nChianti Classico Gran Selezione — Antinori Pèppoli 2019 — $78\nAmaronedale Valpolicella — Allegrini 2016 — $165\nPinot Grigio delle Venezie — Lageder 2022 — $42\nGavi di Gavi — La Scolca 2022 — $48\nSoave Classico Superiore — Pieropan 2021 — $38\nRosso di Montalcino — Lisini 2020 — $55",
+      "profile": {
+        "top_varietals": ["nebbiolo", "sangiovese"],
+        "top_regions": ["piedmont", "tuscany"],
+        "top_producers": ["marchesi di barolo", "biondi-santi"],
+        "preferred_descriptors": ["firm tannin", "dried cherry", "savoury earth", "iron-dust minerality"],
+        "avoided_styles": ["over-oaked new world reds", "high-alcohol fruit bombs"],
+        "avg_spend": 100,
+        "style_summary": "Prefers structured, savoury Old World reds with firm tannin and earthy complexity.",
+        "taste_markers": {"acidity": 4, "tannin": 4, "body": 4, "oak": 2}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "min_confidence_score": 0.67,
+        "max_price": 200,
+        "no_avoided_styles_in_wine_names": ["pinot grigio", "soave"],
+        "min_total_score": 0.72
+      }
+    },
+    {
+      "id": "white_profile_small_list",
+      "description": "Mineral-white profile vs Loire/Chablis list — expect 3 grounded unoaked picks",
+      "mark": "replay",
+      "replay_file": "white_profile_small_list.json",
+      "source_mode": "winelist",
+      "meal": "Oysters followed by grilled sea bass",
+      "cap_confidence": false,
+      "wine_list_text": "Chablis Premier Cru Montée de Tonnerre — William Fèvre 2021 — $68\nSancerre Blanc — Henri Bourgeois 2022 — $52\nMuscadet Sèvre et Maine sur Lie — Domaine de l'Écu 2020 — $34\nAlsace Riesling Grand Cru — Trimbach 2019 — $75\nPouilly-Fumé — Didier Dagueneau 2021 — $110\nMâcon-Villages — Louis Jadot 2022 — $29\nVermentino di Sardegna — Argiolas 2022 — $38\nSoave Classico — Pieropan 2022 — $32",
+      "profile": {
+        "top_varietals": ["chardonnay", "sauvignon blanc", "riesling"],
+        "top_regions": ["chablis", "loire valley", "alsace"],
+        "top_producers": ["william fèvre", "henri bourgeois"],
+        "preferred_descriptors": ["laser acidity", "mineral-driven", "flint and oyster shell", "taut mineral-driven whites"],
+        "avoided_styles": ["oaky buttery chardonnay", "flabby low-acid whites", "tropical fruit-forward style"],
+        "avg_spend": 65,
+        "style_summary": "Seeks mineral-driven, high-acidity whites with no or minimal oak influence.",
+        "taste_markers": {"acidity": 5, "tannin": 1, "body": 2, "oak": 1}
+      },
+      "expected": {
+        "min_grounding": 1.0,
+        "min_completeness": 1.0,
+        "min_confidence_score": 0.67,
+        "max_price": 130,
+        "min_total_score": 0.75
+      }
+    },
+    {
+      "id": "mixed_profile_rhone",
+      "description": "Northern Rhône Syrah profile vs mixed French list — all 3 should be Northern Rhône",
+      "mark": "replay",
+      "replay_file": "mixed_profile_medium_list.json",
+      "source_mode": "winelist",
+      "meal": "Grilled lamb rack with herbs",
+      "cap_confidence": false,
+      "wine_list_text": "Côte-Rôtie La Landonne — Guigal 2018 — $220\nHermitage Rouge — Chapoutier 2019 — $165\nSaint-Joseph Rouge — Jean-Louis Chave 2020 — $95\nCrozes-Hermitage — Jaboulet Aîné 2021 — $48\nChâteauneuf-du-Pape — Château Rayas 2017 — $380\nGigondas — Château Saint-Cosme 2020 — $55\nSancerre Rouge — Henri Bourgeois 2021 — $62\nBordeaux Supérieur — Château Pey La Tour 2019 — $28",
+      "profile": {
+        "top_varietals": ["syrah", "grenache"],
+        "top_regions": ["northern rhône", "côte-rôtie"],
+        "top_producers": ["guigal", "chapoutier"],
+        "preferred_descriptors": ["smoky iron-rich density", "violet and smoked meat", "inky full-bodied", "mineral freshness with dark fruit"],
+        "avoided_styles": ["extracted new world shiraz", "over-ripe fruit-driven reds"],
+        "avg_spend": 150,
+        "style_summary": "Seeks powerful, mineral Northern Rhône Syrah with smoky depth and structured tannin.",
+        "taste_markers": {"acidity": 3, "tannin": 4, "body": 5, "oak": 2}
+      },
+      "expected": {
+        "min_grounding": 1.0,
+        "min_completeness": 1.0,
+        "min_confidence_score": 0.67,
+        "max_price": 420,
+        "min_total_score": 0.72
+      }
+    },
+    {
+      "id": "seed_profile_confidence_cap",
+      "description": "Seed-derived Burgundy profile — per-wine confidence must be capped at medium (no 'high' after cap)",
+      "mark": "replay",
+      "replay_file": "seed_profile_cap.json",
+      "source_mode": "winelist",
+      "meal": "Duck confit with cherry reduction",
+      "cap_confidence": true,
+      "wine_list_text": "Gevrey-Chambertin Villages — Rossignol-Trapet 2020 — $85\nVolnay Premier Cru Clos des Chênes — Marquis d'Angerville 2019 — $120\nChambolle-Musigny — Ghislaine Barthod 2020 — $98\nNuits-Saint-Georges — Gouges 2019 — $95\nBeaune Premier Cru — Louis Jadot 2020 — $72\nBourgogne Pinot Noir — Leroy 2021 — $55\nPommard — Comte Armand 2019 — $110\nFixin — Bruno Clair 2020 — $48",
+      "profile": {
+        "top_varietals": ["pinot noir"],
+        "top_regions": ["burgundy", "côte de nuits"],
+        "top_producers": ["rossignol-trapet", "domaine leroy"],
+        "preferred_descriptors": ["savoury earthy reds", "forest floor and iron", "mineral-driven pinot with silky tannins"],
+        "avoided_styles": ["fruit-forward new world pinot", "heavily oaked styles"],
+        "avg_spend": 95,
+        "style_summary": "Seeks earthy, savoury Burgundian Pinot Noir with mineral depth over fruit-forward styles.",
+        "taste_markers": {"acidity": 4, "tannin": 3, "body": 3, "oak": 2},
+        "profile_source": "seed_bottles",
+        "seed_bottle_count": 5
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "max_confidence_level": "medium",
+        "max_price": 200,
+        "min_total_score": 0.68
+      }
+    },
+    {
+      "id": "budget_fit_in_range",
+      "description": "Profile with tight budget $40-$60 — all recommendations should be within ±20% of budget",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Casual weeknight pasta",
+      "cap_confidence": false,
+      "wine_list_text": "Chianti Classico — Rocca delle Macìe 2020 — $32\nMontepulciano d'Abruzzo — Masciarelli 2021 — $28\nVermintino Sardegna — Argiolas 2022 — $35\nBarbera d'Asti — Braida 2021 — $42\nPinot Noir Oregon — Evening Land 2021 — $48\nMalbec Mendoza — Achaval Ferrer 2020 — $38\nSauvignon Blanc Marlborough — Cloudy Bay 2022 — $32\nProsecco Superiore — Bisol 2022 — $30",
+      "profile": {
+        "top_varietals": ["barbera", "montepulciano", "sangiovese"],
+        "top_regions": ["piedmont", "abruzzo"],
+        "preferred_descriptors": ["juicy everyday reds", "low oak", "high acidity"],
+        "avoided_styles": ["heavy tannic reds", "expensive prestige bottles"],
+        "avg_spend": 50,
+        "style_summary": "Seeks everyday-drinking Italian reds with bright acidity at an accessible price.",
+        "taste_markers": {"acidity": 4, "tannin": 2, "body": 3, "oak": 1}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "min_budget_fit": 0.8,
+        "max_price": 72,
+        "min_total_score": 0.70
+      }
+    },
+    {
+      "id": "avoided_styles_excluded",
+      "description": "Profile avoids oaky whites — no oaky white should appear in top-3 even if it is on the list",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Grilled chicken with lemon and herbs",
+      "cap_confidence": false,
+      "wine_list_text": "Chablis — Moreau-Naudet 2021 — $55\nAlsace Riesling — Hugel 2020 — $48\nSancerre — Alphonse Mellot 2022 — $65\nSauvignon Blanc Pouilly-Fumé — Ladoucette 2021 — $72\nChardonnay Napa Valley — Sonoma-Cutrer 2021 — $62\nBurgundy Blanc Meursault — Louis Jadot 2019 — $120\nMontrachet — Louis Latour 2018 — $350\nSauvignon Blanc NZ — Kim Crawford 2022 — $22",
+      "profile": {
+        "top_varietals": ["riesling", "sauvignon blanc"],
+        "top_regions": ["alsace", "loire valley"],
+        "preferred_descriptors": ["precise and mineral", "zero-oak white", "high-acidity and lean"],
+        "avoided_styles": ["oaky buttery chardonnay", "barrel-fermented whites", "high-alcohol opulent whites"],
+        "avg_spend": 60,
+        "style_summary": "Seeks lean, mineral whites with no oak influence whatsoever.",
+        "taste_markers": {"acidity": 5, "tannin": 1, "body": 2, "oak": 1}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "excluded_producers": ["sonoma-cutrer", "louis jadot"],
+        "min_total_score": 0.70
+      }
+    },
+    {
+      "id": "three_wine_completeness",
+      "description": "Minimal 3-wine list — completeness must be 1.0 (all 3 returned)",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Cheese and charcuterie board",
+      "cap_confidence": false,
+      "wine_list_text": "Rioja Reserva — Muga 2018 — $48\nRibera del Duero Crianza — Pesquera 2019 — $42\nAlbariño Rías Baixas — Pazo San Mauro 2022 — $35",
+      "profile": {
+        "top_varietals": ["tempranillo", "garnacha"],
+        "top_regions": ["rioja", "ribera del duero"],
+        "preferred_descriptors": ["earthy old world", "dried fruit and leather", "firm tannin"],
+        "avoided_styles": ["over-extracted jammy reds"],
+        "avg_spend": 50,
+        "style_summary": "Prefers Old World Spanish reds with earthy, leather-and-dried-fruit character.",
+        "taste_markers": {"acidity": 3, "tannin": 4, "body": 4, "oak": 3}
+      },
+      "expected": {
+        "min_grounding": 1.0,
+        "min_completeness": 1.0,
+        "min_total_score": 0.70
+      }
+    },
+    {
+      "id": "cellar_mode_no_list",
+      "description": "Cellar mode (source_mode=cellar) — grounding score is neutral (no wine list to ground against)",
+      "mark": "live",
+      "source_mode": "cellar",
+      "meal": "Home dinner — braised short rib",
+      "cap_confidence": false,
+      "wine_list_text": "",
+      "profile": {
+        "top_varietals": ["cabernet sauvignon", "merlot"],
+        "top_regions": ["napa valley", "bordeaux"],
+        "preferred_descriptors": ["cassis and graphite", "structured bordeaux style", "cellar-worthy"],
+        "avoided_styles": ["simple fruit-forward reds", "cheap entry-level"],
+        "avg_spend": 120,
+        "style_summary": "Seeks structured Cabernet-dominant wines with cassis, graphite, and long ageing potential.",
+        "taste_markers": {"acidity": 3, "tannin": 5, "body": 5, "oak": 4}
+      },
+      "expected": {
+        "min_completeness": 1.0,
+        "grounding_neutral": true,
+        "min_total_score": 0.62
+      }
+    },
+    {
+      "id": "high_spend_confidence",
+      "description": "High-budget profile ($200+) and prestige list — all recommendations must have at least medium confidence",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Wagyu with truffle sauce",
+      "cap_confidence": false,
+      "wine_list_text": "Châteauneuf-du-Pape Blanc — Château Rayas 2019 — $420\nNuits-Saint-Georges 1er Cru — Méo-Camuzet 2018 — $380\nPommerol — Pétrus 2015 — $4500\nBarolo Brunate — Bruno Giacosa 2016 — $320\nAmaroneClassico — Dal Forno Romano 2015 — $450\nHermitage Blanc — Chave 2018 — $950\nCorton-Charlemagne GC — Bonneau du Martray 2019 — $485\nCondrieu — Georges Vernay 2021 — $185",
+      "profile": {
+        "top_varietals": ["nebbiolo", "pinot noir", "grenache"],
+        "top_regions": ["burgundy", "barolo", "châteauneuf-du-pape"],
+        "preferred_descriptors": ["complex and profound", "age-worthy prestige", "terroir-expressive"],
+        "avoided_styles": ["simple quaffing wines", "over-commercial styles"],
+        "avg_spend": 350,
+        "style_summary": "Seeks the finest and most terroir-expressive bottles from classic regions, built for decades of ageing.",
+        "taste_markers": {"acidity": 4, "tannin": 4, "body": 4, "oak": 3}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "min_confidence_score": 0.67,
+        "min_total_score": 0.72
+      }
+    },
+    {
+      "id": "structure_fields_populated",
+      "description": "Standard list — all 3 recommendations must have bars, wheel, coords, and drink fields populated",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Roasted chicken with pan jus",
+      "cap_confidence": false,
+      "wine_list_text": "Burgundy Pinot Noir Bourgogne — Louis Jadot 2021 — $38\nAlsace Riesling — Trimbach 2020 — $42\nMeursault — Ballot-Millot 2019 — $95\nSancerre Rouge — Vacheron 2021 — $58\nBordeaux Supérieur — Château Pey La Tour 2019 — $28\nGewurztraminer — Hugel 2020 — $35\nJura Chardonnay — Domaine Ganevat 2020 — $75\nCrépy Blanc — Fichard 2022 — $32",
+      "profile": {
+        "top_varietals": ["pinot noir", "chardonnay"],
+        "top_regions": ["burgundy", "alsace"],
+        "preferred_descriptors": ["elegant and food-friendly", "mineral whites and earthy reds"],
+        "avoided_styles": ["heavy oak influence"],
+        "avg_spend": 55,
+        "style_summary": "Seeks elegant, food-friendly Burgundian and Alsatian wines with minerality and restraint.",
+        "taste_markers": {"acidity": 4, "tannin": 2, "body": 3, "oak": 2}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "all_have_bars": true,
+        "all_have_coords": true,
+        "all_have_drink_window": true,
+        "all_have_wheel": true,
+        "min_total_score": 0.70
+      }
+    },
+    {
+      "id": "large_list_grounding",
+      "description": "Simulate large list retrieval — grounding must be ≥ 0.8 even with a 50-wine list",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Mixed grill with bone marrow",
+      "cap_confidence": false,
+      "wine_list_text": "Barolo — Vietti 2017 — $180\nBrunello di Montalcino — Banfi 2016 — $130\nAmarone — Masi Costasera 2015 — $95\nChianti Classico — Fontodi 2019 — $65\nRosso di Montalcino — Casanova di Neri 2020 — $52\nVino Nobile di Montepulciano — Avignonesi 2018 — $58\nBarbera d'Asti Superiore — Braida 2019 — $48\nBarbera d'Alba — Giacomo Conterno 2020 — $62\nGavi — La Scolca 2022 — $38\nVermentino — Argiolas 2022 — $28\nSoave Classico — Anselmi 2022 — $32\nPinot Grigio — Alois Lageder 2022 — $35\nAlbariño — Burgáns 2022 — $28\nRioja Reserva — Muga 2018 — $55\nRibera del Duero — Pesquera 2017 — $75\nTempranillo Crianza — Marqués de Cáceres 2019 — $28\nBordeaux — Château Léoville-Barton 2016 — $145\nSaint-Émilion — Château Figeac 2015 — $220\nPomerol — Château La Conseillante 2016 — $185\nMargaux — Château Rauzan-Ségla 2017 — $110\nCahors Malbec — Château Lagrezette 2018 — $42\nBurgundy Pinot Noir — Domaine Drouhin 2020 — $55\nGevrey-Chambertin — Rossignol-Trapet 2019 — $95\nChambolle-Musigny — Ghislaine Barthod 2020 — $105\nVosne-Romanée — Gros Frère et Soeur 2019 — $130\nBourgogne Blanc — Lafon 2021 — $65\nMâcon-Lugny — Louis Jadot 2022 — $28\nChablis Premier Cru — William Fèvre 2021 — $72\nMeursault — Comtes Lafon 2019 — $165\nCorton-Charlemagne — Bonneau du Martray 2018 — $280\nAlsace Riesling — Trimbach 2020 — $42\nGewurztraminer — Hugel 2021 — $38\nSancerre Blanc — Henri Bourgeois 2022 — $55\nPouilly-Fumé — Château de Tracy 2022 — $48\nMuscadet sur Lie — Domaine de l'Écu 2021 — $28\nChampagne Brut — Billecart-Salmon NV — $75\nChampagne Blanc de Blancs — Ruinart NV — $95\nRosé Champagne — Bollinger 2015 — $120\nNorthern Rhône Syrah — Guigal Côtes du Rhône 2020 — $28\nCôte-Rôtie — Guigal 2018 — $210\nHermitage — Chapoutier 2018 — $145\nCrozes-Hermitage — Jaboulet 2021 — $42\nSaint-Joseph — Clos de l'Arbalestrier 2020 — $65\nChâteauneuf-du-Pape — Château Rayas 2017 — $380\nGigondas — Château Saint-Cosme 2019 — $45\nNapa Cabernet Sauvignon — Jordan 2019 — $65\nSonoma Pinot Noir — Kosta Browne 2020 — $95\nOregon Pinot Noir — Cristom 2020 — $72\nArgentina Malbec — Achaval Ferrer 2020 — $48",
+      "profile": {
+        "top_varietals": ["nebbiolo", "sangiovese"],
+        "top_regions": ["piedmont", "tuscany"],
+        "preferred_descriptors": ["structured old world italian", "earthy dried fruit and iron", "firm tannin with cellar potential"],
+        "avoided_styles": ["new world fruit bombs", "cheap entry-level wines"],
+        "avg_spend": 120,
+        "style_summary": "Italian red specialist seeking structured, earthy, age-worthy bottles from Piedmont and Tuscany.",
+        "taste_markers": {"acidity": 4, "tannin": 4, "body": 4, "oak": 2}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "min_confidence_score": 0.67,
+        "max_price": 250,
+        "min_total_score": 0.70
+      }
+    },
+    {
+      "id": "prompt_regression_taste_markers",
+      "description": "Regression: if taste_markers are stripped from the prompt, top-3 should still align with profile descriptors (grounding and confidence held)",
+      "mark": "live",
+      "source_mode": "winelist",
+      "meal": "Pan-seared duck with orange sauce",
+      "cap_confidence": false,
+      "wine_list_text": "Pinot Noir Willamette — Domaine Drouhin Oregon 2020 — $55\nBourgogne Pinot Noir — Jadot 2021 — $42\nGevrey-Chambertin — Trapet Père et Fils 2019 — $88\nAmarone — Bertani 2015 — $125\nChâteau Léoville-Barton 2016 — $145\nChablis — Moreau-Naudet 2021 — $48\nSancerre — Vacheron 2021 — $65\nAlsace Pinot Gris — Trimbach 2020 — $38",
+      "profile": {
+        "top_varietals": ["pinot noir"],
+        "top_regions": ["burgundy", "oregon"],
+        "preferred_descriptors": ["earthy silky pinot", "forest floor and red fruit", "elegant restraint"],
+        "avoided_styles": ["heavy oaked reds", "high-tannin bold reds"],
+        "avg_spend": 70,
+        "style_summary": "Seeks elegant, earthy Pinot Noir from Burgundy or its closest New World analogues.",
+        "taste_markers": {"acidity": 4, "tannin": 2, "body": 3, "oak": 2}
+      },
+      "expected": {
+        "min_grounding": 0.8,
+        "min_completeness": 1.0,
+        "excluded_producers": ["bertani", "léoville-barton"],
+        "min_confidence_score": 0.5,
+        "min_total_score": 0.68
+      }
+    }
+  ]
+}

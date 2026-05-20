@@ -7,6 +7,7 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 ## Dependencies
 
 - `anthropic` (Anthropic Python SDK — manages HTTP, retries, auth)
+- `llm_client.call_claude` (telemetry wrapper around `client.messages.create`)
 - `json` (serialising tool input to llm.log)
 - `pydantic.ValidationError` (schema validation errors)
 - `models.RecommendationResponse`, `models.WineColor`, `models.WineRecommendation`
@@ -32,8 +33,9 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 
 ### `_attempt_recommendation()`
 
+0. **Replay shortcircuit**: If `RECORDED_RESPONSES_DIR` env var is set, load the first `.json` fixture alphabetically from that directory, validate it as `RecommendationResponse`, derive colors, and return immediately — no API call. Used for UI development without spending API budget.
 1. Build Anthropic `messages` content: optional image block (type=`"image"`, source=base64) + text block.
-2. Call `client.messages.create()` with `tools=[_RECOMMENDATION_TOOL]` and `tool_choice={"type": "tool", "name": "provide_recommendations"}` — forces Claude to use the tool.
+2. Call `call_claude("recommend", client, ...)` (telemetry wrapper) with `tools=[_RECOMMENDATION_TOOL]` and `tool_choice={"type": "tool", "name": "provide_recommendations"}` — forces Claude to use the tool.
 3. Extract the `tool_use` block from `response.content` by name.
 4. Read `tool_block.input` — already a parsed dict, no JSON parsing needed.
 5. `RecommendationResponse(**data)` — raise `ValueError` on Pydantic schema mismatch.

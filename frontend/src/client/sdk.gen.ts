@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostErrors, ClearCacheDebugCacheClearPostResponses, CreateProfileProfilesPostData, CreateProfileProfilesPostErrors, CreateProfileProfilesPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, DeleteProfileProfilesProfileIdDeleteData, DeleteProfileProfilesProfileIdDeleteErrors, DeleteProfileProfilesProfileIdDeleteResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetErrors, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, ListProfilesProfilesGetData, ListProfilesProfilesGetErrors, ListProfilesProfilesGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchFeedbackHistoryFlightIdFeedbackPatchData, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetErrors, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RegisterAuthRegisterPostData, RegisterAuthRegisterPostErrors, RegisterAuthRegisterPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostErrors, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetErrors, StatusOverviewDebugStatusGetResponses, UpdateProfileProfilesProfileIdPatchData, UpdateProfileProfilesProfileIdPatchErrors, UpdateProfileProfilesProfileIdPatchResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
+import type { CacheStatsDebugCacheStatsGetData, CacheStatsDebugCacheStatsGetResponses, ClearCacheDebugCacheClearPostData, ClearCacheDebugCacheClearPostErrors, ClearCacheDebugCacheClearPostResponses, CreateProfileProfilesPostData, CreateProfileProfilesPostErrors, CreateProfileProfilesPostResponses, DeleteHistoryHistoryFlightIdDeleteData, DeleteHistoryHistoryFlightIdDeleteErrors, DeleteHistoryHistoryFlightIdDeleteResponses, DeleteProfileProfilesProfileIdDeleteData, DeleteProfileProfilesProfileIdDeleteErrors, DeleteProfileProfilesProfileIdDeleteResponses, ForgotPasswordAuthForgotPasswordPostData, ForgotPasswordAuthForgotPasswordPostErrors, ForgotPasswordAuthForgotPasswordPostResponses, GetConfigDebugConfigGetData, GetConfigDebugConfigGetResponses, GetHistoryHistoryFlightIdGetData, GetHistoryHistoryFlightIdGetErrors, GetHistoryHistoryFlightIdGetResponses, GetInsightsProfileInsightsGetData, GetInsightsProfileInsightsGetErrors, GetInsightsProfileInsightsGetResponses, GetInventoryInventoryGetData, GetInventoryInventoryGetErrors, GetInventoryInventoryGetResponses, GetRecentLogsDebugLogsRecentGetData, GetRecentLogsDebugLogsRecentGetErrors, GetRecentLogsDebugLogsRecentGetResponses, GetVersionDebugVersionGetData, GetVersionDebugVersionGetResponses, HealthCheckDebugHealthGetData, HealthCheckDebugHealthGetResponses, ListEndpointsDebugEndpointsGetData, ListEndpointsDebugEndpointsGetResponses, ListHistoryHistoryGetData, ListHistoryHistoryGetErrors, ListHistoryHistoryGetResponses, ListProfilesProfilesGetData, ListProfilesProfilesGetErrors, ListProfilesProfilesGetResponses, LlmStatsDebugStatsGetData, LlmStatsDebugStatsGetErrors, LlmStatsDebugStatsGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, MeAuthMeGetData, MeAuthMeGetErrors, MeAuthMeGetResponses, MemoryUsageDebugMemoryGetData, MemoryUsageDebugMemoryGetResponses, PatchFeedbackHistoryFlightIdFeedbackPatchData, PatchFeedbackHistoryFlightIdFeedbackPatchErrors, PatchFeedbackHistoryFlightIdFeedbackPatchResponses, PatchProfileProfilePatchData, PatchProfileProfilePatchErrors, PatchProfileProfilePatchResponses, PingDebugPingGetData, PingDebugPingGetResponses, ProfileSummaryProfileSummaryGetData, ProfileSummaryProfileSummaryGetErrors, ProfileSummaryProfileSummaryGetResponses, RecommendRecommendPostData, RecommendRecommendPostErrors, RecommendRecommendPostResponses, RegisterAuthRegisterPostData, RegisterAuthRegisterPostErrors, RegisterAuthRegisterPostResponses, ResetPasswordAuthResetPasswordPostData, ResetPasswordAuthResetPasswordPostErrors, ResetPasswordAuthResetPasswordPostResponses, RevertProfileProfileRevertPostData, RevertProfileProfileRevertPostErrors, RevertProfileProfileRevertPostResponses, SeedProfileSeedProfilePostData, SeedProfileSeedProfilePostErrors, SeedProfileSeedProfilePostResponses, StatusOverviewDebugStatusGetData, StatusOverviewDebugStatusGetErrors, StatusOverviewDebugStatusGetResponses, UpdateProfileProfilesProfileIdPatchData, UpdateProfileProfilesProfileIdPatchErrors, UpdateProfileProfilesProfileIdPatchResponses, UploadInventoryUploadInventoryPostData, UploadInventoryUploadInventoryPostErrors, UploadInventoryUploadInventoryPostResponses, UploadProfileUploadProfilePostData, UploadProfileUploadProfilePostErrors, UploadProfileUploadProfilePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -46,6 +46,30 @@ export const loginAuthLoginPost = <ThrowOnError extends boolean = false>(options
  * Me
  */
 export const meAuthMeGet = <ThrowOnError extends boolean = false>(options?: Options<MeAuthMeGetData, ThrowOnError>) => (options?.client ?? client).get<MeAuthMeGetResponses, MeAuthMeGetErrors, ThrowOnError>({ url: '/auth/me', ...options });
+
+/**
+ * Forgot Password
+ */
+export const forgotPasswordAuthForgotPasswordPost = <ThrowOnError extends boolean = false>(options: Options<ForgotPasswordAuthForgotPasswordPostData, ThrowOnError>) => (options.client ?? client).post<ForgotPasswordAuthForgotPasswordPostResponses, ForgotPasswordAuthForgotPasswordPostErrors, ThrowOnError>({
+    url: '/auth/forgot-password',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reset Password
+ */
+export const resetPasswordAuthResetPasswordPost = <ThrowOnError extends boolean = false>(options: Options<ResetPasswordAuthResetPasswordPostData, ThrowOnError>) => (options.client ?? client).post<ResetPasswordAuthResetPasswordPostResponses, ResetPasswordAuthResetPasswordPostErrors, ThrowOnError>({
+    url: '/auth/reset-password',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * List Profiles
@@ -143,6 +167,13 @@ export const memoryUsageDebugMemoryGet = <ThrowOnError extends boolean = false>(
  * Simple ping endpoint for connectivity testing.
  */
 export const pingDebugPingGet = <ThrowOnError extends boolean = false>(options?: Options<PingDebugPingGetData, ThrowOnError>) => (options?.client ?? client).get<PingDebugPingGetResponses, unknown, ThrowOnError>({ url: '/debug/ping', ...options });
+
+/**
+ * Llm Stats
+ *
+ * Aggregate LLM telemetry: P50/P90 latency per purpose, token totals, estimated cost.
+ */
+export const llmStatsDebugStatsGet = <ThrowOnError extends boolean = false>(options?: Options<LlmStatsDebugStatsGetData, ThrowOnError>) => (options?.client ?? client).get<LlmStatsDebugStatsGetResponses, LlmStatsDebugStatsGetErrors, ThrowOnError>({ url: '/debug/stats', ...options });
 
 /**
  * Get Version
@@ -280,3 +311,10 @@ export const recommendRecommendPost = <ThrowOnError extends boolean = false>(opt
         ...options?.headers
     }
 });
+
+/**
+ * Get Insights
+ *
+ * Return palate drift suggestions based on this profile's recommendation history.
+ */
+export const getInsightsProfileInsightsGet = <ThrowOnError extends boolean = false>(options?: Options<GetInsightsProfileInsightsGetData, ThrowOnError>) => (options?.client ?? client).get<GetInsightsProfileInsightsGetResponses, GetInsightsProfileInsightsGetErrors, ThrowOnError>({ url: '/profile/insights', ...options });

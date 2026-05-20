@@ -20,6 +20,7 @@ app.include_router(history_router)
 app.include_router(inventory_router)
 app.include_router(profile_router)
 app.include_router(recommend_router)
+app.include_router(insights_router)
 ```
 
 ### wine_reviews.py
@@ -394,6 +395,14 @@ class RecommendationResponse(BaseModel):
   profile_match_summary: str (1 sentence)
   flight_id: Optional[str]    # set after save_flight(); absent on cache hits
 
+class PalateDriftSuggestion(BaseModel):
+  dimension: str              # "preferred_grapes" | "preferred_regions"
+  current: List[str]          # current profile values for this dimension
+  suggested: List[str]        # terms Claude keeps recommending but profile omits
+  rationale: str              # human-readable explanation of the signal
+  supporting_flight_ids: List[str]   # flight IDs that drove this suggestion
+  # ConfigDict: alias_generator=to_camel, populate_by_name=True
+
 class FlightFeedback(BaseModel):
   chip: str           # "too_bold" | "over_budget" | "off_profile" | "perfect"
   recorded_at: float  # unix timestamp
@@ -702,6 +711,55 @@ GET    /history                         → list[FlightSummary]   # limit/offset
 GET    /history/{flight_id}             → FlightRecord          # includes feedback if submitted
 PATCH  /history/{flight_id}/feedback   → {"ok": true}           # body: FlightFeedback; 404 if not found
 DELETE /history/{flight_id}            → {"id": str, "deleted": True}
+```
+
+### routes/insights.py
+
+```python
+@router.get("/profile/insights")
+def get_insights(profile: Profile = Depends(get_current_profile)) → list[PalateDriftSuggestion]
+  Return palate drift suggestions for the active profile. Delegates to compute_drift_suggestions(profile.id).
+  Returns [] when fewer than 3 flights exist or no term meets the 30% hit-rate threshold. Never 404.
+  Requires Bearer JWT + X-Profile-Id header.
+```
+
+### llm_client.py
+
+```python
+def call_claude(purpose: str, client: anthropic.Anthropic, **kwargs) → anthropic.types.Message
+  Telemetry wrapper around client.messages.create(**kwargs).
+  Logs request/response to logs/llm_calls.jsonl as NDJSON:
+    {purpose, model, input_tokens, output_tokens, stop_reason, latency_ms, timestamp_utc}
+  Passes all kwargs through unchanged. Raises on any Anthropic API error (no retry — caller handles that).
+  Log failures are silently ignored so telemetry never blocks a real request.
+```
+
+### retrieval.py
+
+```python
+def rank_wine_list(
+  wine_list_text: str,
+  profile: TasteProfile,
+  override_terms: Optional[list[str]] = None,
+  limit: int = 40,
+) → str
+  Retrieval-augmented pre-filter for large wine lists. No-op when list has ≤ limit lines.
+  Scores each line by profile-signal overlap (preferred grapes/regions/styles/override_terms +1 each;
+  avoided styles −2 each; price < 50% of budget_min −0.5; price > 200% of budget_max −0.5).
+  Matching is accent-normalised (NFKD) and case-insensitive substring. Price extracted from $NNN patterns only.
+  Ties broken by original list position. Returns newline-joined top `limit` lines.
+  When profile has no positive signals, truncates to first `limit` lines (safe fallback).
+```
+
+### insights.py
+
+```python
+def compute_drift_suggestions(profile_id: str) → list[PalateDriftSuggestion]
+  Palate drift suggestion engine. Analyses the _FLIGHT_WINDOW (20) most recent flights for profile_id.
+  Extracts grape and region from every recommended wine. Counts how many distinct flights each term appeared in.
+  Surfaces terms above _MIN_HIT_RATE (30%) not already in the profile (substring-safe check).
+  Returns up to _MAX_SUGGESTIONS (3) PalateDriftSuggestion objects.
+  Returns [] when fewer than _MIN_FLIGHTS (3) flights exist. No LLM calls — purely statistical.
 ```
 
 ### retry_utils.py

@@ -352,6 +352,21 @@ class FlightRecord(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
 
+class PalateDriftSuggestion(BaseModel):
+    """A palate drift signal derived from flight-history analysis.
+
+    Surfaces when Claude consistently recommends a grape or region that is
+    not in the user's stated taste profile, suggesting an unarticulated preference.
+    """
+    dimension: str            # "preferred_grapes" | "preferred_regions"
+    current: List[str]        # current profile values for this dimension
+    suggested: List[str]      # terms Claude keeps recommending but profile omits
+    rationale: str            # human-readable explanation of the signal
+    supporting_flight_ids: List[str]  # flight IDs that drove this suggestion
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
 class MealProfile(BaseModel):
     protein: Optional[str] = None
     cooking_method: Optional[str] = None
@@ -430,5 +445,24 @@ class ProfileCreateRequest(BaseModel):
 class ProfileUpdateRequest(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1, max_length=64)
     is_default: Optional[bool] = None
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+
+class MessageResponse(BaseModel):
+    message: str
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)

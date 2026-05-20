@@ -5,6 +5,8 @@ the request lifecycle (CLI tools, migrations, tests).
 """
 from __future__ import annotations
 
+import base64
+import hashlib
 import time
 from typing import Any
 
@@ -16,14 +18,18 @@ from bootstrap import JWT_ALGORITHM, JWT_EXPIRY_DAYS, JWT_SECRET
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _prehash(plaintext: str) -> str:
+    # bcrypt truncates at 72 bytes; SHA-256 → base64 keeps input to 44 bytes
+    digest = hashlib.sha256(plaintext.encode()).digest()
+    return base64.b64encode(digest).decode()
+
+
 def hash_password(plaintext: str) -> str:
-    """Return a bcrypt hash of the password. Salt is embedded in the hash."""
-    return _pwd_context.hash(plaintext)
+    return _pwd_context.hash(_prehash(plaintext))
 
 
 def verify_password(plaintext: str, password_hash: str) -> bool:
-    """Constant-time compare of plaintext against a stored bcrypt hash."""
-    return _pwd_context.verify(plaintext, password_hash)
+    return _pwd_context.verify(_prehash(plaintext), password_hash)
 
 
 def create_access_token(user_id: str) -> str:

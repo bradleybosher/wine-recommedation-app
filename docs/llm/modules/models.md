@@ -215,6 +215,19 @@ Fields:
 - `richness`: str = "medium"
 - `dominant_flavors`: List[str]
 
+### PalateDriftSuggestion
+
+A palate drift signal derived from flight-history analysis. Returned by `GET /profile/insights`.
+
+Fields:
+- `dimension`: str — `"preferred_grapes"` or `"preferred_regions"`
+- `current`: List[str] — current profile values for this dimension
+- `suggested`: List[str] — terms Claude keeps recommending but the profile omits
+- `rationale`: str — human-readable explanation of the signal (e.g., "'Sangiovese' appeared in 7 of your last 20 recommendation flights but isn't in your stated preferred grapes.")
+- `supporting_flight_ids`: List[str] — flight IDs that drove this suggestion (auditable)
+
+Config: `ConfigDict(alias_generator=to_camel, populate_by_name=True)`.
+
 ## Patterns
 
 All models use `ConfigDict(alias_generator=to_camel, populate_by_name=True)`:

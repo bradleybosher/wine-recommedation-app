@@ -376,6 +376,16 @@ export type FlightSummary = {
 };
 
 /**
+ * ForgotPasswordRequest
+ */
+export type ForgotPasswordRequest = {
+    /**
+     * Email
+     */
+    email: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -415,6 +425,47 @@ export type LoginRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * MessageResponse
+ */
+export type MessageResponse = {
+    /**
+     * Message
+     */
+    message: string;
+};
+
+/**
+ * PalateDriftSuggestion
+ *
+ * A palate drift signal derived from flight-history analysis.
+ *
+ * Surfaces when Claude consistently recommends a grape or region that is
+ * not in the user's stated taste profile, suggesting an unarticulated preference.
+ */
+export type PalateDriftSuggestion = {
+    /**
+     * Dimension
+     */
+    dimension: string;
+    /**
+     * Current
+     */
+    current: Array<string>;
+    /**
+     * Suggested
+     */
+    suggested: Array<string>;
+    /**
+     * Rationale
+     */
+    rationale: string;
+    /**
+     * Supportingflightids
+     */
+    supportingFlightIds: Array<string>;
 };
 
 /**
@@ -593,6 +644,20 @@ export type RegisterRequest = {
      * Password
      */
     password: string;
+};
+
+/**
+ * ResetPasswordRequest
+ */
+export type ResetPasswordRequest = {
+    /**
+     * Token
+     */
+    token: string;
+    /**
+     * Newpassword
+     */
+    newPassword: string;
 };
 
 /**
@@ -1018,6 +1083,56 @@ export type MeAuthMeGetResponses = {
 
 export type MeAuthMeGetResponse = MeAuthMeGetResponses[keyof MeAuthMeGetResponses];
 
+export type ForgotPasswordAuthForgotPasswordPostData = {
+    body: ForgotPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/forgot-password';
+};
+
+export type ForgotPasswordAuthForgotPasswordPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ForgotPasswordAuthForgotPasswordPostError = ForgotPasswordAuthForgotPasswordPostErrors[keyof ForgotPasswordAuthForgotPasswordPostErrors];
+
+export type ForgotPasswordAuthForgotPasswordPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: MessageResponse;
+};
+
+export type ForgotPasswordAuthForgotPasswordPostResponse = ForgotPasswordAuthForgotPasswordPostResponses[keyof ForgotPasswordAuthForgotPasswordPostResponses];
+
+export type ResetPasswordAuthResetPasswordPostData = {
+    body: ResetPasswordRequest;
+    path?: never;
+    query?: never;
+    url: '/auth/reset-password';
+};
+
+export type ResetPasswordAuthResetPasswordPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResetPasswordAuthResetPasswordPostError = ResetPasswordAuthResetPasswordPostErrors[keyof ResetPasswordAuthResetPasswordPostErrors];
+
+export type ResetPasswordAuthResetPasswordPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: MessageResponse;
+};
+
+export type ResetPasswordAuthResetPasswordPostResponse = ResetPasswordAuthResetPasswordPostResponses[keyof ResetPasswordAuthResetPasswordPostResponses];
+
 export type ListProfilesProfilesGetData = {
     body?: never;
     headers?: {
@@ -1385,6 +1500,41 @@ export type PingDebugPingGetResponses = {
 };
 
 export type PingDebugPingGetResponse = PingDebugPingGetResponses[keyof PingDebugPingGetResponses];
+
+export type LlmStatsDebugStatsGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/debug/stats';
+};
+
+export type LlmStatsDebugStatsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LlmStatsDebugStatsGetError = LlmStatsDebugStatsGetErrors[keyof LlmStatsDebugStatsGetErrors];
+
+export type LlmStatsDebugStatsGetResponses = {
+    /**
+     * Response Llm Stats Debug Stats Get
+     *
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type LlmStatsDebugStatsGetResponse = LlmStatsDebugStatsGetResponses[keyof LlmStatsDebugStatsGetResponses];
 
 export type GetVersionDebugVersionGetData = {
     body?: never;
@@ -1863,3 +2013,40 @@ export type RecommendRecommendPostResponses = {
 };
 
 export type RecommendRecommendPostResponse = RecommendRecommendPostResponses[keyof RecommendRecommendPostResponses];
+
+export type GetInsightsProfileInsightsGetData = {
+    body?: never;
+    headers?: {
+        /**
+         * X-Profile-Id
+         */
+        'X-Profile-Id'?: string | null;
+        /**
+         * Authorization
+         */
+        authorization?: string | null;
+    };
+    path?: never;
+    query?: never;
+    url: '/profile/insights';
+};
+
+export type GetInsightsProfileInsightsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetInsightsProfileInsightsGetError = GetInsightsProfileInsightsGetErrors[keyof GetInsightsProfileInsightsGetErrors];
+
+export type GetInsightsProfileInsightsGetResponses = {
+    /**
+     * Response Get Insights Profile Insights Get
+     *
+     * Successful Response
+     */
+    200: Array<PalateDriftSuggestion>;
+};
+
+export type GetInsightsProfileInsightsGetResponse = GetInsightsProfileInsightsGetResponses[keyof GetInsightsProfileInsightsGetResponses];

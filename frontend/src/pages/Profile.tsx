@@ -8,11 +8,13 @@ import RuleDouble from '@/design/atoms/RuleDouble';
 import { INK, INK_SOFT, OXBLOOD, PAPER, RULE, lineHeight, space, typeScale } from '@/design/tokens';
 
 import {
+  getInsightsProfileInsightsGet,
   patchProfileProfilePatch,
   profileSummaryProfileSummaryGet,
   revertProfileProfileRevertPost,
 } from '@/client';
 import type {
+  PalateDriftSuggestion,
   ProfilePatchRequest,
   ProfileSummaryResponse,
   TasteMarkers,
@@ -295,17 +297,24 @@ const Profile: React.FC = () => {
   const [reverting, setReverting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
+  const [insights, setInsights] = useState<PalateDriftSuggestion[]>([]);
+  const [addingInsight, setAddingInsight] = useState<string | null>(null);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await profileSummaryProfileSummaryGet();
-      const summary = res.data ?? null;
+      const [summaryRes, insightsRes] = await Promise.all([
+        profileSummaryProfileSummaryGet(),
+        getInsightsProfileInsightsGet().catch(() => ({ data: [] as PalateDriftSuggestion[] })),
+      ]);
+      const summary = summaryRes.data ?? null;
       setData(summary);
       if (summary) {
         const initial = summaryToEditState(summary);
         setDraft(initial);
         setOriginal(initial);
       }
+      setInsights((insightsRes.data ?? []) as PalateDriftSuggestion[]);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
@@ -369,6 +378,35 @@ const Profile: React.FC = () => {
       setReverting(false);
     }
   };
+
+  const handleAddInsight = useCallback(
+    async (suggestion: PalateDriftSuggestion) => {
+      const key = `${suggestion.dimension}:${suggestion.suggested[0]}`;
+      setAddingInsight(key);
+      try {
+        const term = suggestion.suggested[0];
+        const current =
+          suggestion.dimension === 'preferred_grapes'
+            ? data?.topVarietals ?? []
+            : data?.topRegions ?? [];
+        const next = [...current, term];
+        const patch: ProfilePatchRequest =
+          suggestion.dimension === 'preferred_grapes'
+            ? { topVarietals: next }
+            : { topRegions: next };
+        await patchProfileProfilePatch({ body: patch });
+        setInsights((prev) => prev.filter((s) => s !== suggestion));
+        await refresh();
+        setNotice(`Added "${term}" to your profile.`);
+        setTimeout(() => setNotice(null), 2000);
+      } catch {
+        // silently ignore — non-critical action
+      } finally {
+        setAddingInsight(null);
+      }
+    },
+    [data, refresh],
+  );
 
   const sourceLabel = useMemo(() => {
     const src = data?.profileSource;
@@ -820,6 +858,89 @@ const Profile: React.FC = () => {
                 }
               />
             </Section>
+
+            {/* Palate drift suggestions */}
+            {insights.length > 0 && (
+              <Section>
+                {sectionHeading('Your palate is drifting')}
+                <div
+                  style={{
+                    fontFamily: "'EB Garamond', serif",
+                    fontStyle: 'italic',
+                    fontSize: typeScale.body,
+                    color: INK_SOFT,
+                    marginBottom: 16,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Claude has been recommending these more than your profile suggests — worth adding?
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {insights.map((s) => {
+                    const term = s.suggested[0];
+                    const key = `${s.dimension}:${term}`;
+                    const dimLabel =
+                      s.dimension === 'preferred_grapes' ? 'grape' : 'region';
+                    return (
+                      <div
+                        key={key}
+                        style={{
+                          border: `1px solid ${RULE}`,
+                          padding: '12px 16px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          gap: 16,
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span
+                              style={{
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontSize: typeScale.bodyLg,
+                                color: INK,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {term}
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: "'Cormorant Garamond', serif",
+                                fontSize: typeScale.micro,
+                                letterSpacing: 2,
+                                textTransform: 'uppercase' as const,
+                                color: INK_SOFT,
+                              }}
+                            >
+                              {dimLabel}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              fontFamily: "'EB Garamond', serif",
+                              fontStyle: 'italic',
+                              fontSize: typeScale.label,
+                              color: INK_SOFT,
+                            }}
+                          >
+                            {s.rationale}
+                          </div>
+                        </div>
+                        <button
+                          style={{ ...ghostBtn, flexShrink: 0 }}
+                          onClick={() => handleAddInsight(s)}
+                          disabled={addingInsight === key}
+                        >
+                          {addingInsight === key ? 'Adding…' : `Add ${dimLabel}`}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+            )}
 
             {/* Start over */}
             <Section>

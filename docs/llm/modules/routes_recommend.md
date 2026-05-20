@@ -53,6 +53,7 @@ File/test:
 7. **Wine list parsing** (when `use_wine_list` only):
    - Try `cache.get_parse_cached(parse_key)`, otherwise call `parser.parse_wine_list(...)`. On `parser.OCRError` raise 422.
    - Strip invisible Unicode (`_INVISIBLE_RE`), trim blanks, filter via `inventory.filter_wine_list(text, taste_profile)`.
+   - **Retrieval ranking**: call `retrieval.rank_wine_list(text, taste_profile, override_terms=override_terms, limit=40)`. No-op for short lists (≤ 40 lines). Scores each line by profile-signal overlap and keeps the top 40 — caps token use for large menus without an extra API call.
 8. **Enriched profile**: Try `profile.build_enriched_profile_text(profile.id, ...)`. On any error fall back to standard profile (non-fatal).
 9. Compute `cellar_summary` (top 5 terms) and `relevant` bottles (top 10 terms, possibly overridden by `effective_style`) via `cellar_terms.*` + `inventory.get_relevant_bottles`.
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
@@ -75,6 +76,7 @@ File/test:
 - `meal_parser.{meal_to_wine_hints, parse_meal_description}`
 - `models.RecommendationResponse`
 - `parser.{OCRError, parse_wine_list}`
+- `retrieval.rank_wine_list`
 - `profile.{build_enriched_profile_text, build_taste_profile, build_taste_profile_pydantic, extract_profile_preference_terms, load_profile_data}`
 - `prompt.build_system_prompt`
 - `rate_limit.check_rate_limit`
