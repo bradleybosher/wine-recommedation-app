@@ -50,6 +50,7 @@ MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
 JWT_SECRET: str               # raises ValueError at import if unset
 JWT_ALGORITHM: str = "HS256"  # default algorithm for token signing
 JWT_EXPIRY_DAYS: int = 7      # token expiration duration
+APP_BASE_URL: str = "http://localhost:5173"  # base URL for reset links in server logs
 PROFILES_DIR: Path            # directory for per-profile data storage
 ORPHAN_PROFILE_ID: str        # profile ID for legacy/unclaimed profiles
 ```
@@ -654,6 +655,18 @@ def get_user_by_id(user_id: str) → Optional[dict]
 
 def count_users() → int
   Return total number of users in database.
+
+def update_user_password(user_id: str, password_hash: str) → None
+  UPDATE users SET password_hash for user_id. Used by reset-password flow.
+
+def create_reset_token(user_id: str, expires_in_seconds: int = 1800) → str
+  Generate a secrets.token_urlsafe(32) token, insert into password_reset_tokens with 30-min expiry. Returns token string.
+
+def get_reset_token(token: str) → Optional[dict]
+  SELECT token row. Returns dict with token, user_id, expires_at, used (bool), or None if not found.
+
+def mark_reset_token_used(token: str) → None
+  UPDATE password_reset_tokens SET used=1 for token. Enforces single-use.
 
 def create_profile(user_id: str, name: str, is_default: bool = False) → str
   INSERT new profile for user. Returns profile_id (UUID).

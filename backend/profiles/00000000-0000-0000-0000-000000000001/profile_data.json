@@ -4698,28 +4698,27 @@
       }
     ],
     "preferred_descriptors": [
-      "taut citrus-driven tension with mouthwatering acidity",
-      "light-footed fruit-forward reds with a savoury undercurrent",
-      "gentle oxidative nuttiness balanced by crisp freshness",
-      "zippy p\u00e9tillant-naturel texture with wild fermentation character",
-      "lean mineral whites with a laser-sharp finish",
-      "strawberry-bright easy-drinking reds with no heavy extraction",
-      "value-driven precision over opulence and weight"
+      "taut citrus-driven whites with mouthwatering precision acidity",
+      "subtle oxidative nutty complexity without loss of freshness",
+      "light-bodied reds with bright strawberry-dominant fruit and easy texture",
+      "peppery herbaceous tang with electric tension on the finish",
+      "brisk autolytic yeastiness balanced by crisp mineral drive",
+      "medium-weight reds with dried fruit depth and restrained tannin grip"
     ],
     "avoided_styles": [
-      "heavy oak-driven whites lacking freshness",
-      "over-extracted high-alcohol reds that heat the finish",
-      "overly lean or austere sparkling wines without roundness",
-      "overtly sweet or fruit-bomby styles lacking acidity"
+      "heavily oaked fruit-forward Chardonnay without balancing acidity",
+      "high-alcohol warming reds lacking structural tension",
+      "overly sweet or rounded sparkling wines",
+      "one-dimensional crowd-pleasing international-style reds"
     ],
-    "style_summary": "A precision-first palate chasing vibrant acidity, light-to-medium body, and honest fermentation character over extraction, oak, or sheer fruit weight.",
+    "style_summary": "A precision-driven palate favouring high-acid, lighter-framed wines with honest character, subtle complexity, and strong value-consciousness over prestige or power.",
     "taste_markers": {
       "acidity": 5,
       "tannin": 2,
       "body": 2,
       "oak": 2
     },
-    "palate_persona": "This buyer is a high-acidity hunter who prizes tension and freshness above all else \u2014 they reach for laser-sharp Rieslings, mineral-edged Chenin Blancs, and Brut Z\u00e9ro bubbles with oxidative intrigue, consistently rewarding wines that feel alive and precise on the palate. They are drawn to light-bodied, fruit-forward reds \u2014 think p\u00e9t-nat Pinotage, easy Frappato, and Gamay \u2014 that seduce through charm and drinkability rather than structure or power, and they will actively call out over-extraction, excess tannin, or alcoholic heat as flaws. Oak is viewed with suspicion: the explicit preference for \"something more Chablis-esque\" over a lightly oaked Chardonnay, and the appetite for Brut Z\u00e9ro and Brut Nature sparkling wines, signals someone who wants fermentation purity and stony minerality, not cream and vanilla.",
+    "palate_persona": "This buyer is drawn instinctively to wines of tension and transparency \u2014 whites and sparkling wines with cutting, mouthwatering acidity and minimal or deftly handled oak, and reds that are light to medium-bodied with freshness and lifted fruit rather than weight or extraction. There is a clear appetite for oxidative complexity when it is tethered to structure \u2014 the Jura Brut Z\u00e9ro's nutty-yet-crisp character signals an appreciation for Champagne-adjacent fermentation character that avoids flabbiness at all costs. Plush, warm-climate richness, heavy tannin, and oak-dominant wines are consistently flagged as misses \u2014 this is a palate that rewards restraint, honest terroir expression, and above all, sharp value-for-money.",
     "inference_confidence": "medium",
     "profile_source": "cellartracker_synthesized",
     "note_count": 102

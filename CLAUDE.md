@@ -9,10 +9,13 @@ Portfolio-grade web app: upload restaurant wine list (PDF/OCR) + CellarTracker t
 ## Data Flow
 ```
 Auth (JWT bearer; passlib bcrypt + PyJWT, HS256, 7-day expiry):
-  /auth/register {email, password} → claims orphan default profile if any,
-                                     else creates a fresh empty default profile
-  /auth/login    {email, password} → token + default (or only) profile
-  /auth/me                          → user + all owned profiles
+  /auth/register        {email, password}        → claims orphan default profile if any,
+                                                    else creates a fresh empty default profile
+  /auth/login           {email, password}        → token + default (or only) profile
+  /auth/me                                       → user + all owned profiles
+  /auth/forgot-password {email}                  → logs reset URL to server console (always 200)
+  /auth/reset-password  {token, newPassword}     → validates token (30-min expiry, single-use),
+                                                    updates password hash
   Every other endpoint:  Authorization: Bearer <jwt>  +  X-Profile-Id: <uuid>
   (dependencies.py: get_current_user reads JWT; get_current_profile reads header,
    validates ownership against the JWT user)
@@ -85,7 +88,7 @@ For every file modified, update the corresponding docs:
 - Fail loudly; schema-driven (Pydantic is the contract); JWT auth (single-tenant learning project, open self-registration); per-profile SQLite + JSON persistence; portfolio-legible
 
 ## Authentication & Profiles
-- **Auth**: JWT bearer tokens (HS256). Open registration at `POST /auth/register`. Login at `POST /auth/login`. `GET /auth/me` returns the user + their profiles.
+- **Auth**: JWT bearer tokens (HS256). Open registration at `POST /auth/register`. Login at `POST /auth/login`. `GET /auth/me` returns the user + their profiles. Password reset: `POST /auth/forgot-password` (logs link to console) → `POST /auth/reset-password` (token + new password). Tokens expire after 30 minutes and are single-use; stored in `password_reset_tokens` SQLite table.
 - **Profile selection**: every authenticated endpoint (except `/auth/*`, `/profiles/*`, `/debug/health`, `/debug/ping`) requires an `X-Profile-Id` header. The backend validates that the profile is owned by the current user.
 - **Storage layout**: `backend/profiles/{profile_id}/profile_data.json` and `backend/profiles/{profile_id}/inventory.json`. SQLite tables `users`, `profiles`, and `flights` (latter scoped via `profile_id` column).
 - **Frontend wiring**: `frontend/src/state/authStore.tsx` (`useAuth`) and `frontend/src/state/profileStore.tsx` (`useProfiles`). The SDK auto-injects `Authorization` + `X-Profile-Id` headers via `client/configure.ts` interceptors. `AuthGuard` redirects unauthenticated routes to `/login`; `ProfileSwitcher` in the global header (`AuthenticatedHeader`) toggles the active profile.
