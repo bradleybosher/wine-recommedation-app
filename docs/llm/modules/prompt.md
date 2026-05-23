@@ -21,6 +21,9 @@ Construct the system prompt for Claude. Embed taste profile, relevant cellar bot
 - `budget_ceiling`: str (default "") — when non-empty, injected into `CONSTRAINTS` as "Budget ceiling per bottle: X — exclude wines above this price."
 - `taste_markers`: `dict | None` — `{acidity, tannin, body, oak}` 1-5 integer scores from the synthesized/seed profile. When present, rendered as a one-line numeric block (`Taste markers (1-5 preference scale): Acidity 5/5, Tannin 3/5, ...`) directly under the prose taste profile so Claude can cite specific axes in its reasoning.
 - `palate_persona`: `str | None` — 2-3 sentence sommelier persona from `synthesize_palate_from_notes()`. When present, quoted verbatim under a `**PALATE PERSONA**` header inserted *above* the `PRIORITY — Owner taste profile` block. Claude is instructed to cite these signals in `fits` tags.
+- `source_mode`: `str` — `"winelist"` (default) or `"cellar"`. Changes the mode intro, hard constraint, cellar cross-reference note, and reasoning structure in the prompt.
+- `tasting_note_library`: `str` — Pre-formatted `**TASTING NOTE LIBRARY**` block (see `routes/recommend._build_tasting_note_library()`). When non-empty, injected into the prompt so Claude can cite verbatim quotes from the user's own tasting notes in `evidence_quotes` fields.
+- `aspirational_skew`: `str` — One-line summary of over-represented cellar categories vs. drinking habits (e.g., "Buys Burgundy at 2× the rate of consumption"). When non-empty, injected as an `**ASPIRATIONAL SKEW**` line above the cellar section so Claude can favour aspirational categories when the list offers something rare.
 
 **Outputs**: Complete system prompt string (1000+ words) with embedded JSON schema.
 
@@ -31,14 +34,16 @@ Construct the system prompt for Claude. Embed taste profile, relevant cellar bot
 **`build_system_prompt(...)`**:
   1. Use `taste_profile_override` if provided; otherwise call `build_enriched_profile_text_basic()`
   2. If `profile_source == "seed_bottles"`, prepend directional-profile caveat
-  3. Format relevant bottles into bulleted list (max 20)
-  4. Build `CONSTRAINTS` section: always includes bottle count; adds budget ceiling when set
+  3. Format relevant bottles into bulleted list (max 20 for winelist mode; full list for cellar mode)
+  4. Build `CONSTRAINTS` section: always includes bottle count; adds budget ceiling when set; when `bottle_count >= 3`, adds stretch/discovery slot instruction for the final rank (`stretch=true`)
   5. Embed sommelier persona: 70% profile weight, 30% meal weight (explicit in prompt)
-  6. Add HARD CONSTRAINT: recommendations must come from the restaurant list only
-  7. Inject `### TONIGHT'S MEAL` section if `meal_hints` provided
-  8. Embed full JSON schema with field descriptions for all enrichment fields
-  9. Append reasoning structure notes (4-step format), confidence format note, fits field note, wheel/bars/drink notes
-  10. Return full prompt; also writes to `prompt.log` via dedicated `_prompt_logger`
+  6. Add HARD CONSTRAINT based on `source_mode` (restaurant list only / cellar inventory only)
+  7. Inject `**ASPIRATIONAL SKEW**` line when `aspirational_skew` is non-empty
+  8. Inject `### TONIGHT'S MEAL` section if `meal_hints` provided
+  9. Inject `**TASTING NOTE LIBRARY**` block when `tasting_note_library` is non-empty, enabling `evidence_quotes`
+  10. Embed full JSON schema with field descriptions for all enrichment fields (including `evidence_quotes`, `stretch`)
+  11. Append reasoning structure notes (4-step format), confidence format note, fits field note, evidence_quotes field note, wheel/bars/drink notes
+  12. Return full prompt; also writes to `prompt.log` via dedicated `_prompt_logger`
 
 ## Profile Function Disambiguation
 
@@ -63,6 +68,14 @@ Examples: `"high — hits your preference for grower Champagne with mineral comp
 ## Fits Field (enforced in prompt)
 
 Optional per-recommendation `fits: string[]` — 2–3 short tags (each ≤ 8 words) that ground the pick in a concrete signal from the taste profile. The prompt requires each tag to cite a real signal: a top region/varietal/producer, a preferred descriptor, an avoided style, a numeric taste marker (e.g. "Acidity 5/5"), or a phrase quoted/paraphrased from the `PALATE PERSONA` block. Generic phrases ("Great with food", "Crowd pleaser") are forbidden. The model is instructed to omit the field entirely (not return an empty array) when no clean signal applies.
+
+## Evidence Quotes Field (enforced in prompt)
+
+Optional per-recommendation `evidence_quotes: string[]` — 1–2 short verbatim quotes from the `**TASTING NOTE LIBRARY**` block that justify the pick. Format: `'From your [Wine name] note: "[verbatim quote]"'`. The prompt forbids fabrication, paraphrase, or extension beyond what the library contains; if no clear connection exists, the field must be omitted entirely. Only populated when a TASTING NOTE LIBRARY is present in the prompt.
+
+## Stretch Slot (enforced in prompt)
+
+When `bottle_count >= 3`, the final ranked slot is designated as a stretch/discovery pick. The prompt instructs: "a wine slightly outside the safe persona zone that the guest might not choose alone but would be glad you suggested. Set `stretch=true` for this pick only." All other picks must have `stretch=false` or omit the field.
 
 ## Wheel, Bars, Drink Notes (enforced in prompt)
 

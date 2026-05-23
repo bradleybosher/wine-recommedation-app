@@ -19,6 +19,7 @@ from bootstrap import PROFILES_DIR
 from llm_client import call_claude
 from inventory import decode_cellartracker_upload
 from models import TasteProfile
+from palate_stats import compute_palate_stats, format_stats_for_prompt
 
 # Module-level cache: dict[profile_id, (mtime, data)] to avoid re-reading profile_data.json on every request
 _profile_cache: dict[str, tuple[float, dict]] = {}
@@ -457,6 +458,15 @@ def synthesize_palate_from_notes(
         + _format_note_block("LOW-SCORED (disliked)", low_tier, cap)
     )
 
+    # Compute statistical evidence to ground the synthesis prompt
+    consumed_rows = list(_iter_export_rows(raw_view, "consumed", "notes"))
+    existing_avoided = deterministic.get("avoided_styles", [])
+    palate_stats_data = compute_palate_stats(
+        consumed_rows=consumed_rows,
+        avoided_styles=existing_avoided,
+    )
+    stats_block = format_stats_for_prompt(palate_stats_data)
+
     rated_labels = []
     for b in deterministic.get("highly_rated", [])[:10]:
         parts = [b.get("vintage", ""), b.get("producer", ""), b.get("wine", "")]
@@ -484,6 +494,8 @@ def synthesize_palate_from_notes(
         "CellarTracker tasting history. The buyer's free-text notes are short and inconsistent;\n"
         "your job is to read between the lines and infer the deeper style signature — texture,\n"
         "fermentation character, tension/breadth, oxidative/reductive leanings, oak handling.\n\n"
+        "STATISTICAL EVIDENCE (computed from all notes — treat counts as ground truth):\n"
+        f"{stats_block}\n"
         "GROUND TRUTH (structured signals — use for context, do NOT echo as style phrases):\n"
         f"{structured_context}\n"
         "RAW TASTING NOTES (grouped by score tier, with score in brackets):\n"
@@ -495,14 +507,14 @@ def synthesize_palate_from_notes(
         "  'silky medium-bodied reds with savoury earth'. Never echo grape or region names.\n"
         "- avoided_styles: 2-4 multi-word phrases naming styles to avoid, grounded in the\n"
         "  low-scored notes when present; otherwise infer the counterpoint to the loved profile.\n"
+        "- avoided_style_tokens: echo the 'Avoided style tokens' list from the statistical evidence above.\n"
         "- style_summary: ONE sentence (20-30 words) capturing overall palate character without\n"
         "  naming specific grapes or regions.\n"
         "- taste_markers: integer 1-5 scores for acidity, tannin, body, oak. Treat 3 as neutral.\n"
-        "  Use the high-scored notes as your ground truth for the scale.\n"
+        "  Use the high-scored notes and statistical evidence as your ground truth.\n"
         "- palate_persona: 2-3 sentences naming signature style preferences in plain language.\n"
-        "  Example: 'Loves oxidative, sherried complexity and reductive whites with tension.\n"
-        "  Averse to overtly oaky reds and fruit-forward styles. Prefers wines with savoury\n"
-        "  earth and fine tannin over plush, polished fruit.' Be specific and opinionated.\n"
+        "  Reference specific style signals from the statistical evidence (e.g. natural wine affinity,\n"
+        "  value-driven, aging preference). Be specific and opinionated.\n"
         "- inference_confidence: 'high' if notes are extensive and stylistically coherent;\n"
         "  'medium' if the set is sparse but sensible; 'low' if contradictory or minimal.\n"
         "- top_varietals, top_regions, top_producers, highly_rated, avg_spend: echo the\n"
@@ -541,6 +553,11 @@ def synthesize_palate_from_notes(
                     "items": {"type": "string"},
                     "description": "2-4 multi-word phrases naming styles to avoid.",
                 },
+                "avoided_style_tokens": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Single-token markers distilled from avoided styles (e.g. 'oaky', 'jammy', 'high-alcohol').",
+                },
                 "avg_spend": {"type": ["integer", "null"]},
                 "style_summary": {
                     "type": "string",
@@ -567,8 +584,8 @@ def synthesize_palate_from_notes(
             },
             "required": [
                 "top_varietals", "top_regions", "top_producers", "highly_rated",
-                "preferred_descriptors", "avoided_styles", "style_summary",
-                "taste_markers", "palate_persona", "inference_confidence",
+                "preferred_descriptors", "avoided_styles", "avoided_style_tokens",
+                "style_summary", "taste_markers", "palate_persona", "inference_confidence",
             ],
         },
     }
@@ -599,6 +616,19 @@ def synthesize_palate_from_notes(
     synthesized = dict(tool_block.input)
     synthesized["profile_source"] = "cellartracker_synthesized"
     synthesized["note_count"] = note_count
+
+    # Scale confidence by note volume — Claude tends to be needlessly humble at ≥50 notes
+    if note_count >= 50:
+        synthesized["inference_confidence"] = "high"
+    elif note_count >= 20 and synthesized.get("inference_confidence") == "low":
+        synthesized["inference_confidence"] = "medium"
+
+    # Merge stat-derived signals: prefer stat-computed top_producers (quality-weighted)
+    # and fill avoided_style_tokens if Claude didn't return them
+    if palate_stats_data["top_producers"]:
+        synthesized["top_producers"] = palate_stats_data["top_producers"]
+    if not synthesized.get("avoided_style_tokens") and palate_stats_data["avoided_style_tokens"]:
+        synthesized["avoided_style_tokens"] = palate_stats_data["avoided_style_tokens"]
 
     logger.info(
         "synthesize_palate_from_notes: success confidence=%s descriptors=%d persona_chars=%d",
@@ -772,11 +802,16 @@ def build_taste_profile_pydantic(profile_data: dict) -> TasteProfile:
         else None
     )
 
+    top_producers = structured.get("top_producers", [])
+    avoided_style_tokens = structured.get("avoided_style_tokens", [])
+
     return TasteProfile(
         preferred_grapes=preferred_grapes,
         preferred_regions=preferred_regions,
         preferred_styles=preferred_styles,
         avoided_styles=avoided_styles,
+        avoided_style_tokens=avoided_style_tokens,
+        top_producers=top_producers,
         budget_min=budget_min,
         budget_max=budget_max,
         profile_source=profile_source,

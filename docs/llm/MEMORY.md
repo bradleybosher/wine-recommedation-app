@@ -36,6 +36,8 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [routes/profile.py](modules/routes_profile.md) — /upload-profile, /seed-profile, /profile/revert, /profile-summary
 - [routes/profiles.py](modules/routes_profiles.md) — /profiles CRUD (list/create/rename/delete/set-default)
 - [routes/recommend.py](modules/routes_recommend.md) — /recommend pipeline
+- [synonyms.py](modules/synonyms.md) — Grape/region synonym + sub-appellation expansion for retrieval
+- [palate_stats.py](modules/palate_stats.md) — Pre-LLM statistical palate analysis (frequency, style signals, aspirational skew)
 - [test_fixtures.py](modules/test_fixtures.md) — Canned `RecommendationResponse` fixtures used when `TEST_MODE=true` short-circuits `/recommend`
 - scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
 - logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md

@@ -90,6 +90,32 @@ export default function ListEntry({ wine }: ListEntryProps) {
 
       {/* Column 2 — editorial body */}
       <div>
+        {wine.stretch && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ flex: 1, height: 1, background: RULE }} />
+            <div
+              style={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontStyle: 'italic',
+                fontSize: typeScale.micro,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                color: INK_SOFT,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Discovery pick
+            </div>
+            <div style={{ flex: 1, height: 1, background: RULE }} />
+          </div>
+        )}
         <div
           style={{
             fontFamily: "'Cormorant Garamond', serif",

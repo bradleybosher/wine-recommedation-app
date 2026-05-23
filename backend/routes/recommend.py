@@ -26,6 +26,7 @@ from meal_parser import meal_to_wine_hints, parse_meal_description
 from models import Profile, RecommendationResponse
 from parser import OCRError, parse_wine_list
 from retrieval import rank_wine_list
+from palate_stats import compute_palate_stats
 from profile import (
     build_enriched_profile_text,
     build_taste_profile,
@@ -44,6 +45,62 @@ router = APIRouter()
 logger = logging.getLogger("sommelier.api")
 
 _INVISIBLE_RE = re.compile(r"[­​-‏‪-‮⁠-⁤﻿]")
+
+
+def _build_tasting_note_library(consumed_rows: list[dict], max_entries: int = 15) -> str:
+    """Extract top-rated and bottom-rated tasting notes as a compact library for the prompt."""
+    if not consumed_rows:
+        return ""
+    parsed = []
+    for row in consumed_rows:
+        note_text = (row.get("ConsumptionNote") or "").strip()
+        if not note_text:
+            continue
+        score = None
+        for field in ("CScore", "PScore"):
+            raw = row.get(field)
+            if raw:
+                try:
+                    score = float(str(raw).strip())
+                    break
+                except (ValueError, TypeError):
+                    pass
+        producer = (row.get("Producer") or "").strip()
+        wine = (row.get("Wine") or "").strip()
+        varietal = (row.get("MasterVarietal") or row.get("Varietal") or "").strip()
+        region = (row.get("Region") or "").strip()
+        label = f"{producer} {wine}".strip() or f"{varietal} {region}".strip() or "Unknown"
+        parsed.append({"label": label, "varietal": varietal, "region": region, "score": score, "note": note_text})
+    if not parsed:
+        return ""
+    scored = sorted([p for p in parsed if p["score"] is not None], key=lambda x: -x["score"])
+    unscored = [p for p in parsed if p["score"] is None]
+    ordered = scored + unscored
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for p in ordered:
+        key = f"{p['varietal'].lower()}|{p['region'].lower()}"
+        if key not in seen:
+            seen.add(key)
+            deduped.append(p)
+    n_top = max(5, max_entries * 2 // 3)
+    top = deduped[:n_top]
+    bottom_scored = sorted([p for p in deduped if p["score"] is not None], key=lambda x: x["score"])
+    bottom = [p for p in bottom_scored[:4] if p not in top]
+    selected = list({id(p): p for p in top + bottom}.values())
+    lines: list[str] = []
+    for p in selected:
+        score_str = f" [{p['score']:.0f}pts]" if p["score"] is not None else ""
+        excerpt = p["note"][:150].rstrip()
+        if len(p["note"]) > 150:
+            excerpt += "…"
+        lines.append(f'- {p["label"]}{score_str}: "{excerpt}"')
+    if not lines:
+        return ""
+    return (
+        "**TASTING NOTE LIBRARY** (direct quotes from the user's own notes — "
+        "cite these verbatim in evidence_quotes):\n" + "\n".join(lines)
+    )
 
 
 @router.post("/recommend")
@@ -93,8 +150,9 @@ async def recommend(
 
     inv = load_inventory(profile.id)
     bottles = inv["bottles"] if inv else []
+    profile_data_raw = load_profile_data(profile.id)
     profile_hash = hashlib.md5(
-        json.dumps(load_profile_data(profile.id), sort_keys=True).encode()
+        json.dumps(profile_data_raw, sort_keys=True).encode()
     ).hexdigest()
 
     raw_bytes = b""
@@ -133,7 +191,7 @@ async def recommend(
             set_parse_cached(parse_key, wine_list_text)
 
         wine_list_hash = hashlib.md5(wine_list_text.encode()).hexdigest()[:8]
-        taste_profile = build_taste_profile_pydantic(load_profile_data(profile.id))
+        taste_profile = build_taste_profile_pydantic(profile_data_raw)
 
         wine_list_text = _INVISIBLE_RE.sub("", wine_list_text)
         wine_list_text = "\n".join(
@@ -150,7 +208,7 @@ async def recommend(
 
         wine_list_text = rank_wine_list(wine_list_text, taste_profile, override_terms=override_terms)
     else:
-        taste_profile = build_taste_profile_pydantic(load_profile_data(profile.id))
+        taste_profile = build_taste_profile_pydantic(profile_data_raw)
         logger.info("recommend: source_mode=cellar, skipping wine list parsing")
 
     enriched_profile = None
@@ -190,13 +248,31 @@ async def recommend(
         "override" if override_terms else "derived",
         terms,
     )
-    profile_prefs = extract_profile_preference_terms(load_profile_data(profile.id))
+    profile_prefs = extract_profile_preference_terms(profile_data_raw)
     relevant = get_relevant_bottles(bottles, terms, profile_prefs)
 
     meal_hints = meal_to_wine_hints(parse_meal_description(effective_meal))
-    structured_profile = build_taste_profile(load_profile_data(profile.id))
+    structured_profile = build_taste_profile(profile_data_raw)
     taste_markers_dict = structured_profile.get("taste_markers") if isinstance(structured_profile.get("taste_markers"), dict) else None
     palate_persona_text = structured_profile.get("palate_persona") if isinstance(structured_profile.get("palate_persona"), str) else None
+
+    # Tasting note library + aspirational skew — derived from CellarTracker consumed rows
+    tasting_note_library = ""
+    aspirational_skew_line = ""
+    consumed_rows = profile_data_raw.get("consumed", [])
+    if consumed_rows:
+        try:
+            tasting_note_library = _build_tasting_note_library(consumed_rows)
+            palate_stats_data = compute_palate_stats(
+                consumed_rows=consumed_rows,
+                inventory_rows=bottles,
+            )
+            asp = palate_stats_data.get("aspirational_skew")
+            if asp and asp.get("summary_line"):
+                aspirational_skew_line = asp["summary_line"]
+        except Exception as stats_err:
+            logger.warning("palate_stats_for_prompt_failed: %s", stats_err)
+
     system = build_system_prompt(
         relevant,
         cellar_summary=cellar_summary,
@@ -208,6 +284,8 @@ async def recommend(
         taste_markers=taste_markers_dict,
         palate_persona=palate_persona_text,
         source_mode=source_mode,
+        tasting_note_library=tasting_note_library,
+        aspirational_skew=aspirational_skew_line,
     )
     logger.info("recommend: system prompt built (len=%d)", len(system))
     logger.debug("recommend: system prompt (first 500 chars)=%s", system[:500])

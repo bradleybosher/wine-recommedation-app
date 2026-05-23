@@ -26,7 +26,11 @@ A portfolio-grade web application for pre-dinner wine list analysis. Users uploa
 - **One-Tap Profile Deepening:** If the top-ranked wine's grape isn't yet in your profile, a callout prompts you to add it with a single tap — keeping your profile in sync with what you're actually enjoying
 - **Recommendation Scoring:** Every response is silently scored across four dimensions (confidence, completeness, grounding, budget fit) and logged to `logs/recommendations.jsonl` for analysis
 - **Palate Drift Insights:** After 3+ recommendation flights, `GET /profile/insights` surfaces grapes and regions Claude keeps recommending that aren't in your stated profile — statistical analysis of flight history, no LLM call
-- **Retrieval-Augmented Pre-filtering:** For large wine lists (> 40 lines), each line is scored against your taste profile before the recommendation prompt is built — keeps token use bounded without an extra API call
+- **Retrieval-Augmented Pre-filtering:** For large wine lists (> 40 lines), each line is scored against your taste profile before the recommendation prompt is built — tiered keyword scoring (producer +2.0, region +1.5, grape +1.0) with synonym/sub-appellation expansion (e.g. "Burgundy" matches Gevrey-Chambertin, Marsannay, etc.) and single-token avoided-style penalties; no extra API call
+- **Grounded Tasting-Note Evidence:** Each recommendation can surface 1–2 direct quotes from your own CellarTracker tasting notes that justify the pick — grounding reasoning in what you actually wrote rather than plausible generalisations
+- **Diversity Stretch Pick:** When requesting 3+ bottles, the final recommendation is intentionally a *stretch* pick — adjacent to but outside your usual comfort zone, with reasoning that names the dimension being stretched; shown with a distinct visual flag
+- **Calibrated Structure Bars:** Per-wine tannin/acidity/body/sweetness/oak bars are blended 50/50 with a reference table of ~80 canonical appellation/grape pairs when a match exists, reducing LLM-generated drift on commonly-known wines
+- **Aspirational Skew:** If your cellar over-represents certain varietals or regions compared to your drinking history, Claude is nudged to favour those categories when the wine list offers a suitable option
 - **LLM Telemetry:** Every Anthropic call is logged to `logs/llm_calls.jsonl` (model, token counts, latency, stop reason) and exposed via `GET /debug/stats`
 - **Vinothèque Editorial UI:** React 19 + Tailwind CSS v4 + react-router-dom; old-world paper/serif editorial design system; four-screen flow (Preferences → Flight → Detail → Compare); works on desktop and tablet
 
@@ -229,6 +233,9 @@ Cache response in SQLite → return to frontend
 | `logging_utils.py` | JSONL event logger to `logs/recommendations.jsonl` |
 | `retry_utils.py` | Generic retry helper with exponential backoff |
 | `cache.py` | SQLite response + parse caching |
+| `synonyms.py` | Grape/region synonym and sub-appellation expansion for retrieval |
+| `palate_stats.py` | Pre-LLM statistical palate analysis (frequency counts, style signals, aspirational skew) |
+| `data/wine_reference.json` | ~80 canonical structure-bar entries by appellation/grape pair for bar blending |
 
 ---
 

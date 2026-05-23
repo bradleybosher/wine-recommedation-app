@@ -16,6 +16,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
 - `unicodedata` (accent folding—imported but unused here; see inventory.py)
 - `inventory.decode_cellartracker_upload()` (encoding fallback)
 - `pathlib.Path` (profile_data file resolution)
+- `palate_stats.compute_palate_stats`, `palate_stats.format_stats_for_prompt` — statistical pre-analysis injected into synthesis prompt
 
 ## Inputs/Outputs
 
@@ -139,6 +140,7 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Maps: top_varietals → preferred_grapes, top_regions → preferred_regions, preferred_descriptors → preferred_styles
   - Derives budget_min/max from avg_spend (±10 from rounded average)
   - Sets `profile_source="cellartracker"` or `"seed_bottles"` etc. based on source
+  - Passes through `top_producers` and `avoided_style_tokens` from the synthesized profile (empty lists if absent)
   - Returned in `UploadProfileResponse.taste_profile` so the frontend gets a typed profile immediately on upload
   - Profile_id-agnostic; operates on already-loaded dict
 
@@ -155,17 +157,28 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - `enrich_profile_with_ollama` is kept as an alias for backwards compatibility
 
 **synthesize_palate_from_notes(profile_id: str, profile_data: dict, anthropic_api_key: str, anthropic_model: str) → dict | None**:
-  - **Primary LLM palate path for CellarTracker uploads.** Single Anthropic
-    tool-use call (`synthesize_palate_profile`) that takes raw tasting notes
-    grouped by score tier (high/mid/low, capped at 50 per tier) plus the
-    deterministic structured signals (top varietals/regions/producers,
+  - **Primary LLM palate path for CellarTracker uploads.** Runs
+    `palate_stats.compute_palate_stats(consumed_rows, inventory_rows)` first
+    (pure Python, no LLM) and injects the result as a **STATISTICAL EVIDENCE**
+    block into the synthesis prompt via `format_stats_for_prompt()`. Then makes
+    a single Anthropic tool-use call (`synthesize_palate_profile`) with raw
+    tasting notes grouped by score tier (high/mid/low, capped at 50 per tier)
+    plus the deterministic structured signals (top varietals/regions/producers,
     highly_rated, avg_spend) and synthesizes a rich palate profile.
+  - The synthesis tool schema also includes `avoided_style_tokens: list[str]`
+    so Claude can emit single-token markers for avoided styles.
   - Returns dict shaped like seed-bottle inferred profile + extras:
     `preferred_descriptors` (multi-word phrases), `avoided_styles`,
-    `style_summary`, `taste_markers` ({acidity, tannin, body, oak} 1-5),
-    `palate_persona` (2-3 sentence sommelier persona naming signature styles),
-    `inference_confidence`, `profile_source="cellartracker_synthesized"`,
-    `note_count`.
+    `avoided_style_tokens`, `style_summary`, `taste_markers`
+    ({acidity, tannin, body, oak} 1-5), `palate_persona` (2-3 sentence
+    sommelier persona naming signature styles), `inference_confidence`,
+    `profile_source="cellartracker_synthesized"`, `note_count`.
+  - **Confidence scaling**: after receiving Claude's output, `inference_confidence`
+    is upgraded: `note_count ≥ 50` → `"high"` regardless of Claude's value;
+    `note_count ≥ 20` and Claude returned `"low"` → promoted to `"medium"`.
+  - **Post-synthesis merge**: `top_producers` and `avoided_style_tokens` from
+    the stat-derived signals are merged into the synthesized dict, augmenting
+    (not replacing) any values Claude emitted.
   - Returns `None` when no notes are present (skip — fall back to deterministic).
   - **Raises** `anthropic.APIError` or `RuntimeError` on Claude-side failure —
     callers must catch and let the deterministic path take over.

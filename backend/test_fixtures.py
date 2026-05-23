@@ -91,6 +91,8 @@ _HAPPY = RecommendationResponse(
             palate="Medium-full body, firm but approachable tannins and a clean savoury finish.",
             pairs=["Grilled bistecca", "Sheep's milk ricotta", "Mushroom pasta"],
             critic=Critic(score=91, source="Gambero Rosso"),
+            stretch=True,
+            evidence_quotes=["Earthy, dried cherry, long finish — my kind of wine", "Love the structure here, classic Chianti profile"],
         ),
     ],
     list_quality_note=None,

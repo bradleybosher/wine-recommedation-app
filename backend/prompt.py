@@ -36,6 +36,8 @@ def build_system_prompt(
     taste_markers: dict | None = None,
     palate_persona: str | None = None,
     source_mode: str = "winelist",
+    tasting_note_library: str = "",
+    aspirational_skew: str = "",
 ) -> str:
     import logging
     logger = logging.getLogger(__name__)
@@ -149,9 +151,23 @@ or if a bottle is worth ordering specifically because they don't have it.
         )
 
     constraints: list[str] = [f"Return exactly {bottle_count} ranked recommendations."]
+    if bottle_count >= 3:
+        constraints.append(
+            f"Make rank {bottle_count} a stretch/discovery slot: a wine slightly outside the "
+            "safe persona zone that the guest might not choose alone but would be glad you "
+            "suggested. Set stretch=true for this pick only."
+        )
     if budget_ceiling:
         constraints.append(f"Budget ceiling per bottle: {budget_ceiling} — exclude wines above this price.")
     constraint_section = "\n".join(f"- {c}" for c in constraints)
+
+    note_library_section = ""
+    if tasting_note_library.strip():
+        note_library_section = f"\n{tasting_note_library.strip()}\n\n"
+
+    aspirational_section = ""
+    if aspirational_skew.strip():
+        aspirational_section = f"**ASPIRATIONAL SKEW**: {aspirational_skew.strip()}\n\n"
 
     schema = """{
   "recommendations": [
@@ -173,6 +189,8 @@ or if a bottle is worth ordering specifically because they don't have it.
       "nose": "one sentence aromatic profile",
       "palate": "one sentence palate and finish",
       "fits": ["profile tag 1", "profile tag 2"],
+      "evidence_quotes": ["From your [Wine] note: \"[verbatim quote]\""],
+      "stretch": false,
       "pairs": ["dish 1", "dish 2", "dish 3"],
       "critic": {"score": number, "source": "string"},
       "reasoning": "string (2-4 sentences)",
@@ -194,8 +212,8 @@ Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, n
 
 {palate_persona_section}PRIORITY — Owner taste profile (match this first):
 {taste_profile}
-{taste_markers_section}{character_line}{cellar_section}
-{cellar_cross_ref}{meal_section}Return your response as valid JSON matching this schema exactly:
+{taste_markers_section}{aspirational_section}{character_line}{cellar_section}
+{cellar_cross_ref}{note_library_section}{meal_section}Return your response as valid JSON matching this schema exactly:
 {schema}
 
 {reasoning_notes}
@@ -211,6 +229,12 @@ Notes for fits field (optional):
 - Good: "Matches your high-acidity preference (5/5)", "Aligned with your top region: Northern Rhône", "Hits your oxidative-style signature", "Avoids the overtly oaky profile you down-rate".
 - Bad (forbidden — too generic): "Great with food", "Crowd pleaser", "Classic choice".
 - If no clean signal applies, OMIT the field entirely. Do not return an empty array and do not invent signals not present in the profile.
+
+Notes for evidence_quotes field (optional):
+- Only populate if a TASTING NOTE LIBRARY is present above.
+- Provide 1-2 short verbatim quotes from that library that directly justify this pick.
+- Format: 'From your [Wine name] note: "[verbatim quote]"'
+- NEVER fabricate, paraphrase, or extend quotes beyond what the library contains. If no clear connection exists, omit entirely.
 
 Notes for wheel field:
 - Provide 6-8 entries representing the dominant aroma families. Values are 0-10 intensity.

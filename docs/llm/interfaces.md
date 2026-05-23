@@ -327,6 +327,8 @@ class TasteProfile(BaseModel):
   occasion, food_pairing: Optional[str]
   profile_source: str = "manual"  # "cellartracker" | "seed_bottles" | "manual"
   inference_confidence: Optional[str]  # "high"|"medium"|"low", set when profile_source=="seed_bottles"
+  avoided_style_tokens: List[str]  # single-token markers distilled from avoided_styles (e.g. "oaky", "jammy")
+  top_producers: List[str]         # repeat-purchase producers from note history (strongest positive signal)
 
 class SeedBottle(BaseModel):
   producer: str
@@ -374,6 +376,8 @@ class WineRecommendation(BaseModel):
   reasoning: str               # 2–4 sentences: personal comparison → contrast → food → cellar note
   confidence: str              # "high|medium|low — single clause reason"
   fits: Optional[List[str]]    # 2–3 short tags grounding pick in profile signals; omit when no clean match
+  evidence_quotes: Optional[List[str]]  # 1-2 verbatim quotes from TASTING NOTE LIBRARY; omit if no library/match
+  stretch: bool = False        # True when this pick is intentionally outside the safe persona zone
   # Phase 5 enrichment fields (all optional; populated server-side or by Claude):
   appellation: Optional[str]
   country: Optional[str]
@@ -448,7 +452,8 @@ def get_recommendation(
   system_prompt: str,
   anthropic_api_key: str,
   anthropic_model: str,
-  image_b64: Optional[str] = None
+  image_b64: Optional[str] = None,
+  source_mode: str = "winelist",
 ) → RecommendationResponse
   Call Anthropic Claude via tool use (provide_recommendations tool). tool_block.input is a
   pre-parsed dict — no JSON parsing needed. Retry up to 3× on Pydantic ValidationError.
@@ -456,6 +461,8 @@ def get_recommendation(
   Post-validation: calls _derive_color() for each WineRecommendation where color is None,
   so color is always populated on the returned object. color is excluded from the Claude
   tool schema to avoid hallucinated hex codes.
+  Post-validation: calls _find_reference_bars() + _blend_bars() for each wine with bars populated,
+  blending Claude's 0-10 bars 50/50 with wine_reference.json reference values (0.0-1.0 × 10).
 ```
 
 ### prompt.py
@@ -473,7 +480,10 @@ def build_system_prompt(
   bottle_count: int = 3,
   budget_ceiling: str = "",
   taste_markers: dict | None = None,
-  palate_persona: str | None = None
+  palate_persona: str | None = None,
+  source_mode: str = "winelist",
+  tasting_note_library: str = "",
+  aspirational_skew: str = "",
 ) → str
   Construct system prompt: sommelier persona, taste profile, relevant bottles, schema, meal hints.
   If taste_profile_override provided, skips internal build_enriched_profile_text_basic() call.
@@ -483,6 +493,10 @@ def build_system_prompt(
   When palate_persona provided, quotes it verbatim under a **PALATE PERSONA** header inserted
   above the PRIORITY block; fits tags may cite/paraphrase persona phrases.
   Injects CONSTRAINTS block: "Return exactly N ranked recommendations." + optional budget ceiling.
+  When bottle_count >= 3, adds stretch/discovery slot instruction for the final rank.
+  When tasting_note_library non-empty, injects **TASTING NOTE LIBRARY** block enabling evidence_quotes.
+  When aspirational_skew non-empty, injects **ASPIRATIONAL SKEW** line above cellar section.
+  source_mode controls mode intro, hard constraint, and reasoning structure ("winelist" or "cellar").
   Writes full prompt to prompt.log via dedicated _prompt_logger.
   Returns full prompt string with JSON schema embedded.
 ```
@@ -757,11 +771,42 @@ def rank_wine_list(
   limit: int = 40,
 ) → str
   Retrieval-augmented pre-filter for large wine lists. No-op when list has ≤ limit lines.
-  Scores each line by profile-signal overlap (preferred grapes/regions/styles/override_terms +1 each;
-  avoided styles −2 each; price < 50% of budget_min −0.5; price > 200% of budget_max −0.5).
-  Matching is accent-normalised (NFKD) and case-insensitive substring. Price extracted from $NNN patterns only.
+  Tiered scoring per line: baseline +0.25; top-producer name +2.0; region/appellation +1.5
+  (expanded via synonyms.expand_terms); grape/varietal +1.0 (expanded via synonyms.expand_terms);
+  style descriptor +0.5; override_terms +1.0; avoided-style token −2.0;
+  price < 50% of budget_min −0.5; price > 200% of budget_max −0.5.
+  Matching is accent-normalised (NFKD) and case-insensitive substring.
+  Price extracted from $NNN, £NNN, €NNN patterns.
   Ties broken by original list position. Returns newline-joined top `limit` lines.
   When profile has no positive signals, truncates to first `limit` lines (safe fallback).
+```
+
+### synonyms.py
+
+```python
+def expand_term(term: str) -> list[str]
+  Return [term] + all known synonyms/sub-appellations for the canonical term.
+  Returns [term] if no expansion defined.
+
+def expand_terms(terms: list[str]) -> list[str]
+  Expand all terms in the list. Returns flat deduplicated list.
+```
+
+### palate_stats.py
+
+```python
+def compute_palate_stats(
+  consumed_rows: list[dict],
+  inventory_rows: list[dict] | None = None,
+  avoided_styles: list[str] | None = None,
+) -> PalateStats
+  Compute statistical palate features from CellarTracker data. No LLM calls.
+  Returns PalateStats TypedDict with: producer_frequency, region_frequency, varietal_frequency,
+  price_distribution, style_signals (natural_wine_affinity, oxidative_affinity, aging_preference),
+  avoided_style_tokens, top_producers, note_count, aspirational_skew (cellar_over_consumed + summary_line).
+
+def format_stats_for_prompt(stats: PalateStats) -> str
+  Format PalateStats as a "STATISTICAL EVIDENCE" text block for injection into synthesis prompt.
 ```
 
 ### insights.py

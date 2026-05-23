@@ -10,7 +10,9 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 - `llm_client.call_claude` (telemetry wrapper around `client.messages.create`)
 - `json` (serialising tool input to llm.log)
 - `pydantic.ValidationError` (schema validation errors)
-- `models.RecommendationResponse`, `models.WineColor`, `models.WineRecommendation`
+- `unicodedata` (NFKD normalisation for accent-insensitive reference matching)
+- `models.RecommendationResponse`, `models.WineColor`, `models.WineRecommendation`, `models.StructureBars`
+- `backend/data/wine_reference.json` — seed table of canonical bars per appellation/grape pair (loaded at module level)
 
 ## Inputs/Outputs
 
@@ -39,8 +41,9 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 3. Extract the `tool_use` block from `response.content` by name.
 4. Read `tool_block.input` — already a parsed dict, no JSON parsing needed.
 5. `RecommendationResponse(**data)` — raise `ValueError` on Pydantic schema mismatch.
-6. **Color derivation**: For each `WineRecommendation` where `color is None`, call `_derive_color(wine)` and assign. This runs after Pydantic validation so `color` is always populated on the returned object.
-7. Log system prompt + user payload + tool input dict to `llm.log`.
+6. **Color derivation**: For each `WineRecommendation` where `color is None`, call `_derive_color(wine)` and assign.
+7. **Bar blending**: For each wine with `bars` populated, call `_find_reference_bars(appellation, grape)`. When a match is found in `_WINE_REFERENCE`, blend Claude's bars 50/50 with the reference values via `_blend_bars()`. This grounds LLM-asserted bar values against a calibrated seed table.
+8. Log system prompt + user payload + tool input dict to `llm.log`.
 
 ### `_derive_color(wine: WineRecommendation) → WineColor`
 
@@ -65,9 +68,11 @@ Key schema fields per recommendation item:
 - `reasoning`: 2–4 sentences, opening with personal comparison to owned bottle or named profile preference
 - `confidence`: `"high|medium|low — single clause reason"`
 - `fits`: Optional array of 2–3 short tags (≤ 8 words each) grounding the pick in a concrete profile signal. Omit entirely when no clean signal applies (no empty array).
+- `evidence_quotes`: Optional array of 1–2 short verbatim quotes from the TASTING NOTE LIBRARY in the system prompt. Format: `'From your [Wine name] note: "[verbatim quote]"'`. Only populated when the library is present and a genuine textual match exists — never fabricated or paraphrased. Omitted entirely when no library or no clear match.
+- `stretch`: Boolean. `true` only when this pick is intentionally outside the safe persona zone (the stretch/discovery slot, typically the final ranked pick). Omit or `false` for all other picks.
 - `appellation`, `country`, `coords`, `grape`, `abv`: Optional enrichment
 - `drink`: Optional object `{from, peak, until}` (integer years)
-- `bars`: Optional object `{tannin, acidity, body, sweetness, oak}` (0–10 each)
+- `bars`: Optional object `{tannin, acidity, body, sweetness, oak}` (0–10 each) — **post-validation, these are blended 50/50 with reference values when a match exists in `_WINE_REFERENCE`**
 - `wheel`: Optional object — 6–8 aroma descriptors with intensity 0–10
 - `nose`, `palate`: Optional one-sentence strings
 - `pairs`: Optional array of 2–4 food pairing suggestions
@@ -79,11 +84,31 @@ Top-level schema fields:
 - `profile_match_summary`: required string
 - `list_quality_note`: optional string
 
+## Bar Blending Helpers
+
+### `_normalize_ref(s: str) → str`
+Lowercase + strip combining diacritics (NFKD) for accent-insensitive reference matching. Same normalisation as `retrieval._normalize`.
+
+### `_find_reference_bars(appellation, grape) → Optional[dict]`
+Searches `_WINE_REFERENCE` (loaded from `data/wine_reference.json` at module level) for the best match using three tiers:
+1. Exact appellation + exact grape
+2. Partial appellation (appellation substring in entry) + exact grape
+3. Appellation-only (ignores grape)
+Returns the bars dict (0.0–1.0 scale) of the first match, or `None`.
+
+### `_blend_bars(claude_bars: dict, ref_bars: dict) → dict`
+50/50 blend of Claude's 0–10 bars with reference 0.0–1.0 bars (scaled ×10 before averaging).
+Keys: `tannin`, `acidity`, `body`, `sweetness`, `oak`. Values rounded to 1 decimal place.
+
+**Scale note**: `wine_reference.json` stores values on 0.0–1.0 scale; blending ALWAYS multiplies reference values ×10 before the 50/50 average with Claude's 0–10 values.
+
 ## Patterns & Gotchas
 
 - **Tool use = no JSON repair**: `tool_block.input` is a pre-parsed dict. All brace-repair, fence-stripping, and key-aliasing logic from the prior Ollama implementation has been removed.
 - **Retry classification**: `ValueError` (Pydantic validation failure) → retry up to 3×. `anthropic.APIError` or other exceptions → raise 502 immediately.
 - **Color always populated**: `_derive_color` runs post-validation, so `wine.color` is never `None` on any returned `WineRecommendation`.
+- **Bar blending is optional**: only fires when `wine.bars` is not `None` AND a reference entry matches. No blending → Claude's bars used as-is.
+- **Reference load failure**: if `data/wine_reference.json` is missing or malformed, `_WINE_REFERENCE` is set to `[]` (empty list) and blending silently skips for all wines.
 - **Multimodal**: Images passed as `{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": <b64>}}` content block. Must be JPEG; media type hardcoded.
 - **Max tokens**: 4096 (sufficient for 3 recommendations with full enrichment fields).
 - **No timeout config**: Anthropic SDK uses its own default timeouts and built-in retry for transient errors.

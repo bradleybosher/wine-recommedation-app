@@ -4,6 +4,7 @@ import json
 import logging
 import logging.handlers
 import os
+import unicodedata
 from pathlib import Path
 from typing import Optional
 
@@ -12,9 +13,61 @@ from fastapi import HTTPException
 from pydantic import ValidationError
 
 from llm_client import call_claude
-from models import RecommendationResponse, WineColor, WineRecommendation
+from models import RecommendationResponse, StructureBars, WineColor, WineRecommendation
 
 logger = logging.getLogger("sommelier.recommender")
+
+# Wine reference data for bar calibration — appellation+grape → reference bars (0.0–1.0 scale).
+_REF_PATH = Path(__file__).resolve().parent / "data" / "wine_reference.json"
+_WINE_REFERENCE: list[dict] = []
+try:
+    with _REF_PATH.open(encoding="utf-8") as _fh:
+        _ref_data = json.load(_fh)
+    _WINE_REFERENCE = _ref_data.get("entries", [])
+    logger.debug("wine_reference loaded: %d entries", len(_WINE_REFERENCE))
+except Exception as _ref_exc:
+    logger.warning("wine_reference load failed: %s", _ref_exc)
+
+
+def _normalize_ref(s: str) -> str:
+    """Lowercase + strip combining diacritics for accent-insensitive reference matching."""
+    nfkd = unicodedata.normalize("NFKD", s.lower())
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def _find_reference_bars(appellation: Optional[str], grape: Optional[str]) -> Optional[dict]:
+    """Return the best-matching reference bars dict (0.0–1.0 scale) for an appellation+grape pair."""
+    if not _WINE_REFERENCE:
+        return None
+    norm_app = _normalize_ref(appellation or "")
+    norm_grape = _normalize_ref(grape or "")
+    # Exact match on both fields
+    for entry in _WINE_REFERENCE:
+        if (norm_app and norm_grape
+                and _normalize_ref(entry.get("appellation", "")) == norm_app
+                and _normalize_ref(entry.get("grape", "")) == norm_grape):
+            return entry["bars"]
+    # Partial appellation match + exact grape
+    for entry in _WINE_REFERENCE:
+        ref_app = _normalize_ref(entry.get("appellation", ""))
+        ref_grape = _normalize_ref(entry.get("grape", ""))
+        if (norm_app and norm_grape and ref_grape == norm_grape
+                and (ref_app in norm_app or norm_app in ref_app)):
+            return entry["bars"]
+    # Appellation-only match (grape absent or unknown)
+    if norm_app and not norm_grape:
+        for entry in _WINE_REFERENCE:
+            ref_app = _normalize_ref(entry.get("appellation", ""))
+            if ref_app and (ref_app == norm_app or ref_app in norm_app or norm_app in ref_app):
+                return entry["bars"]
+    return None
+
+
+def _blend_bars(claude_bars: dict, ref_bars: dict) -> dict:
+    """50/50 blend of Claude's 0–10 bars with reference 0.0–1.0 bars (scaled ×10)."""
+    keys = ["tannin", "acidity", "body", "sweetness", "oak"]
+    return {k: round((float(claude_bars.get(k, 5)) + float(ref_bars.get(k, 0.5)) * 10) / 2, 1) for k in keys}
+
 
 # Dedicated file logger for raw LLM input/output — one entry per call.
 _log_dir = Path(__file__).resolve().parent / "logs"
@@ -128,6 +181,26 @@ _RECOMMENDATION_TOOL: dict = {
                                 "'Aligned with your top region: Northern Rhône', "
                                 "'Avoids the oaky profile you down-rate'. "
                                 "Omit the field entirely (do not return an empty array) if no clean signal applies."
+                            ),
+                        },
+                        "evidence_quotes": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "Optional. 1-2 short verbatim quotes from the TASTING NOTE LIBRARY that directly "
+                                "justify this pick. Format each entry as: "
+                                "'From your [Wine name] note: \"[verbatim quote]\"'. "
+                                "ONLY include if the TASTING NOTE LIBRARY is present in the system prompt "
+                                "AND you can find a genuine textual match — never fabricate or paraphrase. "
+                                "Omit entirely if no library is provided or no clear connection exists."
+                            ),
+                        },
+                        "stretch": {
+                            "type": "boolean",
+                            "description": (
+                                "Set to true only when this pick is intentionally outside the safe persona zone "
+                                "(the stretch/discovery slot, typically the final ranked pick). "
+                                "Omit or set false for all other picks."
                             ),
                         },
                         # --- Phase 5 enrichment fields ---
@@ -296,9 +369,21 @@ def _attempt_recommendation(
         raise ValueError(f"Schema validation failed: {exc}") from exc
 
     # Derive palette hex values server-side — not asked of Claude to avoid hallucinated hex codes.
+    # Also blend structure bars with reference data where a match exists.
     for wine in recommendation.recommendations:
         if wine.color is None:
             wine.color = _derive_color(wine)
+        if wine.bars is not None:
+            ref_bars = _find_reference_bars(wine.appellation, wine.grape)
+            if ref_bars is not None:
+                blended = _blend_bars(wine.bars.model_dump(), ref_bars)
+                wine.bars = StructureBars(**blended)
+                logger.debug(
+                    "bars_blended wine=%s appellation=%s grape=%s",
+                    wine.wine_name,
+                    wine.appellation,
+                    wine.grape,
+                )
 
     logger.info("attempt=%d schema_validation_passed wines=%d", attempt, len(recommendation.recommendations))
     return recommendation

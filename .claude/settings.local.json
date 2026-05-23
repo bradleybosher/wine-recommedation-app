@@ -38,7 +38,8 @@
       "Bash(.venv\\\\Scripts\\\\python.exe -c \"import sqlite3; conn = sqlite3.connect\\('cellar.db'\\); rows = conn.execute\\('SELECT id, email, created_at FROM users'\\).fetchall\\(\\); [print\\(r\\) for r in rows]; conn.close\\(\\)\")",
       "Bash(cmd /c sync_types.bat)",
       "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import passlib; import bcrypt; print\\('passlib:', passlib.__version__\\); print\\('bcrypt:', bcrypt.__version__\\)\")",
-      "Bash(backend/.venv/Scripts/pip.exe install *)"
+      "Bash(backend/.venv/Scripts/pip.exe install *)",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0,'backend'\\); from recommender import get_recommendation; print\\('recommender OK'\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",

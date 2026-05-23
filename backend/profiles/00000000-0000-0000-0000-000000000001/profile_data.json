@@ -4722,5 +4722,20 @@
     "inference_confidence": "medium",
     "profile_source": "cellartracker_synthesized",
     "note_count": 102
+  },
+  "_overrides": {
+    "top_varietals": [
+      "champagne blend",
+      "pinot noir",
+      "chenin blanc",
+      "chardonnay",
+      "red bordeaux blend",
+      "gamay",
+      "riesling",
+      "white blend",
+      "pinotage",
+      "sauvignon blanc",
+      "Assyrtiko"
+    ]
   }
 }

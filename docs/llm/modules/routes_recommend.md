@@ -57,13 +57,27 @@ File/test:
 8. **Enriched profile**: Try `profile.build_enriched_profile_text(profile.id, ...)`. On any error fall back to standard profile (non-fatal).
 9. Compute `cellar_summary` (top 5 terms) and `relevant` bottles (top 10 terms, possibly overridden by `effective_style`) via `cellar_terms.*` + `inventory.get_relevant_bottles`.
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
-11. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`. Also passes `taste_markers` and `palate_persona` extracted from `build_taste_profile(load_profile_data(profile.id))` so the prompt can render the numeric markers block and quote the persona verbatim (both populated by `_synthesized` or `_inferred` profiles; absent for legacy CT-only).
+11. **Tasting note library + aspirational skew**: reads `consumed_rows` from `profile_data_raw`. Calls `_build_tasting_note_library(consumed_rows)` to build a formatted `**TASTING NOTE LIBRARY**` block (top-scored + bottom-scored notes, deduplicated by varietal/region, max 15 entries). Calls `palate_stats.compute_palate_stats(consumed_rows, inventory_rows=bottles)` to extract `aspirational_skew.summary_line`. Both are passed to `build_system_prompt()` and are empty strings when no consumed rows are present.
+12. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`, `taste_markers`, `palate_persona`, `source_mode`, `tasting_note_library`, `aspirational_skew`.
 12. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
 13. **Per-wine grounding** (winelist mode only): after recommendations are returned, iterate and set `rec.verified_on_list = scorer._is_grounded(rec.wine_name, wine_list_text)` on each wine.
 14. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response.
 15. `save_flight(profile_id=profile.id, ...)` — best-effort; captures the returned `flight_id` and scopes the flight record to the active profile. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
 16. On `HTTPException`: log error event, re-raise.
 17. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
+
+## Module-Level Helpers
+
+### `_build_tasting_note_library(consumed_rows, max_entries=15) → str`
+
+Extracts tasting notes from CellarTracker consumed rows and formats them as a prompt-ready library block.
+
+- Skips rows with no `ConsumptionNote`.
+- Extracts score from `CScore` or `PScore` (first present wins).
+- Deduplicates by `varietal|region` key — one note per varietal+region pair.
+- Orders by descending score, then unscored. Takes top-scored entries (2/3 of `max_entries`) and up to 4 bottom-scored entries.
+- Each line: `- {Producer} {Wine} [{score}pts]: "{note[:150]}…"`
+- Returns a `**TASTING NOTE LIBRARY** (direct quotes…):\n…` block, or empty string if no notes.
 
 ## Dependencies
 
@@ -75,6 +89,7 @@ File/test:
 - `logging_utils.log_recommendation_event`
 - `meal_parser.{meal_to_wine_hints, parse_meal_description}`
 - `models.RecommendationResponse`
+- `palate_stats.compute_palate_stats` — statistical palate analysis for aspirational skew
 - `parser.{OCRError, parse_wine_list}`
 - `retrieval.rank_wine_list`
 - `profile.{build_enriched_profile_text, build_taste_profile, build_taste_profile_pydantic, extract_profile_preference_terms, load_profile_data}`

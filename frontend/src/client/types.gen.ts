@@ -777,6 +777,14 @@ export type TasteProfile = {
      */
     avoidedStyles?: Array<string>;
     /**
+     * Avoidedstyletokens
+     */
+    avoidedStyleTokens?: Array<string>;
+    /**
+     * Topproducers
+     */
+    topProducers?: Array<string>;
+    /**
      * Budgetmin
      */
     budgetMin?: number | null;
@@ -1000,6 +1008,14 @@ export type WineRecommendation = {
      * Verifiedonlist
      */
     verifiedOnList?: boolean | null;
+    /**
+     * Stretch
+     */
+    stretch?: boolean;
+    /**
+     * Evidencequotes
+     */
+    evidenceQuotes?: Array<string> | null;
 };
 
 export type RegisterAuthRegisterPostData = {

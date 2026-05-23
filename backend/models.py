@@ -104,6 +104,8 @@ class TasteProfile(BaseModel):
     preferred_regions: List[str] = Field(default_factory=list)
     preferred_grapes: List[str] = Field(default_factory=list)
     avoided_styles: List[str] = Field(default_factory=list)
+    avoided_style_tokens: List[str] = Field(default_factory=list)  # single-token markers distilled from avoided_styles sentences
+    top_producers: List[str] = Field(default_factory=list)  # repeat-purchase producers (strongest positive signal)
 
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
@@ -291,6 +293,8 @@ class WineRecommendation(BaseModel):
     pairs: Optional[List[str]] = None
     critic: Optional[Critic] = None
     verified_on_list: Optional[bool] = None  # set server-side post-validation; None in cellar mode
+    stretch: bool = False  # True when this pick is intentionally outside the safe persona zone
+    evidence_quotes: Optional[List[str]] = None  # 1-2 short quotes from user's tasting history justifying this pick
 
     model_config = ConfigDict(
         alias_generator=to_camel,
