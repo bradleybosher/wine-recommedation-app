@@ -6,8 +6,8 @@ FastAPI dependency functions for per-request authentication and active-profile r
 
 ## Public surface
 
-- `get_current_user(authorization: str = Header(...)) -> User` — Extract and validate JWT bearer token from the `Authorization` header. Returns authenticated `User` object. Raises `401` (Unauthorized) if header missing, malformed, or token invalid/expired. Also raises `401` if the user_id in the token no longer exists in the database.
-- `get_current_profile(x_profile_id: str = Header(alias="X-Profile-Id"), user: User = Depends(get_current_user)) -> Profile` — Resolve the active profile by `X-Profile-Id` header. Requires prior `get_current_user` (chained via `Depends`). Returns `Profile` object. Raises `400` (Bad Request) if header missing. Raises `404` (Not Found) if profile not found. Raises `403` (Forbidden) if profile not owned by the authenticated user.
+- `get_current_user(authorization: Optional[str] = Header(default=None)) -> User` — Extract and validate JWT bearer token from the `Authorization` header. The header is declared optional (`Header(default=None)`); a missing or malformed header raises `401` manually. Returns authenticated `User` object. Raises `401` (Unauthorized) if header missing/malformed, or token invalid/expired/missing-subject. Also raises `401` if the user_id in the token no longer exists in the database.
+- `get_current_profile(x_profile_id: Optional[str] = Header(default=None, alias="X-Profile-Id"), user: User = Depends(get_current_user)) -> Profile` — Resolve the active profile by `X-Profile-Id` header. Requires prior `get_current_user` (chained via `Depends`). Returns `Profile` object. Raises `400` (Bad Request) if header missing. Raises `404` (Not Found) if profile not found. Raises `403` (Forbidden) if profile not owned by the authenticated user.
 
 ## Dependencies
 
@@ -40,13 +40,16 @@ FastAPI dependency functions for per-request authentication and active-profile r
 
 | Scenario | Status | Exception |
 |---|---|---|
-| Missing Authorization header | 401 | `HTTPException(status_code=401, detail="Missing authorization header")` |
-| Malformed/invalid token | 401 | `HTTPException(status_code=401, detail="Invalid token")` |
-| Expired token | 401 | `HTTPException(status_code=401, detail="Token expired")` |
-| User not found in database | 401 | `HTTPException(status_code=401, detail="User not found")` |
+| Missing/malformed Authorization header | 401 | `HTTPException(status_code=401, detail="Missing or malformed Authorization header")` |
+| Malformed/invalid token | 401 | `HTTPException(status_code=401, detail=str(e))` → `"Invalid token"` |
+| Expired token | 401 | `HTTPException(status_code=401, detail=str(e))` → `"Token expired"` |
+| Token missing subject | 401 | `HTTPException(status_code=401, detail=str(e))` → `"Token missing subject"` |
+| User not found in database | 401 | `HTTPException(status_code=401, detail="User no longer exists")` |
 | Missing X-Profile-Id header | 400 | `HTTPException(status_code=400, detail="Missing X-Profile-Id header")` |
 | Profile not found | 404 | `HTTPException(status_code=404, detail="Profile not found")` |
-| Profile not owned by user | 403 | `HTTPException(status_code=403, detail="Profile access denied")` |
+| Profile not owned by user | 403 | `HTTPException(status_code=403, detail="Profile not owned by current user")` |
+
+The token-error rows all surface the `TokenError` message verbatim via `detail=str(e)`; the three possible strings are `"Token expired"`, `"Invalid token"`, and `"Token missing subject"`.
 
 ## Testing
 

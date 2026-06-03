@@ -2,21 +2,26 @@
 
 ## Responsibility
 
-Pure password hashing and JWT token utilities for user authentication. Kept free of FastAPI imports to enable unit-testability and CLI reuse. Implements bcrypt-based password hashing and HS256 JWT signing/verification.
+Pure password hashing and JWT token utilities for user authentication. Kept free of FastAPI imports to enable unit-testability and CLI reuse. Implements plain-bcrypt password hashing (with a SHA-256 prehash) and HS256 JWT signing/verification.
 
 ## Public surface
 
-- `hash_password(plaintext: str) -> str` — Hash a plaintext password using bcrypt; returns salted hash string. Used at registration time.
-- `verify_password(plaintext: str, password_hash: str) -> bool` — Verify plaintext against stored hash; returns True if match, False otherwise.
-- `create_access_token(user_id: str) -> str` — Create signed JWT token with `sub` (user_id), `iat` (issued-at), and `exp` (expiry) claims. Returns token string.
-- `decode_access_token(token: str) -> str` — Decode and verify JWT token; returns the `sub` (user_id) claim. Raises `TokenError` if token invalid, expired, or malformed.
-- `TokenError` exception — Raised by `decode_access_token` on invalid/expired tokens. Allows distinction from other exceptions (e.g. missing token header).
+- `hash_password(plaintext: str) -> str` — Prehash the plaintext via `_prehash` (SHA-256 → base64), then hash with bcrypt; returns salted hash string. Used at registration time.
+- `verify_password(plaintext: str, password_hash: str) -> bool` — Prehash the plaintext via `_prehash`, then verify against stored hash; returns True if match, False otherwise.
+- `create_access_token(user_id: str) -> str` — Create signed JWT token with `sub` (user_id), `iat` (issued-at), and `exp` (expiry) claims. Timestamps use `int(time.time())` (Unix epoch). Returns token string.
+- `decode_access_token(token: str) -> str` — Decode and verify JWT token; returns the `sub` (user_id) claim. Raises `TokenError("Token expired")` on expiry, `TokenError("Invalid token")` on malformed/bad-signature tokens, and `TokenError("Token missing subject")` when the `sub` claim is absent or not a non-empty string.
+- `TokenError` exception — Raised by `decode_access_token` on invalid/expired tokens or a missing subject. Allows distinction from other exceptions (e.g. missing token header).
+
+## Internal surface
+
+- `_prehash(plaintext: str) -> str` — SHA-256 digest of the plaintext, base64-encoded to a fixed 44-byte string. Applied before bcrypt by both `hash_password` and `verify_password` to dodge bcrypt's 72-byte input truncation limit.
 
 ## Dependencies
 
-- `passlib[bcrypt]` — bcrypt hashing (PBKDF2 configured for production)
+- `passlib` — `CryptContext(schemes=["bcrypt"], deprecated="auto")` — plain bcrypt hashing (no PBKDF2)
 - `jwt` (PyJWT) — HS256 token signing/verification
-- `datetime` (standard library) — Token expiry calculation
+- `time` (standard library) — Unix-epoch timestamps for `iat`/`exp`
+- `hashlib` + `base64` (standard library) — SHA-256 prehash before bcrypt
 - `bootstrap` — Reads `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRY_DAYS` at import time
 
 ## Token Payload Structure
@@ -31,7 +36,7 @@ Pure password hashing and JWT token utilities for user authentication. Kept free
 
 - `sub` — Subject claim; the user_id that authenticated the token
 - `iat` — Issued-at timestamp (seconds since epoch)
-- `exp` — Expiry timestamp (calculated as `iat + JWT_EXPIRY_DAYS * 86400`)
+- `exp` — Expiry timestamp (calculated as `iat + JWT_EXPIRY_DAYS * 24 * 60 * 60`, where `iat = int(time.time())`)
 
 ## Patterns & Gotchas
 

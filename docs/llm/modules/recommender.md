@@ -22,14 +22,17 @@ Call Anthropic Claude API with tool use for structured output, derive wine palet
 - `system_prompt`: Complete prompt with profile + schema
 - `anthropic_api_key`, `anthropic_model`: Anthropic API configuration
 - `image_b64`: Optional base64-encoded JPEG image for multimodal input
+- `source_mode`: `str` (default `"winelist"`) — `"winelist"` builds the user prompt around the restaurant wine list; `"cellar"` builds a different prompt that recommends from the cellar inventory in the system prompt alone (no wine list text)
 
 **Outputs**: `RecommendationResponse` (validated Pydantic model) or `HTTPException(502)`.
 
 ## Key Logic
 
-### Public entry point: `get_recommendation()`
+### Public entry point: `get_recommendation(..., source_mode: str = "winelist")`
 
-1. **Prompt construction**: `text_payload` = wine list + meal. If image provided, wine list omitted (Claude reads it from the image).
+1. **Prompt construction** — branches on `source_mode`:
+   - `"winelist"` (default): `user_prompt` instructs Claude to survey every wine on the restaurant list and rank the top 3, recommending ONLY wines on the list. `text_payload` = wine list text + the meal line + user prompt. If an image is provided, the wine list text is omitted (Claude reads it from the image).
+   - `"cellar"`: `user_prompt` instructs Claude to survey every bottle in the **CELLAR INVENTORY** block of the system prompt, score each against the taste profile, and rank the top bottles — recommending ONLY bottles in the inventory (no hallucination). No wine list text is included; `text_payload` is just the user prompt + meal line.
 2. **Retry loop**: Up to `_MAX_ATTEMPTS = 3` attempts on `ValueError` (schema validation failure). API errors abort immediately.
 3. Each attempt calls `_attempt_recommendation()`.
 

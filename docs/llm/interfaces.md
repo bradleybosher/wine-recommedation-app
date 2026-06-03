@@ -8,13 +8,18 @@ Composition root only — no handlers. Exposes `app: FastAPI`.
 
 ```python
 # Startup wiring (in import order):
-import bootstrap                          # loads .env, validates ANTHROPIC_API_KEY
+import bootstrap                          # loads .env, validates ANTHROPIC_API_KEY + JWT_SECRET
 configure_logging()                       # from logging_setup
 app = FastAPI()
-app.add_middleware(CORSMiddleware, ...)
+app.add_middleware(CORSMiddleware, ...)   # expose_headers=["X-Profile-Id"]
 install_middleware(app)                   # from middleware
-init_db(); purge_expired()                # from cache
+init_db()                                 # from cache
+migrate_legacy_data()                     # from cache — one-time legacy → multi-profile migration
+purge_expired()                           # from cache
 seed_wine_reviews()                       # from wine_reviews — one-time dataset seed
+# 8 routers, in include order:
+app.include_router(auth_router)
+app.include_router(profiles_router)
 app.include_router(debug_router)
 app.include_router(history_router)
 app.include_router(inventory_router)
@@ -131,20 +136,33 @@ def cellar_character_from_terms(terms: list[str]) → str
 ### routes/auth.py
 
 ```python
-@router.post("/auth/register")
-async def register(req: RegisterRequest) → TokenResponse
+@router.post("/auth/register", status_code=201)
+def register(payload: RegisterRequest) → TokenResponse
   Create new user account with email and password. Hashes password with bcrypt.
-  400 if email already exists. Returns access token, token_type, user object, and user's profiles.
+  409 (HTTP_409_CONFLICT) if email already exists. First registered user claims the orphan
+  default profile (legacy migration); otherwise a fresh default profile named "My Palate" is created.
+  Returns access_token, token_type, user, and the single active profile (TokenResponse.profile).
 
 @router.post("/auth/login")
-async def login(req: LoginRequest) → TokenResponse
+def login(payload: LoginRequest) → TokenResponse
   Authenticate user by email and password. 401 if credentials invalid.
-  Returns access token, token_type, user object, and user's profiles.
+  Returns access_token, token_type, user, and the active profile (default, or the only one).
 
 @router.get("/auth/me")
-def auth_me(user: User = Depends(get_current_user)) → AuthMeResponse
+def me(user: User = Depends(get_current_user)) → AuthMeResponse
   Return authenticated user and all their profiles. Requires valid Authorization header.
   Returns AuthMeResponse with user object and list of Profile objects.
+
+@router.post("/auth/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest) → MessageResponse
+  Always returns 200 with a generic message (no account enumeration). If the email is registered,
+  creates a reset token and logs the reset URL ("{APP_BASE_URL}/reset-password?token=...") to the
+  server console.
+
+@router.post("/auth/reset-password")
+def reset_password(payload: ResetPasswordRequest) → MessageResponse
+  Validate the reset token: 400 if missing/invalid, already used, or expired (30-min single-use).
+  On success updates the user's password hash and marks the token used.
 ```
 
 ### routes/inventory.py
@@ -286,15 +304,15 @@ class Bottle(BaseModel):
 
 class User(BaseModel):
   id: str
-  email: str
-  created_at: datetime
+  email: EmailStr
+  created_at: float
 
 class Profile(BaseModel):
   id: str
-  user_id: str
+  user_id: Optional[str] = None   # NULL while orphan; populated once claimed
   name: str
-  is_default: bool
-  created_at: datetime
+  is_default: bool = False
+  created_at: float
 
 class RegisterRequest(BaseModel):
   email: str
@@ -308,11 +326,21 @@ class TokenResponse(BaseModel):
   access_token: str
   token_type: str = "bearer"
   user: User
-  profiles: list[Profile]
+  profile: Profile      # the single active profile (claimed orphan on first register, else new empty)
 
 class AuthMeResponse(BaseModel):
   user: User
   profiles: list[Profile]
+
+class ForgotPasswordRequest(BaseModel):
+  email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+  token: str
+  new_password: str     # Field(min_length=8, max_length=128)
+
+class MessageResponse(BaseModel):
+  message: str
 
 class ProfileCreateRequest(BaseModel):
   name: str
@@ -325,8 +353,8 @@ class TasteProfile(BaseModel):
   preferred_styles, preferred_regions, preferred_grapes, avoided_styles: List[str]
   budget_min, budget_max: Optional[float]
   occasion, food_pairing: Optional[str]
-  profile_source: str = "manual"  # "cellartracker" | "seed_bottles" | "manual"
-  inference_confidence: Optional[str]  # "high"|"medium"|"low", set when profile_source=="seed_bottles"
+  profile_source: str = "manual"  # "cellartracker" | "cellartracker_synthesized" | "seed_bottles" | "manual"
+  inference_confidence: Optional[str]  # "high"|"medium"|"low"; set for "seed_bottles" or "cellartracker_synthesized"
   avoided_style_tokens: List[str]  # single-token markers distilled from avoided_styles (e.g. "oaky", "jammy")
   top_producers: List[str]         # repeat-purchase producers from note history (strongest positive signal)
 
@@ -387,7 +415,7 @@ class WineRecommendation(BaseModel):
   drink: Optional[DrinkWindow]
   color: Optional[WineColor]   # server-derived post-validation; never in Claude tool schema
   bars: Optional[StructureBars]
-  wheel: Optional[Dict[str, float]]   # 6–8 aroma descriptors, intensity 0–10
+  wheel: Optional[Dict[str, int]]   # 6–8 aroma descriptors, intensity 0–10
   nose: Optional[str]
   palate: Optional[str]
   pairs: Optional[List[str]]
@@ -643,8 +671,8 @@ def get_parse_cached(pdf_hash: str) → Optional[str]
 def set_parse_cached(pdf_hash: str, wine_list_text: str) → None
   INSERT OR REPLACE into parse_cache.
 
-def make_key(image_bytes: bytes, meal: str, inventory_hash: str, profile_hash: str, profile_id: str) → str
-  SHA256(image + meal + inventory_hash + profile_hash + profile_id). Key for response cache.
+def make_key(image_bytes: bytes, meal: str, inventory_hash: str, profile_hash: str = "") → str
+  SHA256(image + meal + inventory_hash + profile_hash). Key for response cache.
 
 def inventory_hash(bottles: list[dict]) → str
   MD5(JSON-sorted bottles).
@@ -658,8 +686,8 @@ def set_cached(key: str, response: str) → None
 def bust_cache() → None
   DELETE all entries from response_cache and parse_cache.
 
-def create_user(email: str, password_hash: str) → str
-  INSERT new user into users table. Returns user_id (UUID).
+def create_user(email: str, password_hash: str) → dict
+  INSERT new user into users table. Returns the user dict (id, email, password_hash, created_at).
 
 def get_user_by_email(email: str) → Optional[dict]
   SELECT user by email. Returns dict with id, email, password_hash, created_at, or None.
@@ -682,27 +710,29 @@ def get_reset_token(token: str) → Optional[dict]
 def mark_reset_token_used(token: str) → None
   UPDATE password_reset_tokens SET used=1 for token. Enforces single-use.
 
-def create_profile(user_id: str, name: str, is_default: bool = False) → str
-  INSERT new profile for user. Returns profile_id (UUID).
+def create_profile(user_id: str, name: str, is_default: bool = False, profile_id: Optional[str] = None) → dict
+  INSERT new profile for user (unsets default on others when is_default=True).
+  Returns the profile dict (id, user_id, name, is_default, created_at).
 
 def list_profiles_for_user(user_id: str) → list[dict]
-  SELECT all profiles for user. Each dict: id, user_id, name, is_default, created_at.
+  SELECT all profiles for user (ORDER BY is_default DESC, created_at ASC).
+  Each dict: id, user_id, name, is_default, created_at.
 
 def get_profile(profile_id: str) → Optional[dict]
   SELECT profile by id. Returns dict with id, user_id, name, is_default, created_at, or None.
 
-def update_profile(profile_id: str, name: Optional[str] = None, is_default: Optional[bool] = None) → bool
-  UPDATE profile fields. Returns True if updated, False if not found.
+def update_profile(profile_id: str, name: Optional[str] = None) → Optional[dict]
+  UPDATE profile name (no-op if name is None). Returns the refreshed profile dict, or None if not found.
 
-def set_default_profile(user_id: str, profile_id: str) → bool
-  Set profile_id as default for user, unset default on other user profiles.
-  Returns True if successful, False if profile not owned by user.
+def set_default_profile(profile_id: str, user_id: str) → None
+  Unset default on all of user's profiles, then set profile_id as default (scoped to user_id).
 
 def delete_profile(profile_id: str) → bool
-  DELETE profile by id. Returns True if deleted, False if not found.
+  DELETE profile by id, its flights, and its on-disk JSON directory. Caller must enforce ownership.
+  Returns True if a row was deleted, False otherwise.
 
-def get_orphan_profile() → Optional[str]
-  Return the ORPHAN_PROFILE_ID if it exists, None otherwise.
+def get_orphan_profile() → Optional[dict]
+  Return the unclaimed migration profile (user_id IS NULL) dict, or None.
 
 def claim_orphan_profile(user_id: str) → Optional[str]
   If orphan profile exists, update its user_id and set is_default=True for user.
@@ -712,10 +742,11 @@ def migrate_legacy_data() → Optional[str]
   Migrate legacy single-profile data to multi-profile structure. Returns profile_id of migrated profile,
   or None if no legacy data or already migrated.
 
-def save_flight(profile_id: str, occasion: str, menu: str, cellar_leans: str, temperament: str,
+def save_flight(occasion: str, menu: str, cellar_leans: str, temperament: str,
                 ceiling: str, bottle_count: int, source_mode: str,
-                wine_list_hash: str, profile_hash: str, response) → str
-  INSERT completed recommendation into flights table for profile_id. Returns UUID4 hex flight_id.
+                wine_list_hash: str, profile_hash: str, response, profile_id: str) → str
+  INSERT completed recommendation into flights table for profile_id (profile_id is the LAST
+  positional parameter). Returns UUID4 hex flight_id.
 
 def list_flights(profile_id: str, limit: int = 50, offset: int = 0) → list[dict]
   SELECT newest-first from flights for profile_id. Each dict: id, created_at, occasion, menu, top_wine_name, bottle_count.
@@ -937,15 +968,21 @@ def log_recommendation_event(
 ```python
 @router.get("/debug/health") → Dict
   Return {"status": "healthy", "timestamp": ..., "service": "sommelier-api", "version": "1.0.0"}.
+  No auth.
 
 @router.get("/debug/status") → Dict
   Comprehensive status: inventory stats, profile stats, cache stats, system info.
+  Requires get_current_profile (Bearer JWT + X-Profile-Id) — scoped to the active profile.
 
 @router.get("/debug/cache/stats") → Dict
-  Cache entry count, age, size (bytes/KB), database path.
+  Cache entry count, age, size (bytes/KB), database path. No auth.
 
 @router.post("/debug/cache/clear") → Dict
-  Bust cache. Return confirmation.
+  Bust cache. Return confirmation. Requires get_current_user (Bearer JWT).
+
+@router.get("/debug/stats") → Dict
+  Aggregate LLM telemetry from logs/llm_calls.jsonl: per-purpose P50/P90 latency, token totals,
+  estimated cost, today vs all-time. Requires get_current_user (Bearer JWT).
 
 @router.get("/debug/config") → Dict
   Return anthropic_model and anthropic_api_key_set (bool — key never exposed).

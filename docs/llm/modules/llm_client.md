@@ -18,31 +18,33 @@ def call_claude(
     purpose: Purpose,
     client: anthropic.Anthropic,
     *,
-    retryable_on: tuple[type[Exception], ...] = (),
+    retryable_on: tuple = (anthropic.APIConnectionError, anthropic.RateLimitError),
     max_attempts: int = 3,
     **kwargs,
 ) -> anthropic.types.Message
 ```
 
+Retries on transient API errors **by default** — `retryable_on` defaults to `(anthropic.APIConnectionError, anthropic.RateLimitError)`, so every call site gets connection/rate-limit retries unless it overrides the tuple.
+
 Calls `client.messages.create(**kwargs)` and logs one JSON line to `backend/logs/llm_calls.jsonl` per call containing:
 
 | Field | Description |
 |---|---|
-| `ts` | ISO-8601 UTC timestamp |
+| `ts` | Unix epoch timestamp (`time.time()`, float seconds) |
 | `purpose` | Caller-supplied label (see `Purpose` type) |
 | `model` | Model ID from `kwargs["model"]` |
 | `in_tokens` | `usage.input_tokens` from response |
 | `out_tokens` | `usage.output_tokens` from response |
 | `ms` | Wall-clock latency in milliseconds |
-| `cost_usd` | Estimated cost (pricing table in `_COST_PER_MTok`) |
+| `cost_usd` | Estimated cost (pricing table in `MODEL_PRICING`) |
 
 ## Retry Logic
 
-When `retryable_on` is provided and an exception matches, retries up to `max_attempts - 1` times with a 1 s, 2 s back-off. Non-retryable exceptions propagate immediately.
+Retries are **on by default**: `retryable_on` defaults to `(anthropic.APIConnectionError, anthropic.RateLimitError)`, so connection resets and rate-limit errors are retried for every caller unless it passes a different tuple (e.g. `()` to disable). When a raised exception matches `retryable_on`, the call is retried up to `max_attempts - 1` times (via `retry_utils.call_with_retry`) with a 1 s, 2 s back-off. Non-retryable exceptions propagate immediately.
 
 ## Cost Estimation
 
-Module-level `_COST_PER_MTok` dict maps model-ID prefixes to `(input_usd, output_usd)` per million tokens. Unknown models use a conservative fallback. Costs are estimates; actual billing may differ.
+Module-level `MODEL_PRICING` dict maps model IDs to `(input_usd, output_usd)` per million tokens; `_DEFAULT_PRICING` `(3.00, 15.00)` is the conservative fallback for unknown models. Costs are estimates; actual billing may differ.
 
 ## Call Sites
 

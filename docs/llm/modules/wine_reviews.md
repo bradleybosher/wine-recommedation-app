@@ -14,7 +14,7 @@ or rate-limit exposure.
 
 ## Dataset
 
-- **Source:** Wine Enthusiast magazine reviews (~130 K rows, vintage 2017–2019)
+- **Source:** Wine Enthusiast magazine reviews (~130 K rows). Vintages span a wide range — `_extract_vintage()` parses any year from 1950–2029 out of the wine title. (The `2019` in the dataset filename is the TidyTuesday publish date, not a vintage filter.)
 - **Origin URL:** `rfordatascience/tidytuesday` GitHub (auto-downloaded on first startup)
 - **Local path:** `backend/data/wine_reviews.csv` (gitignored)
 - **SQLite table:** `wine_reviews` in `cellar.db`
@@ -60,4 +60,4 @@ score only replaces Claude's estimate when overlap ≥ 0.75.
 |---|---|---|
 | `_MATCH_THRESHOLD` | 0.75 | Minimum word-overlap to accept a match |
 | `_CSV_URL` | GitHub raw URL | Auto-download source |
-| `_PREFIXES` | set of 14 words | Skipped when selecting SQL key word |
+| `_PREFIXES` | frozenset of 18 words | Skipped when selecting SQL key word |

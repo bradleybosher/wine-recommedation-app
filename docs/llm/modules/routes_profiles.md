@@ -18,7 +18,7 @@ HTTP CRUD endpoints for user profiles. Allows listing, creating, renaming, promo
   {
     "id": "uuid1",
     "userId": "uuid_string",
-    "name": "Default",
+    "name": "My Palate",
     "isDefault": true
   },
   {
@@ -94,7 +94,7 @@ HTTP CRUD endpoints for user profiles. Allows listing, creating, renaming, promo
 - Raises `401 Unauthorized` if token missing/invalid.
 - Raises `403 Forbidden` if profile not owned by authenticated user.
 - Raises `404 Not Found` if profile_id does not exist.
-- Raises `409 Conflict` if attempting to set `isDefault: false` on the only profile with `isDefault: true` (at least one default must exist at all times).
+- Setting `isDefault: false` is a silent no-op — the route only acts when `is_default` is `True` (promotion). It never demotes a profile directly and never raises a `409` for this case.
 
 ---
 
@@ -107,7 +107,8 @@ HTTP CRUD endpoints for user profiles. Allows listing, creating, renaming, promo
 **Response** (200 OK):
 ```json
 {
-  "message": "Profile deleted successfully"
+  "id": "uuid",
+  "deleted": true
 }
 ```
 
@@ -125,18 +126,18 @@ HTTP CRUD endpoints for user profiles. Allows listing, creating, renaming, promo
 
 ## Dependencies
 
-- `fastapi` — `APIRouter`, `HTTPException`, `Depends`, `Path`
+- `fastapi` — `APIRouter`, `Depends`, `HTTPException`, `status`
 - `dependencies` — `get_current_user` (JWT validation on all routes)
-- `cache` — Database functions: `list_user_profiles`, `create_profile`, `get_profile`, `update_profile`, `delete_profile`, `list_user_profiles` (again, for default promotion)
-- `models` — `User`, `Profile`, `ProfilePatch` (request schema)
+- `cache` — Database functions: `list_profiles_for_user`, `create_profile`, `get_profile`, `update_profile`, `set_default_profile`, `delete_profile`
+- `models` — `Profile`, `ProfileCreateRequest` (POST body), `ProfileUpdateRequest` (PATCH body), `User`
 
 ## Patterns & Gotchas
 
 - **Ownership enforcement**: Every route checks `profile.user_id == user.id` before allowing mutation; raises `403 Forbidden` if mismatch.
 - **Default profile invariant**: At least one profile must have `isDefault: true` at all times. Routes enforce this by:
-  - Refusing DELETE on the only default profile.
-  - Refusing PATCH to set `isDefault: false` if it's the only default.
-  - Auto-promoting the next profile to default when the current default is deleted.
+  - Refusing DELETE on the user's only profile (`409`).
+  - Treating PATCH `isDefault: false` as a silent no-op — only `isDefault: true` (promotion) is acted on, so a default can never be demoted directly.
+  - Auto-promoting the first remaining profile to default when the current default is deleted.
 - **Cascade delete**: DELETE cascades to flights and file system directory. Unrecoverable; no soft delete.
 - **No X-Profile-Id header**: These routes don't read/require the header. They operate on profiles via path params. The header is used by recommendation/inventory routes to select the "active" profile for a request.
 - **Rename anywhere**: No restrictions on renaming profiles; profile name is free-form.
@@ -148,10 +149,9 @@ HTTP CRUD endpoints for user profiles. Allows listing, creating, renaming, promo
 |---|---|---|
 | No Authorization header | 401 | "Missing authorization header" |
 | Invalid/expired token | 401 | "Invalid token" / "Token expired" |
-| Profile not owned by user | 403 | "Profile access denied" |
+| Profile not owned by user | 403 | "Profile not owned by current user" |
 | Profile not found | 404 | "Profile not found" |
-| Delete only profile | 409 | "Cannot delete the only profile" |
-| Demote only default | 409 | "At least one profile must be default" |
+| Delete only profile | 409 | "Cannot delete your only profile" |
 | Empty name in POST/PATCH | 422 | Pydantic validation error |
 | Missing name in POST | 422 | Pydantic validation error |
 

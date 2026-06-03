@@ -22,7 +22,7 @@ Parse a raw meal description string into a structured `MealProfile` dataclass, t
 **parse_meal_description(meal: str) → MealProfile**:
 - Lowercases input
 - **Normalizes synonyms** before keyword matching (e.g., "pan-seared" → "seared", "beef tenderloin" → "beef")
-  - Protein synonyms: 26 mappings (e.g., ribeye/sirloin/filet → beef, tuna/sea bass/halibut → fish)
+  - Protein synonyms: 22 mappings (e.g., ribeye/sirloin/filet → beef, tuna/sea bass/halibut → fish)
   - Cooking synonyms: 18 mappings (e.g., pan-fried variations, slow cooking variants → canonical forms)
 - Scans for known proteins, cooking methods, sauce flavors, heat keywords
 - First match wins per category (no stacking)

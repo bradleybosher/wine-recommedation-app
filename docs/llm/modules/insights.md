@@ -28,7 +28,7 @@ Returns an empty list when:
 3. Count how many distinct flights each term appeared in.
 4. For each dimension (`preferred_grapes`, `preferred_regions`): find terms above the hit-rate threshold that are not already in the profile (substring-safe check — prevents duplicating "Pinot Noir" if profile has "Pinot").
 5. Pick the single strongest signal per dimension.
-6. Return up to `_MAX_SUGGESTIONS` (3) `PalateDriftSuggestion` objects.
+6. Return at most one `PalateDriftSuggestion` per dimension — so at most **2** in practice (one for `preferred_grapes`, one for `preferred_regions`). The `_MAX_SUGGESTIONS = 3` cap is therefore never reached: it would only matter if a third dimension were added.
 
 ## Configuration Constants
 
@@ -37,7 +37,7 @@ Returns an empty list when:
 | `_MIN_FLIGHTS` | 3 | Minimum flights before analysis runs |
 | `_FLIGHT_WINDOW` | 20 | How many recent flights to examine |
 | `_MIN_HIT_RATE` | 0.30 | Term must appear in ≥ 30 % of flights |
-| `_MAX_SUGGESTIONS` | 3 | Maximum suggestions returned |
+| `_MAX_SUGGESTIONS` | 3 | Cap on returned suggestions (unreachable — only 2 dimensions exist, so at most 2 are produced) |
 
 ## Output Shape (`PalateDriftSuggestion`)
 

@@ -245,8 +245,8 @@ Cache response in SQLite → return to frontend
 
 The app now uses JWT bearer token authentication. Account registration is open — no invite required.
 
-1. **Register a new account** — `POST /auth/register` with `email` and `password`. Returns a JWT bearer token and creates a default `default` profile automatically.
-2. **Login** — `POST /auth/login` with `email` and `password`. Returns a JWT bearer token.
+1. **Register a new account** — `POST /auth/register` with `email` and `password`. Returns a JWT bearer token plus the active profile. On first registration this either claims the migrated legacy profile or creates a fresh default profile named "My Palate".
+2. **Login** — `POST /auth/login` with `email` and `password`. Returns a JWT bearer token and the default (or only) profile.
 3. **Multiple profiles** — Use `POST /profiles` to create additional named taste profiles (e.g., "Whites", "Under $50"). Each profile maintains its own inventory, taste data, and flight history.
 4. **Switching profiles** — The frontend passes the active profile ID via the `X-Profile-Id` header (or select it from `/profiles` to list your profiles).
 

@@ -110,15 +110,16 @@ This guide maps common task types to the documentation you should include when a
 **Task**: "Add a new screen", "Style a new card", "Add an icon to X"
 
 **Include**:
-1. `conventions.md` → Frontend Styling Conventions — Glass design system rules (GlassCard, VibrantBackground, tokens, text opacity rules, button patterns)
+1. `CLAUDE.md` → "Frontend & Styling" — authoritative Vinothèque editorial design system rules (PaperFrame wrapper, design tokens, typography, icons, hairline rules)
 2. `architecture.md` → Frontend module map — Where to place new components (`src/` root for feature components, `src/components/ui/` for primitives)
-3. The existing component most similar to what you're building — read it for class patterns to follow
+3. The existing component most similar to what you're building — read it for inline-style patterns to follow
 
 **Rules to enforce:**
-- All card surfaces: use `<GlassCard>` — never `bg-white`
-- All UI action icons: `lucide-react` with `strokeWidth={1.5}` — never inline SVG (exception: `WineBottleIcon` is a custom illustration, not an action icon)
-- Text: white-based only inside GlassCard — never `text-gray-*`
-- Do not add background-color to page-level containers — `VibrantBackground` owns the background
+- Page wrapper: use `<PaperFrame>` (`@/design/PaperFrame`) — never `VibrantBackground`, never glassmorphism / `GlassCard`
+- Colour: import named tokens from `@/design/tokens` (INK, INK_SOFT, PAPER, OXBLOOD, RULE) — no hardcoded hex/rgba, no `text-white`, `text-gray-*`, `bg-white`, or `bg-wine-*`
+- Typography: Cormorant Garamond (display) + EB Garamond (body), referenced via inline `fontFamily` strings
+- Icons: `lucide-react` with `strokeWidth={1.5}` — never inline SVG
+- Styling delivery: inline `CSSProperties` objects; Tailwind utilities only for stateful helpers (`animate-spin`, `hidden`). Decoration: hairline rules (1px solid RULE), no rounded corners, no drop shadows beyond inset paper
 
 ---
 
@@ -133,28 +134,24 @@ This guide maps common task types to the documentation you should include when a
 
 ---
 
-<<<<<<< HEAD
 ## Analysing Recommendation Quality / Scoring
 
-**Task**: "Tune scoring weights", "Why is grounding low?", "Add a new scoring dimension", "Inspect recommendations.jsonl"
+**Task**: "Tune scoring weights", "Why is grounding low?", "Add a new scoring dimension", "Inspect the LLM call log"
 
 **Include**:
-1. `interfaces.md` → scorer.py + logging_utils.py sections — `ScoringResult` fields, `score_recommendation()` signature, JSONL schema
-2. `modules/main.md` — How scoring is called (non-blocking, post-LLM, pre-cache)
-3. `architecture.md` → Data flow — Where scorer + logger sit in the pipeline
-4. `modules/models.md` or `interfaces.md` → models — `WineRecommendation.confidence`, `TasteProfile.budget_min/max` (inputs to scorer)
+1. `modules/scorer.md` + `interfaces.md` → scorer.py section — `ScoringResult` fields, `score_recommendation()` signature
+2. `modules/logging_utils.md` — Telemetry/log writing helpers used around the scoring path
+3. `modules/recommender.md` — How recommendations are produced before scoring runs
+4. `architecture.md` → Data flow — Where scorer sits in the pipeline
+5. `modules/models.md` or `interfaces.md` → models — `WineRecommendation.confidence` (input to scorer)
 
 **Key facts**:
-- JSONL log: `logs/recommendations.jsonl` — one line per request (success or error)
-- Scorer never raises; returns neutral 0.5 result on internal error
-- Logger never raises; swallows own exceptions so the response path is never blocked
-- `wine_list_hash` is MD5[:8] of parsed text, not raw file bytes
-- Analysis snippet: `[json.loads(l) for l in open("logs/recommendations.jsonl")]`
+- LLM call telemetry: `logs/llm_calls.jsonl` — written by `llm_client.call_claude`
+- Scorer never raises; returns a neutral result on internal error
+- Logging helpers never raise; they swallow their own exceptions so the response path is never blocked
 
 ---
 
-=======
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 ## Writing Tests
 
 **Task**: "How do I test the profile inference?" or "Set up integration test"
@@ -199,11 +196,7 @@ This guide maps common task types to the documentation you should include when a
 | conventions.md | Patterns, error handling, libraries | 600 |
 | architecture.md | Stack, module map, data flow | 300 |
 | interfaces.md | All public function signatures | 800 |
-<<<<<<< HEAD
 | modules/main.md | FastAPI app, endpoints | 280 |
-=======
-| modules/main.md | FastAPI app, endpoints | 250 |
->>>>>>> 6caf2d0 (Initial commit: Setting up project structure)
 | modules/recommender.md | LLM calls, JSON parsing | 200 |
 | modules/prompt.md | System prompt construction | 150 |
 | modules/profile.md | Taste profile inference | 250 |
@@ -224,6 +217,6 @@ When using these docs, watch for:
 2. **Accent folding** — Works for Latin wine names; fails on Cyrillic/CJK regions.
 3. **Cache staleness** — No auto-expiry; user must manually bust cache.
 4. **OCR** — Implemented via pytesseract + PIL (greyscale + sharpen pre-processing); requires Tesseract system binary; gracefully degrades if missing.
-5. **Image vision** — Base64 image IS passed to Ollama for vision-capable models; not formally tested with a vision model.
+5. **Image vision** — Base64 image IS passed to Claude Haiku vision via `llm_client.call_claude` (the app uses the Anthropic Claude API, tool use — see `backend/recommender.py`, `backend/parser.py`).
 
 These are flagged in module files but worth remembering across tasks.

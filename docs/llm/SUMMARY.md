@@ -17,12 +17,14 @@ Knowledge base successfully built for the wine-recommendation-app codebase. All 
 | **conventions.md** | Error handling, naming, patterns, libraries | 200 | 600 |
 | **context-guide.md** | Task type → docs mapping | 180 | 400 |
 
-### Module Documentation (8 files)
+### Module Documentation (35 files)
+
+A representative subset is listed below; the full set lives under `docs/llm/modules/` (see [MEMORY.md](MEMORY.md) for the complete index).
 
 | File | Module | Purpose | Lines | Est. Tokens |
 |---|---|---|---|---|
-| **modules/main.md** | main.py | FastAPI app, 6 endpoints, logging, utils | 50 | 250 |
-| **modules/recommender.py** | recommender.py | Ollama calls, JSON parsing, fence stripping | 50 | 200 |
+| **modules/main.md** | main.py | Composition root: wires 8 routers, logging, middleware, startup | 50 | 250 |
+| **modules/recommender.md** | recommender.py | Claude calls (tool use), validation, bar blending | 50 | 200 |
 | **modules/prompt.md** | prompt.py | System prompt construction, schema | 40 | 150 |
 | **modules/profile.md** | profile.py | CellarTracker parsing, taste profile building | 100 | 280 |
 | **modules/inventory.md** | inventory.py | Cellar load/save, relevance filtering, accent folding | 80 | 220 |
@@ -32,9 +34,9 @@ Knowledge base successfully built for the wine-recommendation-app codebase. All 
 
 ## Document Totals
 
-- **Total files created**: 14
-- **Total lines of documentation**: ~1,420
-- **Total estimated tokens**: ~5,230
+- **Total files created**: 43 (8 core docs + 35 module docs)
+- **Total lines of documentation**: ~1,420+
+- **Total estimated tokens**: ~5,230+
 
 ## Folder Structure
 
@@ -61,17 +63,22 @@ docs/
 
 ## What Was Analyzed
 
-### Backend Modules (8)
+### Backend Modules
 
-- ✅ main.py (FastAPI app, 6 endpoints, logging, utilities)
-- ✅ models.py (Pydantic v2 schemas with camelCase aliases)
-- ✅ recommender.py (Ollama integration, JSON parsing, markdown fence stripping)
-- ✅ prompt.py (System prompt construction with JSON schema)
-- ✅ profile.py (CellarTracker export parsing, taste profile inference)
-- ✅ inventory.py (Cellar loading/saving, relevance filtering)
-- ✅ cache.py (SQLite response caching, key generation)
-- ✅ parser.py (PDF/text/image file type dispatch)
-- ✅ routes/debug.py (Diagnostics endpoints)
+- ✅ main.py (composition root: env, logging, middleware, router includes, legacy migration)
+- ✅ bootstrap.py / auth.py / dependencies.py (JWT auth + constants)
+- ✅ models.py (Pydantic v2 schemas with camelCase aliases; User/Profile/TokenResponse)
+- ✅ recommender.py (Anthropic Claude integration via tool use, validation, bar blending)
+- ✅ llm_client.py (call_claude telemetry + retry wrapper around messages.create)
+- ✅ prompt.py (System prompt construction: tasting_note_library, aspirational_skew, stretch slot)
+- ✅ profile.py / seed_profile.py (palate synthesis + seed-bottle onboarding, profile_id-keyed)
+- ✅ palate_stats.py / retrieval.py / synonyms.py / insights.py (deterministic, no-LLM passes)
+- ✅ inventory.py (cellar loading/saving, relevance filtering, profile_id-keyed)
+- ✅ cache.py (SQLite: users/profiles/flights + global response/parse cache + legacy migration)
+- ✅ parser.py (PDF/text/image dispatch; Claude Haiku vision for photos)
+- ✅ meal_parser.py / scorer.py / cellar_terms.py / wine_reviews.py / test_fixtures.py
+- ✅ middleware.py / rate_limit.py / logging_setup.py / logging_utils.py / retry_utils.py
+- ✅ routes/{auth,profiles,profile,inventory,recommend,history,insights,debug}.py
 
 ### Frontend (React + TypeScript)
 
@@ -101,8 +108,8 @@ docs/
 - Error handling (HTTPException 400/404/502/500)
 - Naming patterns (snake_case functions, UPPER_SNAKE_CASE constants, kebab-case routes)
 - Pydantic patterns (ConfigDict with alias_generator, populate_by_name)
-- Preferred libraries (FastAPI, Pydantic v2, Ollama, PyMuPDF, sqlite3, httpx)
-- Architecture patterns (stateless, fail-loud, schema-driven, caching by content hash)
+- Preferred libraries (FastAPI, Pydantic v2, Anthropic SDK, PyMuPDF, pytesseract/PIL, sqlite3, passlib, PyJWT)
+- Architecture patterns (JWT auth + per-profile persistence, fail-loud, schema-driven, caching by content hash)
 
 ## How to Use
 
@@ -126,11 +133,11 @@ Start with **docs/llm/MEMORY.md** — it's the master index.
 
 ## Key Insights Documented
 
-1. **Stateless design**: No user accounts; JSON files + SQLite cache only
-2. **Fail-loud pattern**: Parse errors, LLM errors, validation failures surface to user
-3. **Schema-driven**: Pydantic models are contracts enforced at boundaries
+1. **JWT auth, per-user, per-profile**: Open self-registration; `users`/`profiles`/`flights` tables in `cellar.db`; per-profile JSON under `backend/profiles/{id}/`. Legacy data migrated once into an orphan profile claimed by the first registration.
+2. **Fail-loud pattern**: Parse errors, Claude errors, validation failures surface to user
+3. **Schema-driven**: Pydantic models are contracts enforced at the Claude tool-output boundary
 4. **CamelCase bridge**: All models use `alias_generator=to_camel, populate_by_name=True`
-5. **Robustness**: JSON fence stripping handles LLMs wrapping JSON despite instructions
+5. **Robustness**: Claude tool use returns structured JSON; output validated through Pydantic
 6. **Avoided styles inference**: Already implemented via low-score tasting note analysis
 7. **Relevant bottles context**: Prevents recommending wines user already owns
 
@@ -153,7 +160,7 @@ Start with **docs/llm/MEMORY.md** — it's the master index.
 - ⚠️ **Accent folding**: Only handles Latin wine names; fails on Cyrillic/CJK
 - ⚠️ **Cache staleness**: No auto-expiry via API; purged at startup + lazily on read (7-day TTL)
 - ⚠️ **OCR**: Implemented (pytesseract + PIL); requires Tesseract system binary; gracefully degrades if missing
-- ⚠️ **Image vision**: Base64 IS passed to Ollama for vision-capable models; not formally tested
+- ⚠️ **Image vision**: Base64 IS passed to Claude Haiku vision (parser.py) for wine-list photos
 
 All flagged in relevant module files.
 

@@ -59,12 +59,13 @@ File/test:
 10. `meal_parser.parse_meal_description(effective_meal)` → `meal_to_wine_hints`.
 11. **Tasting note library + aspirational skew**: reads `consumed_rows` from `profile_data_raw`. Calls `_build_tasting_note_library(consumed_rows)` to build a formatted `**TASTING NOTE LIBRARY**` block (top-scored + bottom-scored notes, deduplicated by varietal/region, max 15 entries). Calls `palate_stats.compute_palate_stats(consumed_rows, inventory_rows=bottles)` to extract `aspirational_skew.summary_line`. Both are passed to `build_system_prompt()` and are empty strings when no consumed rows are present.
 12. `prompt.build_system_prompt(...)` with cellar summary, enriched profile, meal hints, profile source, `bottle_count`, `budget_ceiling=ceiling`, `taste_markers`, `palate_persona`, `source_mode`, `tasting_note_library`, `aspirational_skew`.
-12. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
-13. **Per-wine grounding** (winelist mode only): after recommendations are returned, iterate and set `rec.verified_on_list = scorer._is_grounded(rec.wine_name, wine_list_text)` on each wine.
-14. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response.
-15. `save_flight(profile_id=profile.id, ...)` — best-effort; captures the returned `flight_id` and scopes the flight record to the active profile. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
-16. On `HTTPException`: log error event, re-raise.
-17. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
+13. `recommender.get_recommendation(wine_list_text, effective_meal, ...)` — main Anthropic call.
+14. **Critic enrichment**: `wine_reviews.enrich_critics(recommendation)` mutates the returned recommendation in place to attach critic data. Wrapped in try/except — failures are logged (`critic_enrichment_failed`) and never block the response.
+15. **Per-wine grounding** (winelist mode only): after recommendations are returned, iterate and set `rec.verified_on_list = scorer._is_grounded(rec.wine_name, wine_list_text)` on each wine.
+16. On success: `scorer.score_recommendation` (capping confidence to `medium` for seed-derived profiles) and `logging_utils.log_recommendation_event`; both wrapped in try/except — scoring/logging failures never block the response.
+17. `save_flight(profile_id=profile.id, ...)` — best-effort; captures the returned `flight_id` and scopes the flight record to the active profile. Result cached **before** attaching `flight_id` (so cache hits don't replay a stale id); then `recommendation.flight_id = flight_id` is set and response returned.
+18. On `HTTPException`: log error event, re-raise.
+19. On any other `Exception`: log error event, raise 502 `"Recommendation provider failed. Please try again."`.
 
 ## Module-Level Helpers
 
@@ -96,7 +97,8 @@ Extracts tasting notes from CellarTracker consumed rows and formats them as a pr
 - `prompt.build_system_prompt`
 - `rate_limit.check_rate_limit`
 - `recommender.get_recommendation`
-- `routes.auth.get_current_profile` — dependency injector for authenticated profile resolution
+- `wine_reviews.enrich_critics` — per-recommendation critic-enrichment step (best-effort, non-fatal)
+- `dependencies.get_current_profile` — dependency injector for authenticated profile resolution
 - `scorer._is_grounded`, `scorer.score_recommendation`
 
 ## Patterns & Gotchas
