@@ -7,7 +7,7 @@
 **HTTP Exceptions**: FastAPI endpoints raise `HTTPException(status_code, detail)` for user-facing errors.
 - 400: Invalid input (bad request)
 - 404: Not found (missing inventory/profile)
-- 502: LLM provider error (Ollama down, JSON parse fail, schema mismatch)
+- 502: LLM provider error (Anthropic API error, or schema validation failed after all retries)
 - 500: Unhandled exception (logged, generic error response)
 
 **Fail Loudly**: Parser returns error messages (strings) rather than None. Recommender logs detailed error context before raising HTTPException(502).
@@ -16,11 +16,12 @@
 
 **Exceptions in recommender.py**:
 ```python
-# JSON parse error → HTTPException(502) with "invalid JSON" detail
-# Pydantic validation error → HTTPException(502) with "schema mismatch" detail
-# Ollama 404 (no /api/chat) → fallback to /api/generate
-# Other HTTP errors → re-raise HTTPException
-# Other exceptions → HTTPException(502) with error type name
+# Claude returns structured output via tool use — no JSON-string parsing needed.
+# Pydantic validation error → ValueError (retriable; up to _MAX_ATTEMPTS=3 attempts)
+# anthropic.APIError → HTTPException(502) "API error" detail
+# All attempts exhausted → HTTPException(502) "failed after N attempts"
+# Transient errors (APIConnectionError, RateLimitError) are retried inside
+#   call_claude() via retry_utils.call_with_retry before surfacing.
 ```
 
 **Exceptions in parser.py**:
@@ -49,7 +50,7 @@
 
 **API Routes**: Kebab-case URLs (e.g., `/upload-inventory`, `/profile-summary`, `/cache/stats`).
 
-**Environment Variables**: UPPER_SNAKE_CASE (e.g., `OLLAMA_URL`, `OLLAMA_MODEL`, `VITE_SHOW_DEBUG`).
+**Environment Variables**: UPPER_SNAKE_CASE (e.g., `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `JWT_SECRET`, `VITE_SHOW_DEBUG`).
 
 **Pydantic Fields**: snake_case in Python, auto-aliased to camelCase in JSON (via `alias_generator=to_camel`).
 
@@ -82,7 +83,7 @@ Pattern used to safely extract text from dict fields that may be None or missing
 ### Graceful Fallbacks
 - Encoding: try multiple, fall back to lossy replacement.
 - File loading: return empty dict or list if missing/corrupt rather than raising.
-- LLM: fall back from /api/chat to /api/generate if 404.
+- LLM: `call_claude()` retries transient Anthropic errors (connection resets, rate limits) up to 3 times with exponential backoff (`retry_utils.call_with_retry`); recommender.py additionally retries Pydantic schema-validation failures.
 
 ### Counter Frequency Analysis
 ```python
@@ -117,11 +118,11 @@ All functions include type hints (parameter types + return type). Use `Optional[
 
 **Pydantic v2**: Validates API contracts. alias_generator simplifies camelCase bridge between Python and JavaScript.
 
-**Ollama**: Local LLM inference. No API keys, no cloud dependency, fast iteration.
+**Anthropic Claude API** (`anthropic` SDK): Cloud LLM with native tool use for structured output. All calls go through `llm_client.call_claude()` (telemetry + retry). Recommendation/synthesis use `ANTHROPIC_MODEL` (default claude-sonnet-4-6); image/OCR vision parsing uses Claude Haiku (`ANTHROPIC_VISION_MODEL`). Requires `ANTHROPIC_API_KEY`.
 
 **PyMuPDF (fitz)**: Fast PDF text extraction. Better than PyPDF2 for text recovery.
 
-**sqlite3**: Built-in. Perfect for stateless caching (no external DB needed). Single-file, portable.
+**sqlite3**: Built-in. Single-file, portable store for users/profiles/flights plus the content-addressed response/parse cache (no external DB needed).
 
 **httpx**: Modern async HTTP client. Replaces requests; better timeout handling.
 
@@ -129,65 +130,46 @@ All functions include type hints (parameter types + return type). Use `Optional[
 
 **React 19**: Latest, no breaking changes. TypeScript strict mode for frontend contracts.
 
-**Tailwind CSS v4**: Utility classes with `@theme {}` design tokens in `src/index.css`. No separate CSS files. Glass tokens (`--blur-glass`, `--color-glass-surface`, `--color-glass-border`, `--color-glass-surface-hover`) and wine palette tokens (`--color-wine-burgundy`, `--color-wine-merlot`, etc.) are registered here and consumed as Tailwind utilities throughout the app.
+**Tailwind CSS v4**: Used sparingly — only for stateful helper utilities (e.g. `animate-spin`, `hidden`). All component styling uses inline `CSSProperties` objects with named tokens imported from `@/design/tokens` (INK, INK_SOFT, PAPER, OXBLOOD, RULE). No hardcoded hex/rgba; no `text-white`, `text-gray-*`, or `bg-wine-*` classes.
 
-**lucide-react**: Icon library. `strokeWidth={1.5}` on all icons for a light, airy aesthetic consistent with the glass UI. Do not use inline SVG paths for new UI action icons. Exception: `WineBottleIcon` (`src/components/ui/WineBottleIcon.tsx`) is a custom illustrative component (wine bottle silhouettes — shapes that don't exist in lucide-react) and uses inline SVG intentionally.
+**lucide-react**: Icon library. `strokeWidth={1.5}` on all icons for a light editorial aesthetic. Do not use inline SVG paths for new UI action icons.
 
 **Vite**: Instant dev reload, minimal config.
 
 ## Frontend Styling Conventions
 
-### Glassmorphism Design System
+### Vinothèque Editorial Design System
 
-The frontend uses a Tailwind v4 glassmorphism design system. All rules below are **non-negotiable** — breaking them visually fragments the UI.
+The frontend uses an old-world editorial design system ("Vinothèque") — paper, ink, and hairline rules, no glassmorphism. All rules below are **non-negotiable** (see CLAUDE.md "Frontend & Styling" for the authoritative list).
 
-**Design tokens** (defined in `src/index.css` `@theme {}`):
+**Design tokens** (named exports from `@/design/tokens` — import them, never hardcode hex/rgba):
 
-| Token | Value | Tailwind utility |
-|---|---|---|
-| `--blur-glass` | 12px | `backdrop-blur-glass` |
-| `--color-glass-surface` | rgba(255,255,255,0.10) | `bg-glass-surface` |
-| `--color-glass-surface-hover` | rgba(255,255,255,0.16) | `bg-glass-surface-hover` |
-| `--color-glass-border` | rgba(255,255,255,0.20) | `border-glass-border` |
-| `--color-wine-burgundy` | #6B1A2B | `bg-wine-burgundy`, `text-wine-burgundy` |
-| `--color-wine-merlot` | #8B2546 | `bg-wine-merlot` |
-| `--color-wine-purple-deep` | #2D1B4E | (background base) |
-| `--color-wine-purple-mid` | #4A2370 | (blob, tag backgrounds) |
-| `--color-wine-amber` | #C8860A | `bg-wine-amber`, `text-wine-amber` |
-| `--color-wine-gold` | #D4A017 | `text-wine-gold` (success states, high confidence) |
-| `--color-wine-rose` | #C4637A | `text-wine-rose` (accents, medium confidence) |
+- `INK`, `INK_SOFT` — primary/secondary text.
+- `PAPER` — page/surface background.
+- `OXBLOOD` — accent (high-emphasis marks, primary actions).
+- `RULE` — hairline rule colour (1px solid borders).
 
-**Glass primitives** (in `frontend/src/components/ui/`):
+**Layout primitive:** `<PaperFrame>` is the page wrapper (not a glass card, not a vibrant background). No glassmorphism, no rounded corners, no drop shadows beyond inset paper.
 
-- `VibrantBackground` — wraps the entire app. Provides the animated mesh gradient background. Only ever instantiated once in `App.tsx`. Do not nest inside another `VibrantBackground`.
-- `GlassCard` — frosted glass card surface. Use for **all** card containers. Accepts `className` prop for padding/margin/width overrides. Do not add `bg-white` or `bg-gray-*` card containers.
-- `WineBottleIcon` — outline SVG wine bottle illustration. Props: `style: WineStyle` (`'bordeaux' | 'burgundy' | 'sparkling' | 'generic'`), `className?`. Export `getWineStyle(wineName, region?)` infers style via keyword regex. Used in `RecommendationResults` beside each rank badge. This is a custom illustration — not a lucide-react icon.
+**Typography:** Cormorant Garamond (display) + EB Garamond (body), referenced via inline `fontFamily` strings.
 
-**Text on glass surfaces:**
-- Headings: `text-white`
-- Body: `text-white/80` or `text-white/70`
-- Helper text / placeholders: `text-white/50`
-- Minimum readable opacity: `text-white/70` (never lower for important content)
-- Never use `text-gray-*` inside a `GlassCard` — it renders illegible on the dark background
+**Style delivery:** Inline `CSSProperties` objects for all component styling. Tailwind utility classes only for stateful helpers (e.g. `animate-spin`, `hidden`). No `text-white`, `text-gray-*`, or `bg-wine-*` classes.
 
-**Buttons:**
-- Primary: `bg-wine-burgundy hover:bg-wine-merlot border border-wine-rose/30 text-white`
-- Disabled: `bg-white/10 text-white/30 cursor-not-allowed border border-white/10`
-- Ghost/secondary: `border border-white/20 text-white/70 hover:bg-white/10`
+**Icons:** Always use `lucide-react`, `strokeWidth={1.5}`. No inline SVGs.
 
-**Icons:** Always use `lucide-react`. Set `strokeWidth={1.5}` on every icon. Do not introduce inline SVG paths for UI action icons. Exception: `WineBottleIcon` (`src/components/ui/WineBottleIcon.tsx`) uses custom inline SVG for illustrative bottle silhouettes — this is deliberate and not a pattern to generalise.
+**Decoration:** Hairline rules (1px solid `RULE`), no rounded corners, no drop shadows.
 
 ---
 
 ## Architecture Decisions
 
-**Stateless by design**: No user accounts, no session state. Simplifies deployment, allows easy scaling.
+**JWT auth, per-profile state**: Open self-registration (single-tenant learning project). JWT bearer tokens (HS256) on every non-auth endpoint, plus an `X-Profile-Id` header selecting the active named palate. Users/profiles/flights live in `cellar.db`; per-profile JSON lives under `backend/profiles/{profile_id}/`.
 
-**Single-file inventory/profile**: JSON files (inventory.json, profile_data.json) in backend dir. No schema migrations, easy debugging.
+**Per-profile inventory/profile JSON**: `inventory.json` + `profile_data.json` under each `backend/profiles/{profile_id}/` dir. No schema migrations, easy debugging.
 
-**Response caching by content hash**: Prevents redundant LLM calls for identical wine_list + meal combinations. Helpful for A/B testing, user exploration.
+**Response caching by content hash**: Prevents redundant LLM calls for identical wine_list + meal + profile combinations. Helpful for A/B testing, user exploration.
 
-**Markdown fence stripping**: LLMs frequently wrap JSON despite instructions. Strip before parsing to avoid silent 502s.
+**Tool use, no JSON repair**: Claude returns a pre-parsed dict via tool use (`tool_block.input`), so there is no markdown-fence stripping or brace repair — validation happens directly against the Pydantic schema.
 
 **Avoid_styles inference from low scores**: Instead of hardcoding, analyze user's own tasting history to infer what they dislike.
 
@@ -209,9 +191,11 @@ The frontend uses a Tailwind v4 glassmorphism design system. All rules below are
 
 **Type annotations**: Always on function signatures. Use `Optional[T]` over `T | None` for compatibility.
 
-## Testing (v1 out of scope)
+## Testing
 
-No pytest suite yet. Manual integration testing:
+A pytest suite lives under `backend/tests/` (27 tests): `test_scorer.py` (scorer edge cases), `test_meal_parser.py` (synonym normalisation), `test_parser_text.py` (text extraction), and `test_openapi_sync.py` (live schema matches `backend/openapi.json`). LLM-dependent evals live separately under `backend/tests/llm_evals/`. There are no tests for the PDF/image vision paths or for routes that call the Anthropic API.
+
+Run with `pytest backend/tests`. Manual integration check:
 1. Upload CellarTracker TSV
 2. Upload profile export (optional)
 3. Upload wine list PDF
@@ -244,7 +228,7 @@ Always include request_id for traceability. Truncate large strings to first 200 
 
 2. **Accent folding**: `_fold_for_match()` works for Latin-based wine names (French, Italian, Spanish). May not work for Cyrillic (Georgian wines) or CJK. Fallback is case-insensitive substring match.
 
-3. **Ollama fallback**: If `/api/chat` returns 404, code falls back to `/api/generate` with slightly different payload structure. Both return `{"response": "..."}` or `{"message": {"content": "..."}}`. Parsing handles both.
+3. **Transient LLM errors**: `llm_client.call_claude()` retries on `anthropic.APIConnectionError` / `anthropic.RateLimitError` (via `retry_utils.call_with_retry`, exponential backoff). Permanent errors (auth, invalid request) surface immediately as `HTTPException(502)`.
 
 4. **Profile source ambiguity**: `profile_source` field is informational only. No logic branches on it. Useful for analytics/UI hints.
 
@@ -252,4 +236,4 @@ Always include request_id for traceability. Truncate large strings to first 200 
 
 6. **Quantity filtering**: Bottles with Quantity ≤ 0 are silently dropped during parse. Quantity is a string in CT export; parsed with `float()`.
 
-7. **LLM temperature/randomness**: Ollama defaults not documented. System prompt doesn't specify. Recommendation may vary across calls. Not cached unless content-identical.
+7. **LLM temperature/randomness**: Anthropic API defaults are used (the call doesn't set `temperature`). Recommendations may vary across calls and are reused only when the content-addressed cache key matches exactly.

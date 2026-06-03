@@ -48,7 +48,7 @@
 
 **Style Terms**: Keywords (Burgundy, Chablis, Champagne, etc.) that expand to grape/appellation searches. Used to filter relevant bottles.
 
-**Cache Key**: SHA256(wine_list_bytes, meal_text, inventory_hash, profile_hash). Prevents redundant LLM calls for identical requests.
+**Cache Key**: `make_key()` in `cache.py` — SHA256 over (raw upload bytes, a meal discriminator string `"{meal}|{bottle_count}|{ceiling}"`, inventory_hash, profile_hash). The profile_hash (MD5 of the active profile's `profile_data.json`) scopes the cache per profile so different palates never share a cached recommendation. Prevents redundant LLM calls for identical requests.
 
 **Avoided Styles**: Inferred from tasting notes rated ≤3.0. Examples: oaky, bitter, thin. Used in system prompt to avoid recommending these.
 
@@ -60,15 +60,15 @@
 
 **Pydantic Model**: Python dataclass-like schema with validation. Used for all API input/output. Aliases allow camelCase JSON ↔ snake_case Python.
 
-**System Prompt**: Instructions sent to Ollama before the wine list. Includes sommelier persona, taste profile, relevant bottles, JSON schema.
+**System Prompt**: Instructions sent to Claude before the wine list. Includes sommelier persona, taste profile, relevant bottles, and the recommendation tool schema.
 
-**User Prompt**: "My meal: {meal}\n\nWhat should I order?" sent to Ollama as user message.
+**User Prompt**: Task instructions plus the meal line ("Tonight's meal: {meal}") and (for wine-list mode) the parsed wine list, sent to Claude as the user message.
 
-**Ollama**: Local LLM inference engine. API endpoints: /api/chat (preferred), /api/generate (fallback).
+**Anthropic Claude API**: Cloud LLM provider. All calls route through `call_claude()` in `llm_client.py` (Anthropic Python SDK `client.messages.create()`), which adds telemetry and retry. Default model `ANTHROPIC_MODEL` (claude-sonnet-4-6); vision parsing uses Claude Haiku (`ANTHROPIC_VISION_MODEL`).
+
+**Tool Use**: Structured output mechanism. The recommendation call forces Claude to invoke the `provide_recommendations` tool (`tool_choice`), so the response arrives as an already-parsed dict in the tool_use block — no JSON-string parsing or markdown-fence stripping required.
 
 **Response Cache**: SQLite table (response_cache). Stores JSON responses keyed by cache_key with timestamp. Busted on inventory/profile upload.
-
-**Markdown Fences**: Code blocks (```json ... ```). LLMs often wrap JSON despite instructions. Stripped before json.loads().
 
 **Accent Folding**: Normalize "Côte-Rôtie" → "cote-rotie" for matching. Handles Unicode combining marks.
 
@@ -82,7 +82,7 @@
 - **LLM**: Large Language Model
 - **TSV**: Tab-Separated Values
 - **JSON**: JavaScript Object Notation
-- **JWT**: JSON Web Token (not used; auth out of scope)
+- **JWT**: JSON Web Token. The core access model — every non-auth endpoint requires an `Authorization: Bearer <jwt>` header (HS256, issued at register/login) plus an `X-Profile-Id` header naming the active profile. `dependencies.py` validates the token and that the profile is owned by the token's user.
 - **SDK**: Software Development Kit (generated client code)
 - **OpenAPI**: Specification for REST API contracts
 - **Pydantic**: Python data validation library

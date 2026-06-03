@@ -28,7 +28,7 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
   "profile": {
     "id": "uuid_string",
     "userId": "uuid_string",
-    "name": "Default",
+    "name": "My Palate",
     "isDefault": true
   }
 }
@@ -36,7 +36,7 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
 
 **Behaviour**:
 - First-ever registration claims an orphan default profile (created at app init, unclaimed until first user registers).
-- Subsequent registrations receive a fresh empty default profile.
+- Subsequent registrations receive a fresh empty default profile named `"My Palate"`.
 - Email must be unique; returns `409 Conflict` if email already registered.
 - Password hashed via `auth.hash_password` before storage.
 - Returns `TokenResponse` with JWT access token, authenticated user, and the new/claimed default profile.
@@ -65,16 +65,16 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
   "profile": {
     "id": "uuid_string",
     "userId": "uuid_string",
-    "name": "Default",
+    "name": "My Palate",
     "isDefault": true
   }
 }
 ```
 
 **Behaviour**:
-- Validates email + password; raises `401 Unauthorized` if no match.
-- Returns current default profile for the user (most-recently-set or the single profile if only one exists).
-- If user has no profiles (edge case), raises `500` (should not occur in normal flow).
+- Validates email + password; raises `401 Unauthorized` (detail `"Invalid email or password"`) if no match.
+- Returns current default profile for the user (the `isDefault=true` profile, or the first profile if none is flagged default).
+- If user has no profiles (edge case, should not occur post-register), gracefully creates a fresh default profile named `"My Palate"` rather than erroring.
 
 ---
 
@@ -96,7 +96,7 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
     {
       "id": "uuid1",
       "userId": "uuid_string",
-      "name": "Default",
+      "name": "My Palate",
       "isDefault": true
     },
     {
@@ -167,18 +167,18 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
 
 ## Dependencies
 
-- `fastapi` — `APIRouter`, `HTTPException`, `Header`, `Depends`
+- `fastapi` — `APIRouter`, `Depends`, `HTTPException`, `status`
 - `auth` — `hash_password`, `create_access_token`, `verify_password`
 - `bootstrap` — `APP_BASE_URL`
-- `cache` — `get_user_by_email`, `create_user`, `claim_orphan_profile`, `create_profile`, `list_profiles_for_user`, `get_user_by_id`, `create_reset_token`, `get_reset_token`, `mark_reset_token_used`, `update_user_password`
+- `cache` — `get_user_by_email`, `create_user`, `claim_orphan_profile`, `get_profile`, `create_profile`, `list_profiles_for_user`, `create_reset_token`, `get_reset_token`, `mark_reset_token_used`, `update_user_password`
 - `dependencies` — `get_current_user` (for /auth/me)
-- `models` — `TokenResponse`, `User`, `Profile`, `AuthMeResponse`, `ForgotPasswordRequest`, `ResetPasswordRequest`, `MessageResponse`
+- `models` — `AuthMeResponse`, `ForgotPasswordRequest`, `LoginRequest`, `MessageResponse`, `Profile`, `RegisterRequest`, `ResetPasswordRequest`, `TokenResponse`, `User`
 
 ## Patterns & Gotchas
 
 - **Password hashing**: All passwords hashed via `auth.hash_password` (bcrypt); never stored plaintext.
 - **Email uniqueness**: `cache.create_user` raises `ValueError` if email already exists; route converts to `409 Conflict`.
-- **Orphan profile claim**: First registration calls `cache.claim_orphan_profile(user_id)` to claim the pre-created default profile. Subsequent registrations call `cache.create_profile(user_id, "Default")` for a fresh profile.
+- **Orphan profile claim**: First registration calls `cache.claim_orphan_profile(user_id)` to claim the pre-created default profile. Subsequent registrations call `cache.create_profile(user_id, name="My Palate", is_default=True)` for a fresh profile.
 - **Default profile selection**: `/login` returns the user's `isDefault=true` profile. If user has multiple profiles, only the default is returned in the login response (for UI simplicity); use `GET /auth/me` or `GET /profiles` to see all.
 - **Token expiry**: Access tokens expire per `JWT_EXPIRY_DAYS` (e.g. 7 days). UI must handle token refresh by re-logging in.
 - **No refresh tokens**: This implementation does not issue separate refresh tokens.
@@ -191,8 +191,8 @@ HTTP endpoints for user registration, login, and self-information retrieval. Man
 | Email already registered | 409 | "Email already registered" |
 | Invalid email format | 422 | Pydantic validation error |
 | Password too short | 422 | Pydantic validation error (if enforced) |
-| Email not found (login) | 401 | "Invalid credentials" |
-| Wrong password (login) | 401 | "Invalid credentials" |
+| Email not found (login) | 401 | "Invalid email or password" |
+| Wrong password (login) | 401 | "Invalid email or password" |
 | No Authorization header (me) | 401 | "Missing authorization header" |
 | Invalid/expired token (me) | 401 | "Invalid token" / "Token expired" |
 

@@ -43,7 +43,7 @@ Construct the system prompt for Claude. Embed taste profile, relevant cellar bot
   9. Inject `**TASTING NOTE LIBRARY**` block when `tasting_note_library` is non-empty, enabling `evidence_quotes`
   10. Embed full JSON schema with field descriptions for all enrichment fields (including `evidence_quotes`, `stretch`)
   11. Append reasoning structure notes (4-step format), confidence format note, fits field note, evidence_quotes field note, wheel/bars/drink notes
-  12. Return full prompt; also writes to `prompt.log` via dedicated `_prompt_logger`
+  12. Return full prompt; also writes to `backend/logs/prompt.log` via dedicated `_prompt_logger`
 
 ## Profile Function Disambiguation
 
@@ -87,7 +87,7 @@ When `bottle_count >= 3`, the final ranked slot is designated as a stretch/disco
 
 - **Sommelier persona**: "Be direct. No filler. Respond with ONLY valid JSON (no markdown, no backticks, no explanation)."
 - **Priority weighting**: 70% profile / 30% meal is stated explicitly in the prompt to prevent meal overriding profile fit.
-- **Prompt logging**: Every built prompt is written to `backend/prompt.log` via `_prompt_logger` (separate from the main sommelier logger, does not propagate). Useful for debugging prompt drift.
+- **Prompt logging**: Every built prompt is written to `backend/logs/prompt.log` via `_prompt_logger` (separate from the main sommelier logger, does not propagate). The `_log_dir` is `backend/logs/` (created at import). Useful for debugging prompt drift.
 - **Schema in prompt**: Inline JSON schema in prompt.py is a reference copy for the LLM's benefit; the authoritative schema for validation is `_RECOMMENDATION_TOOL` in `recommender.py`.
 - **Constraints section**: Both `bottle_count` and `budget_ceiling` are injected into a `CONSTRAINTS` block. The route passes these through from the form submission.
 - **Cellar context**: Notes if recommendation is outclassed by home inventory or worth ordering despite owning similar wines.

@@ -33,10 +33,12 @@ User preference model, source-agnostic (quiz, CellarTracker, manual).
 
 Fields:
 - `preferred_styles`, `preferred_regions`, `preferred_grapes`, `avoided_styles`: List[str]
+- `avoided_style_tokens`: List[str] — single-token markers distilled from `avoided_styles` sentences
+- `top_producers`: List[str] — repeat-purchase producers (strongest positive signal)
 - `budget_min`, `budget_max`: Optional[float]
 - `occasion`, `food_pairing`: Optional[str] (context hints)
-- `profile_source`: str (informational: "manual", "cellartracker", "quiz", etc.)
-- `inference_confidence`: Optional[str] — "high"|"medium"|"low", only set when profile_source=="seed_bottles"
+- `profile_source`: str (informational: "manual", "cellartracker", "cellartracker_synthesized", "seed_bottles")
+- `inference_confidence`: Optional[str] — "high"|"medium"|"low", set when `profile_source` is `"seed_bottles"` or `"cellartracker_synthesized"`
 
 ### Coords
 
@@ -111,6 +113,8 @@ Enrichment fields (all Optional, populated by Claude via tool use):
 - `pairs`: Optional[List[str]] — 2–4 food pairing suggestions
 - `critic`: Optional[Critic]
 - `verified_on_list`: Optional[bool] — set server-side post-validation; `True` if wine name is grounded in the uploaded list text (`_is_grounded`); `False` if not found; `None` in cellar mode (no list to check against)
+- `stretch`: bool = False — `True` when this pick is intentionally outside the safe persona zone (the discovery/stretch slot when `bottle_count >= 3`)
+- `evidence_quotes`: Optional[List[str]] — 1–2 short verbatim quotes from the user's tasting history justifying this pick
 
 ### RecommendationResponse
 
@@ -201,8 +205,8 @@ Fields:
 - `style_summary`: Optional[str] — Anthropic-generated one-sentence palate portrait; null if unavailable
 - `taste_markers`: Optional[TasteMarkers] — heuristic scores derived from descriptors
 - `cellar_stats`: Optional[CellarStats] — computed from inventory at request time
-- `profile_source`: Optional[str] — "cellartracker" | "seed_bottles" | "manual"
-- `inference_confidence`: Optional[str] — populated only when profile_source == "seed_bottles"
+- `profile_source`: Optional[str] — "cellartracker" | "cellartracker_synthesized" | "seed_bottles" | "manual"
+- `inference_confidence`: Optional[str] — populated when profile_source is "seed_bottles" or "cellartracker_synthesized"
 - `seed_bottle_count`: Optional[int] — number of seed bottles when profile is seed-derived
 
 ### MealProfile (Pydantic)
@@ -227,6 +231,137 @@ Fields:
 - `supporting_flight_ids`: List[str] — flight IDs that drove this suggestion (auditable)
 
 Config: `ConfigDict(alias_generator=to_camel, populate_by_name=True)`.
+
+### SeedBottle
+
+A single wine the user names during seed-bottle onboarding.
+
+Fields:
+- `producer`, `wine`: str (required)
+- `vintage`: Optional[int]
+- `sentiment`: Literal["loved", "disliked"] = "loved"
+- `note`: Optional[str]
+
+### SeedProfileRequest
+
+Request body for `POST /seed-profile`. Validators enforce 3–7 `loved` bottles and at most 3 `disliked`.
+
+Fields:
+- `loved`: List[SeedBottle] — must contain 3–7 entries
+- `disliked`: List[SeedBottle] — at most 3 entries
+
+### FlightSummary
+
+Lightweight row for the `GET /history` list view.
+
+Fields:
+- `id`: str
+- `created_at`: float
+- `occasion`, `menu`, `top_wine_name`: str
+- `bottle_count`: int
+
+### FlightRecord
+
+Full flight record returned by `GET /history/{id}`.
+
+Fields:
+- `id`: str
+- `created_at`: float
+- `occasion`, `menu`, `source_mode`: str
+- `bottle_count`: int
+- `response`: RecommendationResponse
+- `feedback`: Optional[FlightFeedback]
+
+### User
+
+Public-facing user model — the password hash is never serialized.
+
+Fields:
+- `id`: str
+- `email`: EmailStr
+- `created_at`: float
+
+### Profile
+
+A named palate profile owned by a user.
+
+Fields:
+- `id`: str
+- `user_id`: Optional[str] — NULL while orphan; populated once claimed
+- `name`: str
+- `is_default`: bool = False
+- `created_at`: float
+
+### RegisterRequest
+
+Request body for `POST /auth/register`.
+
+Fields:
+- `email`: EmailStr
+- `password`: str — `Field(min_length=8, max_length=128)`
+
+### LoginRequest
+
+Request body for `POST /auth/login`.
+
+Fields:
+- `email`: EmailStr
+- `password`: str
+
+### TokenResponse
+
+Returned by `POST /auth/register` and `POST /auth/login`.
+
+Fields:
+- `access_token`: str
+- `token_type`: str = "bearer"
+- `user`: User
+- `profile`: Profile — the active profile (claimed orphan on first register, else a new empty profile)
+
+### AuthMeResponse
+
+Returned by `GET /auth/me`.
+
+Fields:
+- `user`: User
+- `profiles`: List[Profile]
+
+### ProfileCreateRequest
+
+Request body for creating a profile.
+
+Fields:
+- `name`: str — `Field(min_length=1, max_length=64)`
+
+### ProfileUpdateRequest
+
+Request body for updating a profile.
+
+Fields:
+- `name`: Optional[str] — `Field(min_length=1, max_length=64)`
+- `is_default`: Optional[bool]
+
+### ForgotPasswordRequest
+
+Request body for `POST /auth/forgot-password`.
+
+Fields:
+- `email`: EmailStr
+
+### ResetPasswordRequest
+
+Request body for `POST /auth/reset-password`.
+
+Fields:
+- `token`: str
+- `new_password`: str — `Field(min_length=8, max_length=128)`
+
+### MessageResponse
+
+Generic single-message acknowledgment.
+
+Fields:
+- `message`: str
 
 ## Patterns
 

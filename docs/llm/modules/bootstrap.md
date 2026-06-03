@@ -10,8 +10,14 @@ Loads `.env` and exposes process-wide configuration constants. **Must be importe
 - `ANTHROPIC_MODEL: str` — defaults to `"claude-sonnet-4-6"`.
 - `MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024` — 20 MB upload ceiling enforced by `/upload-inventory`, `/upload-profile`, `/recommend`.
 - `TEST_MODE: bool` — read from env (`TEST_MODE=true`/`false`, default `false`). When true, `/recommend` honours an optional `test_fixture` form field that short-circuits the route to a canned `RecommendationResponse` from `test_fixtures.FIXTURES`, skipping parsing, profile enrichment, and the main Anthropic call. When false, the field is ignored.
+- `JWT_SECRET: str` — read from env. Raises `ValueError` at import time if unset (fail-loud). Generate with `python -c "import secrets; print(secrets.token_hex(32))"`.
+- `JWT_ALGORITHM: str` — defaults to `"HS256"`.
+- `JWT_EXPIRY_DAYS: int` — defaults to `7`.
+- `APP_BASE_URL: str` — defaults to `"http://localhost:5173"`. Base URL for password-reset links.
+- `PROFILES_DIR: Path` — `backend/profiles`. Created via `mkdir(exist_ok=True)` at import time.
+- `ORPHAN_PROFILE_ID: str = "00000000-0000-0000-0000-000000000001"` — fixed profile_id for the legacy migration orphan profile.
 
 ## Patterns & Gotchas
 
 - Calls `load_dotenv()` twice: once with the explicit `backend/.env` path, once with the default search. The first call wins; the second is a safety net for `pytest` runs invoked from elsewhere.
-- Fail-loud on missing API key — consistent with the project's "fail loudly" principle.
+- Fail-loud on missing API key **and** missing `JWT_SECRET` — both raise `ValueError` at import time, consistent with the project's "fail loudly" principle.

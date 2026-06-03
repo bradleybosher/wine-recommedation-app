@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-Composition root for the FastAPI app. Wires together env bootstrap, logging, middleware, exception handlers, and the six sub-routers (auth, profiles, inventory, profile, recommend, debug, history). Contains no endpoint handlers itself — all routes live under `backend/routes/`.
+Composition root for the FastAPI app. Wires together env bootstrap, logging, middleware, exception handlers, and the eight sub-routers (auth, profiles, debug, history, inventory, profile, recommend, insights). Contains no endpoint handlers itself — all routes live under `backend/routes/`.
 
 Target file size: ~40 lines. If `main.py` starts growing helpers or handlers again, move them out.
 
@@ -13,7 +13,8 @@ Target file size: ~40 lines. If `main.py` starts growing helpers or handlers aga
 - `logging_setup.configure_logging`
 - `middleware.install`
 - `cache.{init_db, purge_expired, migrate_legacy_data}`
-- `routes.auth.router`, `routes.profiles.router`, `routes.debug.router`, `routes.inventory.router`, `routes.profile.router`, `routes.recommend.router`, `routes.history.router`
+- `wine_reviews.seed_wine_reviews`
+- `routes.auth.router`, `routes.profiles.router`, `routes.debug.router`, `routes.history.router`, `routes.inventory.router`, `routes.profile.router`, `routes.recommend.router`, `routes.insights.router`
 
 ## Inputs/Outputs
 
@@ -23,16 +24,18 @@ None directly — `main` exposes `app: FastAPI`. All HTTP I/O happens in the inc
 
 1. `import bootstrap` — runs `load_dotenv()` and reads `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` / **`JWT_SECRET`**. Raises `ValueError` at import time if any required key is missing.
 2. `configure_logging()` — installs the rotating file handler + stderr stream on the `sommelier` logger tree.
-3. `FastAPI()` + `CORSMiddleware(allow_origins=["*"], expose_headers=["X-Profile-Id"])` — exposes the profile-scoping header so the frontend can read it in responses.
+3. `FastAPI()` + `CORSMiddleware(allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["X-Profile-Id"])` — exposes the profile-scoping header so the frontend can read it in responses.
 4. `install_middleware(app)` — adds the request-logging middleware and HTTPException/Exception handlers from `middleware.py`.
-5. `init_db()` — ensure the SQLite cache table exists.
-6. `migrate_legacy_data()` — after `init_db()`, migrates any pre-auth profile data (single `profile_data.json` + `inventory.json` in `backend/`) to the first user's default profile in `backend/profiles/{user_id}/`.
+5. `init_db()` — ensure the SQLite cache tables exist.
+6. `migrate_legacy_data()` — after `init_db()`, migrates any pre-auth profile data (single `profile_data.json` + `inventory.json` in `backend/`) to the orphan default profile. Returns the orphan profile id when a migration ran (logged as `legacy_data_migrated orphan_profile_id=...`).
 7. `purge_expired()` — evict stale cache entries (logs `cache_purge_on_startup expired_entries=N`).
-8. `app.include_router(...)` for `auth`, `profiles`, `debug`, `inventory`, `profile`, `recommend`, `history`.
+8. `seed_wine_reviews()` — loads the critic-review reference dataset into the cache (idempotent; see `wine_reviews.md`).
+9. `app.include_router(...)` for `auth`, `profiles`, `debug`, `history`, `inventory`, `profile`, `recommend`, `insights`.
 
 ## CORS Configuration
 
 - `allow_origins=["*"]` — accepts all origins (suitable for portfolio demo; production should restrict).
+- `allow_methods=["*"]`, `allow_headers=["*"]` — accept all methods and request headers (including `Authorization` and `X-Profile-Id`).
 - `expose_headers=["X-Profile-Id"]` — exposes the profile header so frontend code can read it from response headers if needed.
 
 ## Environment Variables

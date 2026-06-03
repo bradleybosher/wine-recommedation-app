@@ -27,5 +27,5 @@ Per-request flow: `Depends(get_current_profile)` extracts the user_id from the J
 - `bootstrap.MAX_UPLOAD_BYTES`
 - `cache.bust_cache`
 - `inventory.decode_cellartracker_upload`, `load_inventory`, `save_inventory`
-- `models.Bottle`, `InventoryResponse`, `UploadInventoryResponse`
-- `routes.auth.get_current_profile` — dependency injector for authenticated profile resolution
+- `models.Bottle`, `InventoryResponse`, `Profile`, `UploadInventoryResponse`
+- `dependencies.get_current_profile` — dependency injector for authenticated profile resolution

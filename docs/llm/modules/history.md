@@ -22,32 +22,32 @@ Per-request flow: `Depends(get_current_profile)` extracts the user_id from the J
 
 **GET /history/{flight_id}** → `FlightRecord`
   - Requires Bearer JWT + `X-Profile-Id` header.
-  - Fetches full flight by UUID hex id
-  - Enforces ownership via `_enforce_flight_ownership(flight_id, profile.id)` — returns 404 if the flight belongs to a different profile (prevents confirming the existence of flights outside the user's account)
+  - Fetches full flight by UUID hex id via `cache.get_flight(flight_id)` (404 if absent)
+  - Enforces ownership via `_enforce_flight_ownership(flight, profile)` — returns 404 if the flight belongs to a different profile (prevents confirming the existence of flights outside the user's account)
   - Deserialises `response_json` → `RecommendationResponse` and wraps in `FlightRecord`
   - 404 if not found or not owned; 500 if deserialisation fails
 
 **PATCH /history/{flight_id}/feedback** → `{"ok": true}`
   - Requires Bearer JWT + `X-Profile-Id` header.
   - Body: `FlightFeedback` JSON (`chip`, `recordedAt`)
-  - Enforces ownership via `_enforce_flight_ownership(flight_id, profile.id)`
-  - Merges feedback into the flight's `response_json` blob via `cache.update_flight_feedback(flight_id, profile_id=profile.id, ...)`
+  - Fetches the flight via `cache.get_flight(flight_id)` (404 if absent), then enforces ownership via `_enforce_flight_ownership(flight, profile)`
+  - Merges feedback into the flight's `response_json` blob via `cache.update_flight_feedback(flight_id, body)`
   - 404 if not found or not owned
 
 **DELETE /history/{flight_id}** → `{"id": str, "deleted": true}`
   - Requires Bearer JWT + `X-Profile-Id` header.
-  - Enforces ownership via `_enforce_flight_ownership(flight_id, profile.id)`
+  - Fetches the flight via `cache.get_flight(flight_id)` (404 if absent), then enforces ownership via `_enforce_flight_ownership(flight, profile)`
   - 404 if not found or not owned
 
 ## Helpers
 
-- **`_enforce_flight_ownership(flight_id, profile_id)`** — module-private. Fetches the flight record and asserts its `profile_id` matches the provided profile_id. Raises 404 `HTTPException` if not found or if the profile_id does not match. Used by all single-flight endpoints to prevent information leakage (confirming the existence of flights outside the user's account).
+- **`_enforce_flight_ownership(flight: dict, profile: Profile)`** — module-private. Receives an already-fetched flight dict and the active `Profile` object; it does **not** fetch the flight itself (each caller fetches via `cache.get_flight(flight_id)` first and 404s on absence). Asserts the flight's `profile_id` matches `profile.id`; raises 404 `HTTPException` otherwise. Used by all single-flight endpoints to prevent information leakage (confirming the existence of flights outside the user's account).
 
 ## Dependencies
 
 - `cache`: `list_flights`, `get_flight`, `delete_flight`, `update_flight_feedback`
-- `models`: `FlightFeedback`, `FlightSummary`, `FlightRecord`, `RecommendationResponse`
-- `routes.auth.get_current_profile` — dependency injector for authenticated profile resolution
+- `models`: `FlightFeedback`, `FlightSummary`, `FlightRecord`, `Profile`, `RecommendationResponse`
+- `dependencies.get_current_profile` — dependency injector for authenticated profile resolution
 
 ## Patterns & Gotchas
 

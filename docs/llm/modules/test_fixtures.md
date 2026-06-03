@@ -20,6 +20,7 @@ All fixtures include the full set of Phase 5 enrichment fields on every `WineRec
 - `drink` (DrinkWindow — Python constructor uses `from_year=`, JSON serializes as `"from"`)
 - `color` (WineColor — four module-level palette constants reused across fixtures)
 - `bars` (StructureBars), `wheel` (dict), `nose`, `palate`, `pairs`, `critic` (Critic)
+- `stretch` (bool) and `evidence_quotes` (list[str]) appear on select entries — e.g. the `happy` fixture's rank-3 pick sets `stretch=True` and supplies two `evidence_quotes` to exercise the stretch/discovery slot and tasting-note-quote rendering. Other entries omit both (default `stretch=False`, no quotes).
 
 Module-level palette constants:
 - `_BRUNELLO_COLOR`, `_BAROLO_COLOR`, `_CHABLIS_COLOR`, `_RHONE_COLOR`

@@ -139,7 +139,10 @@ Parse CellarTracker profile exports (TSV format), infer taste profile from consu
   - Calls `build_taste_profile(profile_data)` then maps result to a `TasteProfile` Pydantic model
   - Maps: top_varietals → preferred_grapes, top_regions → preferred_regions, preferred_descriptors → preferred_styles
   - Derives budget_min/max from avg_spend (±10 from rounded average)
-  - Sets `profile_source="cellartracker"` or `"seed_bottles"` etc. based on source
+  - Sets `profile_source` from the structured dict (default `"cellartracker"`)
+  - Sets `inference_confidence` **conditionally**: only propagated when
+    `profile_source in ("seed_bottles", "cellartracker_synthesized")`; otherwise
+    forced to `None` (a plain deterministic CT profile carries no confidence rating)
   - Passes through `top_producers` and `avoided_style_tokens` from the synthesized profile (empty lists if absent)
   - Returned in `UploadProfileResponse.taste_profile` so the frontend gets a typed profile immediately on upload
   - Profile_id-agnostic; operates on already-loaded dict

@@ -23,34 +23,40 @@ def expand_terms(terms: list[str]) -> list[str]
 
 ### `_EXPANSIONS: dict[str, list[str]]`
 
-Maps canonical tokens (lowercase) to their expansion lists. Two categories:
+Maps canonical tokens (lowercase) to their expansion lists. Two categories.
+The lists below are *representative* — the authoritative, complete table lives in
+`backend/synonyms.py` (`_EXPANSIONS`). Examples are quoted verbatim from the code:
 
 **Grape synonyms** (canonical → local names / alternate spellings):
-- `"pinot noir"` → Spätburgunder, Pinot Nero, Blauburgunder
-- `"grenache"` → Garnacha, Cannonau
-- `"syrah"` → Shiraz
-- `"tempranillo"` → Tinto Fino, Tinta del País, Tinta Roriz, Aragonez, Ull de Llebre
-- `"mourvèdre"` → Monastrell, Mataro
-- `"sangiovese"` → Brunello, Prugnolo Gentile, Morellino
-- `"nebbiolo"` → Spanna, Picotener, Chiavennasca
-- `"garganega"` → Soave (regional alias)
-- `"vermentino"` → Rolle
-- `"chenin blanc"` → Steen
+- `"pinot noir"` → spätburgunder, blauburgunder, pinot nero
+- `"grenache"` → garnacha, cannonau, grenache noir
+- `"syrah"` → shiraz, sérine
+- `"tempranillo"` → tinto fino, tinta roriz, cencibel, ull de llebre
+- `"mourvèdre"` → monastrell, mataro
+- `"sangiovese"` → chianti, brunello, morellino, rosso di montalcino
+- `"nebbiolo"` → barolo, barbaresco, langhe nebbiolo, ghemme, gattinara
+- `"chenin blanc"` → vouvray, savennières, montlouis
+- `"vermentino"` → rolle
+- `"blaufränkisch"` → blaufrankisch, lemberger, kékfrankos
+
+(Many single-grape keys have empty expansion lists — e.g. `"fiano"`, `"furmint"`,
+`"verdejo"` — present so the canonical token is recognised even without aliases.
+There is no `"garganega"` entry.)
 
 **Region/appellation expansions** (canonical region → sub-appellations and aliases):
-- `"burgundy"` → Bourgogne, Côte de Nuits, Côte de Beaune, Gevrey-Chambertin, Vosne-Romanée, Nuits-Saint-Georges, Chambolle-Musigny, Morey-Saint-Denis, Pommard, Volnay, Meursault, Puligny-Montrachet, Chassagne-Montrachet, Marsannay, Fixin, Aloxe-Corton, Savigny-lès-Beaune, Saint-Aubin, Santenay, Maranges, Hautes Côtes de Nuits, Hautes Côtes de Beaune, Côte Chalonnaise, Mâconnais, Givry, Mercurey, Rully, Montagny
-- `"champagne"` → Reims, Épernay, Côte des Blancs, Montagne de Reims, Vallée de la Marne, Aube, Grower Champagne
-- `"loire"` → Muscadet, Sancerre, Pouilly-Fumé, Vouvray, Chinon, Bourgueil, Saint-Nicolas-de-Bourgueil, Anjou, Savennières, Coteaux du Layon, Touraine, Montlouis, Crémant de Loire
-- `"rhône"` → Châteauneuf-du-Pape, Gigondas, Vacqueyras, Vinsobres, Cairanne, Lirac, Tavel, Crozes-Hermitage, Hermitage, Saint-Joseph, Cornas, Condrieu, Côte-Rôtie, Côtes du Rhône
-- `"alsace"` → Alsatian, Bas-Rhin, Haut-Rhin, Grand Cru Alsace
-- `"bordeaux"` → Médoc, Pauillac, Saint-Estèphe, Saint-Julien, Margaux, Pessac-Léognan, Graves, Pomerol, Saint-Émilion, Fronsac, Entre-Deux-Mers
-- `"chablis"` → Petit Chablis, Chablis Premier Cru, Chablis Grand Cru, Kimmeridgian
-- `"jura"` → Arbois, Côtes du Jura, Château-Chalon, L'Étoile, Vin Jaune, Savagnin
-- `"piedmont"` → Piemonte, Barolo, Barbaresco, Barbera d'Asti, Barbera d'Alba, Dolcetto, Gavi, Roero, Langhe
-- `"tuscany"` → Toscana, Chianti, Chianti Classico, Brunello di Montalcino, Vino Nobile di Montepulciano, Morellino di Scansano, Bolgheri, Super Tuscan, Maremma
-- `"rioja"` → Rioja Alta, Rioja Alavesa, Rioja Oriental, Tempranillo (Rioja)
-- `"swartland"` → Swartland Independent Producers, Swartland Revolution
-- `"priorat"` → Priorat, Priorato
+- `"burgundy"` → bourgogne, côte de nuits, côte de beaune, gevrey, chambolle, vosne, nuits-saint-georges, pommard, volnay, meursault, puligny-montrachet, chassagne-montrachet, marsannay, fixin, morey-saint-denis, vougeot, flagey, auxey-duresses, saint-romain, saint-aubin, santenay, maranges, côte chalonnaise, rully, mercurey, givry, montagny, mâconnais, mâcon, viré-clessé, pouilly-fuissé (plus accent-free variants)
+- `"champagne"` → grower champagne, grower-producer, champagne producer, aÿ, ay, épernay, reims, côte des bar, vallée de la marne, montagne de reims, blanc de blancs, blanc de noirs, brut nature, brut zéro, extra brut
+- `"jura"` → arbois, château-chalon, l'étoile, etoile, côtes du jura, vin jaune, vin de paille, savagnin, ouillé (plus accent-free variants)
+- `"rioja"` → rioja alta, rioja alavesa, rioja oriental
+- `"swartland"` → swartland winemakers
+- `"piedmont"` → piemonte, barolo, barbaresco, barbera d'asti, barbera d'alba, dolcetto, langhe, monferrato, roero, gavi, moscato d'asti
+- `"chablis"` → petit chablis, chablis premier cru, chablis grand cru
+
+(Other region keys present in `_EXPANSIONS` include `"loire"`, `"rhône"`, `"alsace"`,
+`"beaujolais"`, `"bordeaux"`, `"languedoc"`, `"provence"`, `"southwest france"`,
+`"tuscany"`, `"veneto"`, `"sicily"`, `"galicia"`, `"mosel"`, `"wachau"`, `"douro"`,
+`"willamette valley"`, `"walker bay"`, and others. Some keys — e.g. `"ribera del duero"`,
+`"rheingau"`, `"alentejo"` — carry empty expansion lists.)
 
 ### `_ALIAS_TO_CANONICAL: dict[str, str]`
 

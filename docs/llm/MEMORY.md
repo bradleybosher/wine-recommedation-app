@@ -5,6 +5,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 ## Core Documentation
 
 - [Architecture Overview](architecture.md) — Stack, module map, data flow, design decisions
+- [Knowledge Base Summary](SUMMARY.md) — High-level overview of the docs set
 - [Public Interfaces](interfaces.md) — All function signatures grouped by module
 - [Domain Glossary](glossary.md) — Wine terms, CellarTracker fields, domain-specific abbreviations
 - [Code Conventions](conventions.md) — Error handling, naming patterns, preferred libraries, patterns used consistently
@@ -15,41 +16,53 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ### Backend Python Modules
 
-- [auth.py](modules/auth.md) — Password hashing + JWT signing/decoding utilities (FastAPI-free)
-- [bootstrap.py](modules/bootstrap.md) — Loads .env; exposes ANTHROPIC_API_KEY/MODEL, MAX_UPLOAD_BYTES
-- [cellar_terms.py](modules/cellar_terms.md) — Frequency-ranked cellar terms + character phrase
-- [cache.py](modules/cache.md) — SQLite response caching
-- [dependencies.py](modules/dependencies.md) — FastAPI deps: get_current_user, get_current_profile
-- [inventory.py](modules/inventory.md) — Cellar loading/saving, relevance filtering
-- [logging_setup.py](modules/logging_setup.md) — Configures the `sommelier` logger tree
+**App composition & infrastructure**
 - [main.py](modules/main.md) — Composition root: env bootstrap, logging, middleware, router includes
-- [meal_parser.py](modules/meal_parser.md) — Meal description parsing, MealProfile dataclass, pairing hints
+- [bootstrap.py](modules/bootstrap.md) — Loads .env; exposes ANTHROPIC_API_KEY/MODEL, MAX_UPLOAD_BYTES, JWT_SECRET/ALGORITHM/EXPIRY_DAYS, APP_BASE_URL, PROFILES_DIR, ORPHAN_PROFILE_ID
+- [auth.py](modules/auth.md) — Password hashing (bcrypt + SHA-256 prehash) + JWT signing/decoding utilities (FastAPI-free)
+- [dependencies.py](modules/dependencies.md) — FastAPI deps: get_current_user, get_current_profile
 - [middleware.py](modules/middleware.md) — Request-logging middleware + exception handlers
-- [models.py](modules/models.md) — Pydantic schemas, camelCase JSON mapping
-- [parser.py](modules/parser.md) — PDF/text/image dispatch, extraction
-- [profile.py](modules/profile.md) — CellarTracker parsing, taste profile building, Ollama enrichment
-- [prompt.py](modules/prompt.md) — System prompt construction, schema definition, OWNER_PROFILE constant
+- [logging_setup.py](modules/logging_setup.md) — Configures the `sommelier` logger tree
+- [logging_utils.py](modules/logging_utils.md) — JSONL recommendation-event telemetry logger (`logs/recommendations.jsonl`)
 - [rate_limit.py](modules/rate_limit.md) — IP-based 10-req/60s limiter for /recommend
-- [recommender.py](modules/recommender.md) — LLM calls, structured output schema, retry logic, JSON parsing, validation
-- [routes/auth.py](modules/routes_auth.md) — /auth/register, /auth/login, /auth/me
-- [routes/inventory.py](modules/routes_inventory.md) — /upload-inventory, /inventory
-- [routes/profile.py](modules/routes_profile.md) — /upload-profile, /seed-profile, /profile/revert, /profile-summary
-- [routes/profiles.py](modules/routes_profiles.md) — /profiles CRUD (list/create/rename/delete/set-default)
-- [routes/recommend.py](modules/routes_recommend.md) — /recommend pipeline
-- [synonyms.py](modules/synonyms.md) — Grape/region synonym + sub-appellation expansion for retrieval
+- [cache.py](modules/cache.md) — SQLite: users/profiles/flights + global response/parse cache + reset tokens + legacy migration
+
+**LLM access**
+- [llm_client.py](modules/llm_client.md) — `call_claude` telemetry wrapper (Anthropic SDK) with retry + cost logging
+- [retry_utils.py](modules/retry_utils.md) — `call_with_retry` exponential-backoff helper for Anthropic calls
+- [recommender.py](modules/recommender.md) — Claude recommendation calls (tool use), output schema, bar blending, validation
+- [prompt.py](modules/prompt.md) — System prompt construction, schema definition, tasting-note library / stretch slot
+- [parser.py](modules/parser.md) — PDF/text/image dispatch, Claude Haiku vision extraction
+
+**Profiles, palate & retrieval**
+- [profile.py](modules/profile.md) — CellarTracker parsing, taste profile building, Claude synthesis/enrichment
+- [seed_profile.py](modules/seed_profile.md) — Seed-bottle onboarding; Claude inference of a starter palate
 - [palate_stats.py](modules/palate_stats.md) — Pre-LLM statistical palate analysis (frequency, style signals, aspirational skew)
+- [retrieval.py](modules/retrieval.md) — Retrieval-augmented pre-filtering; tiered profile-signal ranking (no API call)
+- [synonyms.py](modules/synonyms.md) — Grape/region synonym + sub-appellation expansion for retrieval
+- [insights.py](modules/insights.md) — Palate drift suggestion engine (statistical flight analysis, no LLM call)
+- [scorer.py](modules/scorer.md) — 4-dimension recommendation quality scorer; `ScoringResult` dataclass
+- [inventory.py](modules/inventory.md) — Cellar loading/saving, relevance filtering
+- [cellar_terms.py](modules/cellar_terms.md) — Frequency-ranked cellar terms + character phrase
+- [meal_parser.py](modules/meal_parser.md) — Meal description parsing, MealProfile dataclass, pairing hints
+- [wine_reviews.py](modules/wine_reviews.md) — Critic-review reference dataset seeding + lookup/enrichment
+- [models.py](modules/models.md) — Pydantic schemas (incl. User/Profile/auth models), camelCase JSON mapping
 - [test_fixtures.py](modules/test_fixtures.md) — Canned `RecommendationResponse` fixtures used when `TEST_MODE=true` short-circuits `/recommend`
-- scorer.py — 4-dimension recommendation quality scorer; `ScoringResult` dataclass; see interfaces.md
-- logging_utils.py — JSONL event logger to `logs/recommendations.jsonl`; see interfaces.md
+
+**Routes (`backend/routes/`)**
+- [routes/auth.py](modules/routes_auth.md) — /auth/register, /auth/login, /auth/me, /auth/forgot-password, /auth/reset-password
+- [routes/profiles.py](modules/routes_profiles.md) — /profiles CRUD (list/create/rename/delete/set-default)
+- [routes/profile.py](modules/routes_profile.md) — /upload-profile, /seed-profile, /profile, /profile/revert, /profile-summary
+- [routes/inventory.py](modules/routes_inventory.md) — /upload-inventory, /inventory
+- [routes/recommend.py](modules/routes_recommend.md) — /recommend pipeline
+- [routes/history.py](modules/history.md) — /history, /history/{id} feedback (profile-scoped flights)
+- [routes/insights.py](modules/routes_insights.md) — /profile/insights drift suggestions
+- [routes/debug.py](modules/routes_debug.md) — Diagnostics endpoints (health, status, config, logs, cache, stats)
 
 ### Frontend (Generated SDK)
 
 - `frontend/src/client/sdk.gen.ts` — Auto-generated from OpenAPI spec. Don't edit.
 - `frontend/src/client/types.gen.ts` — Authoritative type definitions (auto-generated).
-
-### Debug Routes
-
-- `backend/routes/debug.py` — Diagnostics endpoints (health, status, logs, cache). See [conventions.md](conventions.md) for HTTP error codes.
 
 ## How to Use This Index
 
@@ -72,7 +85,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 
 ## Document Statistics
 
-- **Total files**: 19 (4 core + 13 modules + 1 index + 1 backlog) — scorer.py and logging_utils.py documented inline in interfaces.md
+- **Total files**: 43 (8 core docs — this index, summary, architecture, interfaces, glossary, conventions, context-guide, backlog — and 35 module docs under `modules/`)
 - **Estimated total tokens**: ~7,500 (manageable in most LLM contexts)
 - **Typical focused task**: 1,500–2,000 tokens (architecture + glossary + 2–3 modules)
 
