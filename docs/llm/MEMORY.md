@@ -11,6 +11,7 @@ This is the master index for the wine-recommendation-app LLM knowledge base. Poi
 - [Code Conventions](conventions.md) — Error handling, naming patterns, preferred libraries, patterns used consistently
 - [Context Guide](context-guide.md) — Maps task types to which docs to inject
 - [Improvement Backlog](improvement-backlog.md) — Prioritized list of known issues with file:line references and recommended fixes
+- [Testing Catalog](testing.md) — Module-to-test-file map. Consult before adding/modifying any module so the matching test file is updated in the same change.
 
 ## Module Documentation
 

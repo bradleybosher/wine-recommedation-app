@@ -9,6 +9,7 @@ backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-# Provide a dummy key so modules that validate ANTHROPIC_API_KEY at import time
+# Provide dummy keys so modules that validate these at import time
 # don't raise RuntimeError during test collection.
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-dummy-key-for-pytest")
+os.environ.setdefault("JWT_SECRET", "test-dummy-jwt-secret-for-pytest")

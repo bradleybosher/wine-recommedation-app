@@ -77,11 +77,13 @@ Profile source (one of, per profile):
 
 ### Documentation Update Protocol (mandatory — complete before closing any task)
 
-For every file modified, update the corresponding docs:
+For every file modified, update the corresponding docs and tests:
 
-| Modified file | Update these docs |
+| Modified file | Update these docs / tests |
 |---|---|
-| `backend/<module>.py` | `docs/llm/modules/<module>.md` + `docs/llm/interfaces.md` |
+| `backend/<module>.py` | `docs/llm/modules/<module>.md` + `docs/llm/interfaces.md` + `backend/tests/test_<module>.py` |
+| `backend/routes/<route>.py` | `docs/llm/modules/routes_<route>.md` + `backend/tests/routes/test_<route>_routes.py` |
+| `frontend/src/**` | colocated `*.test.ts(x)` next to source |
 | Data flow or module list changed | `CLAUDE.md` (Data Flow + Modules line) |
 | User-facing behaviour changed | `README.md` |
 
@@ -91,6 +93,14 @@ For every file modified, update the corresponding docs:
 3. Are new constants, data structures, or pipelines documented?
 4. Is `CLAUDE.md` still accurate (data flow, module list, recommendation logic)?
 5. Is `README.md` still accurate for users?
+6. Does the corresponding test file in `backend/tests/` (or colocated frontend `*.test.ts(x)`) cover the new/changed behavior? See [docs/llm/testing.md](docs/llm/testing.md) for the module → test-file map.
+7. Do `pytest backend/tests` and `npm --prefix frontend test:run` both pass?
+
+## Testing Protocol
+- **Backend:** `.\backend\.venv\Scripts\python.exe -m pytest backend/tests` (configured in [backend/pyproject.toml](backend/pyproject.toml)). One `test_<module>.py` per backend module; one `test_<route>_routes.py` per route handler. See [docs/llm/testing.md](docs/llm/testing.md) for the full module → test-file map.
+- **Frontend:** `npm --prefix frontend test:run` (Vitest + React Testing Library, jsdom). Tests colocated as `*.test.ts(x)` next to source.
+- **LLM evals:** `pytest backend/tests/llm_evals -m replay` (offline, fixture-replay). `-m live` requires `ANTHROPIC_API_KEY` and bills.
+- **Rule:** any module under test must remain green before the task closes. New modules require at least one test file from the catalog in [docs/llm/testing.md](docs/llm/testing.md).
 
 ## Principles
 - Fail loudly; schema-driven (Pydantic is the contract); JWT auth (single-tenant learning project, open self-registration); per-profile SQLite + JSON persistence; portfolio-legible

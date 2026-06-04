@@ -39,7 +39,8 @@
       "Bash(cmd /c sync_types.bat)",
       "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import passlib; import bcrypt; print\\('passlib:', passlib.__version__\\); print\\('bcrypt:', bcrypt.__version__\\)\")",
       "Bash(backend/.venv/Scripts/pip.exe install *)",
-      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0,'backend'\\); from recommender import get_recommendation; print\\('recommender OK'\\)\")"
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -c \"import sys; sys.path.insert\\(0,'backend'\\); from recommender import get_recommendation; print\\('recommender OK'\\)\")",
+      "Bash(.\\\\backend\\\\.venv\\\\Scripts\\\\python.exe -m pytest backend/tests/test_synonyms.py backend/tests/test_palate_stats.py backend/tests/test_retrieval.py backend/tests/test_insights.py backend/tests/test_cellar_terms.py backend/tests/test_auth.py backend/tests/test_rate_limit.py -v)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Brad\\Desktop\\wine-recommendation-app\\docs",
