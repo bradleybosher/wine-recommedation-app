@@ -51,6 +51,27 @@ class TestFindReferenceBars:
         monkeypatch.setattr(recommender, "_WINE_REFERENCE", ref)
         assert _find_reference_bars("Napa Valley", "Cabernet Sauvignon") is None
 
+    def test_norm_cache_reuses_until_source_changes(self, monkeypatch):
+        ref_a = [{
+            "appellation": "Burgundy",
+            "grape": "Pinot Noir",
+            "bars": {"tannin": 0.4, "acidity": 0.7, "body": 0.5, "sweetness": 0.0, "oak": 0.3},
+        }]
+        monkeypatch.setattr(recommender, "_WINE_REFERENCE", ref_a)
+        first = recommender._get_norm_reference()
+        # Same source object → same cached normalized table (no rebuild).
+        assert recommender._get_norm_reference() is first
+        # Reassigning the source list rebuilds the cache on next access.
+        ref_b = [{
+            "appellation": "Barolo",
+            "grape": "Nebbiolo",
+            "bars": {"tannin": 0.9, "acidity": 0.8, "body": 0.8, "sweetness": 0.0, "oak": 0.5},
+        }]
+        monkeypatch.setattr(recommender, "_WINE_REFERENCE", ref_b)
+        rebuilt = recommender._get_norm_reference()
+        assert rebuilt is not first
+        assert _find_reference_bars("Barolo", "Nebbiolo") == ref_b[0]["bars"]
+
 
 class TestBlendBars:
     def test_fifty_fifty_blend(self):

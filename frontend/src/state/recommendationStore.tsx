@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { RecommendationResponse } from '@/client/types.gen';
 
 interface RecommendationContextValue {
@@ -10,8 +10,11 @@ const RecommendationContext = createContext<RecommendationContextValue | null>(n
 
 export function RecommendationProvider({ children }: { children: ReactNode }) {
   const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null);
+  // Stable reference so consumers only re-render when recommendations actually change
+  // (setRecommendations from useState is already stable).
+  const value = useMemo(() => ({ recommendations, setRecommendations }), [recommendations]);
   return (
-    <RecommendationContext.Provider value={{ recommendations, setRecommendations }}>
+    <RecommendationContext.Provider value={value}>
       {children}
     </RecommendationContext.Provider>
   );

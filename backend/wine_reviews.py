@@ -54,6 +54,24 @@ _INDEX_DDL = (
 
 _MATCH_THRESHOLD = 0.75
 
+# Tri-state cache for "does the wine_reviews table exist and have rows?".
+# None = not yet checked; resolved lazily on first lookup and set at seed time.
+# Avoids a sqlite_master + COUNT(*) probe on every per-wine lookup.
+_reviews_ready: Optional[bool] = None
+
+
+def _reviews_available(conn: sqlite3.Connection) -> bool:
+    """True if the wine_reviews table exists and is populated. Cached after first check."""
+    global _reviews_ready
+    if _reviews_ready is None:
+        tbl = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='wine_reviews'"
+        ).fetchone()
+        _reviews_ready = bool(tbl) and (
+            conn.execute("SELECT COUNT(*) FROM wine_reviews").fetchone()[0] > 0
+        )
+    return _reviews_ready
+
 
 def _normalize(s: str) -> str:
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
@@ -103,16 +121,19 @@ def seed_wine_reviews() -> None:
     (~56 MB, one-time). Subsequent starts skip seeding when the table already
     has rows.
     """
+    global _reviews_ready
     with sqlite3.connect(_DB_PATH) as conn:
         conn.execute(_TABLE_DDL)
         conn.execute(_INDEX_DDL)
         count = conn.execute("SELECT COUNT(*) FROM wine_reviews").fetchone()[0]
         if count > 0:
             logger.info("wine_reviews: already seeded (%d rows)", count)
+            _reviews_ready = True
             return
 
     if not _DATA_FILE.exists():
         if not _download_csv():
+            _reviews_ready = False
             return
 
     rows: list[tuple] = []
@@ -140,6 +161,7 @@ def seed_wine_reviews() -> None:
             " VALUES (?,?,?,?,?)",
             rows,
         )
+    _reviews_ready = len(rows) > 0
     logger.info("wine_reviews: seeded %d rows", len(rows))
 
 
@@ -147,6 +169,7 @@ def lookup_critic(
     wine_name: str,
     producer: Optional[str],
     vintage: Optional[int],
+    conn: Optional[sqlite3.Connection] = None,
 ) -> Optional[Critic]:
     """Return a real Wine Enthusiast score for a wine, or None if no confident match.
 
@@ -156,37 +179,41 @@ def lookup_critic(
       2. Python word-overlap check: fraction of significant wine_name words
          (>=4 chars) that appear in the dataset title.
       3. Accept only matches at or above _MATCH_THRESHOLD (0.75).
+
+    Pass ``conn`` to reuse an open connection across many lookups (see
+    ``enrich_critics``); when omitted a short-lived connection is opened and
+    closed for this single call.
     """
     key_word = _distinctive_word(producer or wine_name)
     if not key_word:
         return None
 
+    own_conn = conn is None
     try:
-        with sqlite3.connect(_DB_PATH) as conn:
-            tbl = conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='wine_reviews'"
-            ).fetchone()
-            if not tbl:
-                return None
-            if conn.execute("SELECT COUNT(*) FROM wine_reviews").fetchone()[0] == 0:
-                return None
+        if own_conn:
+            conn = sqlite3.connect(_DB_PATH)
+        if not _reviews_available(conn):
+            return None
 
-            if vintage:
-                candidates = conn.execute(
-                    "SELECT winery, title, vintage, points, taster FROM wine_reviews"
-                    " WHERE lower(winery) LIKE ?"
-                    "   AND (vintage IS NULL OR abs(vintage - ?) <= 1)",
-                    (f"%{key_word}%", vintage),
-                ).fetchall()
-            else:
-                candidates = conn.execute(
-                    "SELECT winery, title, vintage, points, taster FROM wine_reviews"
-                    " WHERE lower(winery) LIKE ?",
-                    (f"%{key_word}%",),
-                ).fetchall()
+        if vintage:
+            candidates = conn.execute(
+                "SELECT winery, title, vintage, points, taster FROM wine_reviews"
+                " WHERE lower(winery) LIKE ?"
+                "   AND (vintage IS NULL OR abs(vintage - ?) <= 1)",
+                (f"%{key_word}%", vintage),
+            ).fetchall()
+        else:
+            candidates = conn.execute(
+                "SELECT winery, title, vintage, points, taster FROM wine_reviews"
+                " WHERE lower(winery) LIKE ?",
+                (f"%{key_word}%",),
+            ).fetchall()
     except Exception as exc:
         logger.warning("wine_reviews: lookup error: %s", exc)
         return None
+    finally:
+        if own_conn and conn is not None:
+            conn.close()
 
     if not candidates:
         return None
@@ -218,8 +245,21 @@ def enrich_critics(recommendation) -> None:
 
     Wines that don't match the dataset keep whatever Claude returned (including
     None). Only overwrites with a real score when a confident match is found.
+
+    Opens a single SQLite connection and reuses it for every wine, so an N-wine
+    recommendation costs one connection instead of N.
     """
-    for wine in recommendation.recommendations:
-        real = lookup_critic(wine.wine_name, wine.producer, wine.vintage)
-        if real is not None:
-            wine.critic = real
+    wines = recommendation.recommendations
+    if not wines:
+        return
+
+    try:
+        with sqlite3.connect(_DB_PATH) as conn:
+            if not _reviews_available(conn):
+                return
+            for wine in wines:
+                real = lookup_critic(wine.wine_name, wine.producer, wine.vintage, conn=conn)
+                if real is not None:
+                    wine.critic = real
+    except Exception as exc:
+        logger.warning("wine_reviews: enrich error: %s", exc)
