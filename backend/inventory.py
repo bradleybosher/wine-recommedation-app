@@ -163,6 +163,16 @@ _WINE_STYLE_KEYWORDS: list[str] = [
     "cdt",
 ]
 
+# Pre-folded once at import (accent-stripped, casefolded) so hot paths never
+# re-fold the static keyword set on every call. Parallel to _WINE_STYLE_KEYWORDS.
+_FOLDED_WINE_STYLE_KEYWORDS: list[str] = [
+    _fold_for_match(kw) for kw in _WINE_STYLE_KEYWORDS
+]
+# (canonical, folded) pairs for extraction that must return the original keyword.
+_WINE_STYLE_KEYWORD_PAIRS: list[tuple[str, str]] = list(
+    zip(_WINE_STYLE_KEYWORDS, _FOLDED_WINE_STYLE_KEYWORDS)
+)
+
 # Estate/producer structural words — standalone presence strongly indicates a wine entry.
 _WINE_ESTATE_WORDS: frozenset[str] = frozenset([
     "château", "chateau", "domaine", "clos", "vigna", "vigneto",
@@ -186,7 +196,7 @@ def extract_terms_from_wine_list_text(text: str) -> list[str]:
     if not text:
         return []
     folded = _fold_for_match(text)
-    found = [kw for kw in _WINE_STYLE_KEYWORDS if _fold_for_match(kw) in folded]
+    found = [kw for kw, folded_kw in _WINE_STYLE_KEYWORD_PAIRS if folded_kw in folded]
     # Deduplicate while preserving order, longest first (multi-word > single-word)
     seen: set[str] = set()
     result: list[str] = []
@@ -385,7 +395,7 @@ def filter_wine_list(wine_list_text: str, _profile: TasteProfile | None) -> str:
         return wine_list_text
 
     try:
-        folded_wine_keywords = [_fold_for_match(kw) for kw in _WINE_STYLE_KEYWORDS]
+        folded_wine_keywords = _FOLDED_WINE_STYLE_KEYWORDS
 
         beverage_drop = 0
         currency_drop = 0

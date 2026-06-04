@@ -54,6 +54,19 @@ logged as a warning; the recommendation proceeds unchanged.
 Wines that don't match keep whatever Claude returned (including `None`). The dataset
 score only replaces Claude's estimate when overlap ≥ 0.75.
 
+## Connection reuse (efficiency)
+
+`enrich_critics()` opens a **single** SQLite connection and passes it to every
+`lookup_critic(..., conn=...)` call, so an N-wine flight costs one connection
+instead of N. Standalone `lookup_critic()` calls (no `conn`) still open and close
+their own short-lived connection.
+
+Table readiness — does `wine_reviews` exist and have rows? — is resolved by
+`_reviews_available(conn)`, which caches the answer in the module-level tri-state
+`_reviews_ready` (`None` = unchecked). `seed_wine_reviews()` sets it at startup;
+otherwise it is resolved lazily on the first lookup. This replaces the previous
+`sqlite_master` + `COUNT(*)` probe that ran on every per-wine lookup.
+
 ## Key constants
 
 | Constant | Value | Purpose |

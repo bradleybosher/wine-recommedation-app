@@ -35,31 +35,50 @@ def _normalize_ref(s: str) -> str:
     return "".join(c for c in nfkd if not unicodedata.combining(c))
 
 
+# Cache of the reference table pre-normalized to (norm_appellation, norm_grape, bars),
+# so per-wine lookups don't re-run NFKD normalization across the whole table on every
+# call. Rebuilt only when the source list object changes (e.g. tests monkeypatching
+# _WINE_REFERENCE); in production it is computed once on first lookup and reused.
+_norm_src: Optional[list] = None
+_norm_reference: list[tuple[str, str, dict]] = []
+
+
+def _get_norm_reference() -> list[tuple[str, str, dict]]:
+    global _norm_src, _norm_reference
+    if _WINE_REFERENCE is not _norm_src:
+        _norm_src = _WINE_REFERENCE
+        _norm_reference = [
+            (
+                _normalize_ref(e.get("appellation", "")),
+                _normalize_ref(e.get("grape", "")),
+                e.get("bars", {}),
+            )
+            for e in _WINE_REFERENCE
+        ]
+    return _norm_reference
+
+
 def _find_reference_bars(appellation: Optional[str], grape: Optional[str]) -> Optional[dict]:
     """Return the best-matching reference bars dict (0.0–1.0 scale) for an appellation+grape pair."""
-    if not _WINE_REFERENCE:
+    norm_reference = _get_norm_reference()
+    if not norm_reference:
         return None
     norm_app = _normalize_ref(appellation or "")
     norm_grape = _normalize_ref(grape or "")
-    # Exact match on both fields
-    for entry in _WINE_REFERENCE:
-        if (norm_app and norm_grape
-                and _normalize_ref(entry.get("appellation", "")) == norm_app
-                and _normalize_ref(entry.get("grape", "")) == norm_grape):
-            return entry["bars"]
-    # Partial appellation match + exact grape
-    for entry in _WINE_REFERENCE:
-        ref_app = _normalize_ref(entry.get("appellation", ""))
-        ref_grape = _normalize_ref(entry.get("grape", ""))
-        if (norm_app and norm_grape and ref_grape == norm_grape
-                and (ref_app in norm_app or norm_app in ref_app)):
-            return entry["bars"]
+    if norm_app and norm_grape:
+        # Exact match on both fields
+        for ref_app, ref_grape, bars in norm_reference:
+            if ref_app == norm_app and ref_grape == norm_grape:
+                return bars
+        # Partial appellation match + exact grape
+        for ref_app, ref_grape, bars in norm_reference:
+            if ref_grape == norm_grape and (ref_app in norm_app or norm_app in ref_app):
+                return bars
     # Appellation-only match (grape absent or unknown)
     if norm_app and not norm_grape:
-        for entry in _WINE_REFERENCE:
-            ref_app = _normalize_ref(entry.get("appellation", ""))
+        for ref_app, _ref_grape, bars in norm_reference:
             if ref_app and (ref_app == norm_app or ref_app in norm_app or norm_app in ref_app):
-                return entry["bars"]
+                return bars
     return None
 
 

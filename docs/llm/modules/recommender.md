@@ -92,8 +92,11 @@ Top-level schema fields:
 ### `_normalize_ref(s: str) → str`
 Lowercase + strip combining diacritics (NFKD) for accent-insensitive reference matching. Same normalisation as `retrieval._normalize`.
 
+### `_get_norm_reference() → list[tuple[str, str, dict]]`
+Returns the reference table pre-normalized to `(norm_appellation, norm_grape, bars)` tuples so per-wine lookups don't re-run NFKD normalization across the whole table on every call. Cached in module state and rebuilt only when the source `_WINE_REFERENCE` list object changes identity (detected with `is`, which also keeps the prior object alive to avoid id reuse). In production it is computed once on first lookup; tests that monkeypatch `_WINE_REFERENCE` trigger a rebuild automatically.
+
 ### `_find_reference_bars(appellation, grape) → Optional[dict]`
-Searches `_WINE_REFERENCE` (loaded from `data/wine_reference.json` at module level) for the best match using three tiers:
+Searches the pre-normalized table from `_get_norm_reference()` (sourced from `_WINE_REFERENCE`, loaded from `data/wine_reference.json` at module level) for the best match using three tiers:
 1. Exact appellation + exact grape
 2. Partial appellation (appellation substring in entry) + exact grape
 3. Appellation-only (ignores grape)

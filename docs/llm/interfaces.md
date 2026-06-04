@@ -36,14 +36,19 @@ def seed_wine_reviews() → None
   Auto-downloads the CSV (~56 MB) from GitHub if absent. No-op if table already has rows.
   Called once at startup.
 
-def lookup_critic(wine_name: str, producer: Optional[str], vintage: Optional[int]) → Optional[Critic]
+def lookup_critic(wine_name: str, producer: Optional[str], vintage: Optional[int],
+                  conn: Optional[sqlite3.Connection] = None) → Optional[Critic]
   Return a Wine Enthusiast score from the local dataset for a wine, or None.
   Matches by: SQL winery LIKE filter (most distinctive producer word) + vintage ±1
   + word-overlap on wine_name words ≥4 chars in dataset title. Threshold: 0.75.
+  Pass conn to reuse an open connection across many lookups; otherwise a short-lived
+  connection is opened and closed for the single call. Table-readiness (exists +
+  non-empty) is probed once via _reviews_available() and cached in module state.
 
 def enrich_critics(recommendation: RecommendationResponse) → None
   Iterate recommendation.recommendations; call lookup_critic for each wine and
   overwrite wine.critic with the real dataset score when a confident match is found.
+  Opens ONE shared SQLite connection for the whole flight (not one per wine).
 ```
 
 ### bootstrap.py

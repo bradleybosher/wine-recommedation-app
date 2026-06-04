@@ -49,7 +49,9 @@ Pattern: `monkeypatch` `llm_client.call_claude`, in-memory SQLite for `cache`, `
 
 | Module | Test file | Covers |
 |---|---|---|
-| [backend/recommender.py](../../backend/recommender.py) | `backend/tests/test_recommender_blend.py` | `_find_reference_bars` accent-normalized match, `_blend_bars` 50/50 math, missing-reference fallback |
+| [backend/recommender.py](../../backend/recommender.py) | `backend/tests/test_recommender_blend.py` | `_find_reference_bars` accent-normalized match, `_blend_bars` 50/50 math, missing-reference fallback, `_get_norm_reference` cache reuse + rebuild-on-source-change |
+| [backend/wine_reviews.py](../../backend/wine_reviews.py) | `backend/tests/test_wine_reviews.py` | `lookup_critic` confident/no match + shared-connection arg, `_reviews_available` readiness probe runs once (cached), `enrich_critics` enriches only confident matches and opens a single connection for the whole flight |
+| [backend/inventory.py](../../backend/inventory.py) | `backend/tests/test_inventory_terms.py` | pre-folded keyword constants stay in sync with `_WINE_STYLE_KEYWORDS`, `extract_terms_from_wine_list_text` returns canonical keyword accent-insensitively, empty-text passthrough |
 | [backend/profile.py](../../backend/profile.py) | `backend/tests/test_profile_overrides.py` | `build_taste_profile` precedence `_synthesized > _inferred > deterministic`, `_overrides` layered on top, override-clear behavior |
 | [backend/cache.py](../../backend/cache.py) | `backend/tests/test_cache_schema.py` | in-memory DB: users/profiles/flights CRUD, `claim_orphan_profile` idempotency, `password_reset_tokens` single-use enforcement |
 | [backend/test_fixtures.py](../../backend/test_fixtures.py) | `backend/tests/test_test_fixtures.py` | each fixture deserializes against `RecommendationResponse` (catches schema drift) |

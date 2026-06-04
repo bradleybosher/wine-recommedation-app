@@ -32,7 +32,7 @@ Load/save user's wine cellar inventory (CellarTracker TSV export); pre-filter re
 
 ## Constants
 
-**`_WINE_STYLE_KEYWORDS`** — 200+ known wine terms: red/white varietals, sparkling types, regions (Burgundy, Barolo, Napa, etc.), blends, and style descriptors. Used in `filter_wine_list()` and `extract_terms_from_wine_list_text()`. All matching is accent-folded and case-insensitive.
+**`_WINE_STYLE_KEYWORDS`** — 200+ known wine terms: red/white varietals, sparkling types, regions (Burgundy, Barolo, Napa, etc.), blends, and style descriptors. Used in `filter_wine_list()` and `extract_terms_from_wine_list_text()`. All matching is accent-folded and case-insensitive. Pre-folded once at module load into `_FOLDED_WINE_STYLE_KEYWORDS` (parallel list) and `_WINE_STYLE_KEYWORD_PAIRS` (`(canonical, folded)` tuples), so the static keyword set is never re-folded inside the per-request hot paths.
 
 **`_WINE_ESTATE_WORDS`** — Producer structural words: `château`, `domaine`, `clos`, `tenuta`, `weingut`, `winery`, `vineyard`, `cantina`, etc. Pre-folded into `_FOLDED_ESTATE_WORDS` at module load.
 
@@ -88,7 +88,7 @@ Load/save user's wine cellar inventory (CellarTracker TSV export); pre-filter re
 ### Wine List Keyword Extraction
 
 **`extract_terms_from_wine_list_text(text: str) → list[str]`**
-- Scan raw restaurant wine list text for matches in `_WINE_STYLE_KEYWORDS`
+- Scan raw restaurant wine list text for matches in `_WINE_STYLE_KEYWORDS` (via the pre-folded `_WINE_STYLE_KEYWORD_PAIRS`, returning the canonical un-folded keyword)
 - Deduplicates, then returns sorted longest-first (multi-word terms before component words)
 - Output is used as `restaurant_terms` for `get_relevant_bottles()`
 
@@ -105,7 +105,7 @@ Two-phase pipeline that strips non-wine content before the text reaches the LLM.
 **Phase 1 — dictionary pass:**
 - `_is_wine_line(line, folded_wine_keywords)` → keeps lines that have at least one of: vintage year (1990–2029), wine keyword, or estate structural word; drops lines that only have a keyword/estate word AND also contain a food keyword
 
-Returns filtered text — one entry per line, blank lines removed. Falls back to original text on any unexpected error (never raises).
+Returns filtered text — one entry per line, blank lines removed. Falls back to original text on any unexpected error (never raises). The `folded_wine_keywords` passed to the phase predicates is the module-level `_FOLDED_WINE_STYLE_KEYWORDS` (folded once at import), not re-folded per call.
 
 #### Helper predicates
 
