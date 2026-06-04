@@ -74,6 +74,7 @@ Profile source (one of, per profile):
 
 ## Docs
 - `docs/llm/MEMORY.md` — master index; `docs/llm/context-guide.md` — task-to-doc mapping
+- `docs/BEST_PRACTICES.md`: coding standards for Claude Code (Python/FastAPI + React/TS). Read at task start.
 
 ### Documentation Update Protocol (mandatory — complete before closing any task)
 
